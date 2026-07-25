@@ -1,0 +1,67 @@
+---
+/**
+ * Un'immagine dentro un case study, con didascalia.
+ * Usabile direttamente dentro il corpo MDX.
+ *
+ * `loading="lazy"` senza eccezioni: nessuna immagine nel corpo è sopra la piega,
+ * quindi nessuna deve competere con l'LCP.
+ */
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string;
+  /** `wide` esce dalla misura del testo e va a tutta colonna. */
+  size?: 'text' | 'wide';
+}
+
+const { src, alt, caption, size = 'text' } = Astro.props;
+---
+
+<figure class={`fig fig--${size}`} data-reveal>
+  <div class="fig__frame clip-frame">
+    <Picture
+      src={src}
+      alt={alt}
+      widths={[480, 800, 1200, 1600]}
+      sizes={size === 'wide' ? '(min-width: 56.25rem) 60vw, 92vw' : '(min-width: 56.25rem) 34rem, 92vw'}
+      formats={['avif', 'webp']}
+      loading="lazy"
+      decoding="async"
+      class="fig__img"
+    />
+  </div>
+  {caption && <figcaption class="fig__cap">{caption}</figcaption>}
+</figure>
+
+<style>
+  .fig {
+    margin-block: clamp(2rem, 4vw, 3rem);
+  }
+
+  .fig--wide {
+    /* Esce dalla misura del testo senza uscire dal contenitore di pagina. */
+    width: min(100%, 60rem);
+  }
+
+  .fig__frame {
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-1);
+  }
+
+  .fig__img {
+    width: 100%;
+    height: auto;
+  }
+
+  .fig__cap {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.06em;
+    color: var(--color-text-3);
+  }
+</style>

@@ -1,0 +1,42 @@
+---
+/**
+ * Citazione in evidenza dentro un capitolo. Rompe il ritmo del testo e dà un
+ * appiglio visivo su un case study lungo.
+ */
+interface Props {
+  cite?: string;
+}
+const { cite } = Astro.props;
+---
+
+<blockquote class="cq" data-reveal>
+  <p class="cq__text"><slot /></p>
+  {cite && <cite class="cq__cite">{cite}</cite>}
+</blockquote>
+
+<style>
+  .cq {
+    margin-block: clamp(2rem, 4vw, 3rem);
+    padding-left: clamp(1rem, 2vw, 1.75rem);
+    border-left: 2px solid var(--color-accent);
+  }
+
+  .cq__text {
+    font-size: var(--text-h3);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    max-width: 26ch;
+    text-wrap: balance;
+  }
+
+  .cq__cite {
+    display: block;
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-style: normal;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+</style>

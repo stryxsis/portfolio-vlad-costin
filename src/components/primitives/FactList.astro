@@ -1,0 +1,80 @@
+---
+/**
+ * Una lista di fatti come <dl>.
+ *
+ * È la primitiva con il rapporto valore/costo più alto del sito per il GEO: un
+ * <dl> dichiara esplicitamente coppie etichetta→valore, quindi un motore di
+ * risposta può estrarre "anno: 2024" senza dover interpretare una frase.
+ */
+export interface Fact {
+  label: string;
+  value: string;
+  /** Se presente, il valore diventa un link. */
+  href?: string;
+}
+
+interface Props {
+  items: Fact[];
+  class?: string;
+}
+const { items, class: className } = Astro.props;
+---
+
+<dl class={`facts ${className ?? ''}`}>
+  {
+    items.map((f) => (
+      <div class="facts__row">
+        <dt>{f.label}</dt>
+        <dd>
+          {f.href ? (
+            <a href={f.href} rel="noopener">
+              {f.value}
+            </a>
+          ) : (
+            f.value
+          )}
+        </dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .facts {
+    display: grid;
+    gap: 1.5rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, auto));
+  }
+
+  .facts__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  dd {
+    font-size: var(--text-sm);
+    color: var(--color-text-1);
+    overflow-wrap: anywhere;
+  }
+
+  dd a {
+    color: var(--color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms var(--ease-snappy);
+  }
+  dd a:hover {
+    border-bottom-color: var(--color-accent);
+  }
+</style>

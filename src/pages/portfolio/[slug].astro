@@ -1,0 +1,33 @@
+---
+/**
+ * La rotta dinamica dei case study.
+ *
+ * Il parametro si chiama `slug` e riceve `entry.id`: in Astro 6+ `entry.slug`
+ * non esiste più, l'id è già slugificato da github-slugger (quindi
+ * "Progetto Alfa.mdx" → "progetto-alfa").
+ *
+ * `render(entry)` si importa da `astro:content`: `entry.render()` è stato
+ * rimosso.
+ */
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import CaseStudyLayout from '../../layouts/CaseStudyLayout.astro';
+import { allProjects, projectNeighbours } from '../../lib/collections';
+
+export const getStaticPaths = (async () => {
+  const projects = await allProjects();
+  return Promise.all(
+    projects.map(async (project) => ({
+      params: { slug: project.id },
+      props: { project, ...(await projectNeighbours(project.id)) },
+    }))
+  );
+}) satisfies GetStaticPaths;
+
+const { project, next } = Astro.props;
+const { Content } = await render(project);
+---
+
+<CaseStudyLayout project={project} next={next}>
+  <Content />
+</CaseStudyLayout>

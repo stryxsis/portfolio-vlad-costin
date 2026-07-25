@@ -1,0 +1,165 @@
+---
+/**
+ * Indice del portfolio.
+ * Milestone 5: elenco funzionante, così i link della navbar non sono rotti.
+ * L'hero animato e la griglia non ortogonale arrivano nel milestone 8.
+ */
+import { Picture } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionIndex from '../../components/primitives/SectionIndex.astro';
+import { allProjects } from '../../lib/collections';
+
+const projects = await allProjects();
+---
+
+<BaseLayout
+  title="Portfolio"
+  description="I lavori di Vlad Costin: case study con contesto, sfida, processo e risultato."
+>
+  <section class="pf" data-section>
+    <div class="pf__wrap">
+      <div class="pf__head">
+        <SectionIndex n="00" label={`Lavori · ${projects.length}`} />
+        <h1 class="pf__title">Lavori</h1>
+        <p class="pf__lede" data-split="lines">
+          Ogni progetto qui sotto ha una pagina che spiega il contesto, il problema,
+          come l'ho affrontato e cosa è cambiato dopo. Niente slide, niente mockup finti.
+        </p>
+      </div>
+
+      <ul class="pf__grid">
+        {
+          projects.map((p, i) => (
+            <li class="pf__item" data-reveal>
+              <a class="pf__card" href={`/portfolio/${p.id}`}>
+                <span class="pf__n">{String(i + 1).padStart(2, '0')}</span>
+                <div class="pf__frame clip-frame">
+                  <Picture
+                    src={p.data.cover}
+                    alt={p.data.coverAlt}
+                    widths={[400, 700, 1000]}
+                    sizes="(min-width: 56.25rem) 40vw, 92vw"
+                    formats={['avif', 'webp']}
+                    loading={i < 2 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    class="pf__img"
+                  />
+                </div>
+                <h2 class="pf__name">{p.data.title}</h2>
+                <p class="pf__sub">{p.data.subtitle}</p>
+                <p class="pf__meta">{p.data.year} · {p.data.role}</p>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .pf {
+    padding-top: calc(var(--nav-h) + clamp(3rem, 8vh, 6rem));
+    padding-bottom: var(--spacing-section);
+  }
+
+  .pf__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .pf__title {
+    margin-top: 1.5rem;
+    font-size: var(--text-mega);
+    line-height: 0.84;
+    letter-spacing: -0.045em;
+  }
+
+  .pf__lede {
+    margin-top: 1.5rem;
+    max-width: min(44ch, 100%);
+    font-size: var(--text-lede);
+    color: var(--color-text-2);
+  }
+
+  .pf__grid {
+    display: grid;
+    gap: clamp(2.5rem, 5vw, 4rem);
+    margin-top: clamp(4rem, 8vw, 7rem);
+    list-style: none;
+    padding: 0;
+  }
+  @media (min-width: 56.25rem) {
+    .pf__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Stretched link: un solo <a> reale, l'intera card cliccabile via ::after.
+     Mantiene un solo link nell'albero di accessibilità e non rompe
+     middle-click, Cmd-click e anteprima del link. */
+  .pf__card {
+    position: relative;
+    display: grid;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .pf__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    color: var(--color-text-3);
+  }
+
+  .pf__frame {
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-1);
+  }
+
+  .pf__img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    transition: transform 420ms var(--ease-out-expo);
+  }
+
+  .pf__name {
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--color-text-1);
+    transition: color 240ms var(--ease-snappy);
+  }
+  /* L'::after copre la card: un solo link, nessun handler JS. */
+  .pf__name::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .pf__sub {
+    max-width: 40ch;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  .pf__meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  /* Hover: solo transform e color. Nessuna proprietà che costi un layout. */
+  .pf__card:hover .pf__img {
+    transform: scale(1.04);
+  }
+  .pf__card:hover .pf__name {
+    color: var(--color-accent);
+  }
+</style>

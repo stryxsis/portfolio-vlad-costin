@@ -1,0 +1,83 @@
+---
+# ============================================================================
+# DUPLICA QUESTO FILE per aggiungere un progetto.
+#   1. copialo e rinominalo:  nome-del-progetto.mdx
+#      (il nome del file diventa l'URL: /portfolio/nome-del-progetto)
+#   2. metti la cover in       src/assets/progetti/nome-del-progetto/cover.jpg
+#   3. compila i campi qui sotto
+#   4. scrivi il testo dentro i quattro <Chapter>
+#
+# I file che iniziano con _ NON vengono pubblicati: questo template resta qui.
+# ============================================================================
+
+title: 'Nome del progetto'
+subtitle: 'Una riga che dice cosa è, non quanto è bello'
+# Max 160 caratteri: oltre, Google tronca.
+description: 'Cosa ho costruito, per chi, e cosa è cambiato dopo. In una frase.'
+
+client: 'Nome del cliente'      # opzionale: togli la riga se non c'è
+role: 'Sviluppo full-stack'
+year: 2026
+pubDate: 2026-01-01
+# updatedDate: 2026-03-01       # opzionale
+
+stack:
+  - Astro
+  - TypeScript
+
+# Risultati MISURATI. Stanno qui e non nel testo perché vengono resi come riga
+# di statistiche e riusati nei dati strutturati. Se non hai numeri veri, togli
+# tutta la sezione: un numero inventato è peggio di nessun numero.
+metrics:
+  - label: 'Tempo di caricamento'
+    value: '-60%'
+
+cover: ../../assets/progetti/nome-del-progetto/cover.jpg
+coverAlt: 'Descrizione di cosa si vede nella cover'
+
+# gallery:
+#   - src: ../../assets/progetti/nome-del-progetto/01.jpg
+#     alt: 'Cosa si vede'
+
+# liveUrl: 'https://esempio.it'
+# repoUrl: 'https://github.com/...'
+
+featured: false      # true = compare in evidenza nella home (max 3)
+order: 999           # più basso = più in alto nella griglia
+span: small          # small | wide | tall | full  → ampiezza nella griglia
+draft: true          # finché è true non viene pubblicato
+---
+
+import Chapter from '../../components/case-study/Chapter.astro';
+import CaseFigure from '../../components/case-study/CaseFigure.astro';
+import CaseQuote from '../../components/case-study/CaseQuote.astro';
+
+<Chapter id="contesto">
+
+Da dove si parte. Chi è il cliente, cosa faceva prima, perché mi ha cercato.
+Due o tre paragrafi, niente di più.
+
+</Chapter>
+
+<Chapter id="sfida">
+
+Il problema vero, non quello dichiarato. Cosa rendeva la cosa difficile:
+vincoli tecnici, tempi, dati sporchi, persone.
+
+</Chapter>
+
+<Chapter id="processo">
+
+Come l'ho affrontato, in ordine. Qui puoi usare `###` per i sottotitoli,
+elenchi, immagini e citazioni:
+
+{/* <CaseFigure src={...} alt="..." caption="..." size="wide" /> */}
+
+</Chapter>
+
+<Chapter id="risultato">
+
+Cosa è cambiato. Se hai numeri, sono già nel frontmatter come `metrics`:
+qui racconti cosa significano.
+
+</Chapter>

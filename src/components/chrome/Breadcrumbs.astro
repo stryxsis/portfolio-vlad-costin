@@ -1,0 +1,71 @@
+---
+/**
+ * Breadcrumb VISIBILI, non solo JSON-LD.
+ * I dati strutturati dichiarano la gerarchia alle macchine; il breadcrumb
+ * visibile la dichiara alle persone. Servono entrambi, e devono coincidere.
+ */
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  items: Crumb[];
+}
+const { items } = Astro.props;
+---
+
+<nav class="crumbs" aria-label="Percorso">
+  <ol>
+    {
+      items.map((c, i) => (
+        <li>
+          {c.href ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}
+          {i < items.length - 1 && <span class="crumbs__sep" aria-hidden="true">/</span>}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+  }
+
+  .crumbs li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .crumbs {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  .crumbs a {
+    color: var(--color-text-3);
+    text-decoration: none;
+    transition: color 200ms var(--ease-snappy);
+  }
+  .crumbs a:hover {
+    color: var(--color-accent);
+  }
+
+  .crumbs [aria-current='page'] {
+    color: var(--color-text-1);
+  }
+
+  .crumbs__sep {
+    color: var(--color-hairline-strong);
+  }
+</style>

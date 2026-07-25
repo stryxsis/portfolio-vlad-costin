@@ -1,0 +1,93 @@
+---
+/**
+ * L'UNICO componente che devi conoscere per scrivere un case study.
+ *
+ * Perché esiste, invece di quattro campi stringa nel frontmatter: YAML
+ * multi-riga è indentation-sensitive, non rende markdown, non accetta immagini,
+ * e un due punti di troppo rompe la build. Qui dentro scrivi markdown normale.
+ *
+ * Cosa garantisce, senza che tu ci pensi:
+ *  - emette sempre <h2>, quindi la gerarchia dei heading resta corretta
+ *    (dentro il capitolo usi ###)
+ *  - applica `data-reveal`, quindi l'animazione allo scroll si attacca da sola
+ *  - ogni capitolo è una <section id> autocontenuta: è la forma che un motore
+ *    di risposta generativo estrae e cita
+ */
+import { CHAPTERS, type ChapterId } from '../../lib/chapters';
+
+interface Props {
+  /** Tipo unione: un typo è un errore di build, non un layout rotto. */
+  id: ChapterId;
+  /** Titolo specifico per questo progetto, es. "Perché il gestionale non bastava". */
+  title?: string;
+}
+
+const { id, title } = Astro.props;
+const meta = CHAPTERS[id];
+---
+
+<section id={id} class="chapter" aria-labelledby={`${id}-h`} data-reveal>
+  <header class="chapter__head">
+    <span class="chapter__n" aria-hidden="true">{meta.n}</span>
+    <h2 id={`${id}-h`} class="chapter__title">{title ?? meta.title}</h2>
+  </header>
+  <div class="prose chapter__body"><slot /></div>
+</section>
+
+<style>
+  .chapter {
+    display: grid;
+    gap: 1.5rem;
+    padding-block: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--color-hairline);
+  }
+
+  @media (min-width: 56.25rem) {
+    .chapter {
+      grid-template-columns: 4rem minmax(0, 1fr);
+      gap: 0 clamp(2rem, 4vw, 4rem);
+    }
+    .chapter__head {
+      display: contents;
+    }
+  }
+
+  .chapter__head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  /* Il numero resta agganciato mentre si legge il capitolo: dice "sei qui"
+     senza aggiungere una barra di progresso. */
+  .chapter__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    color: var(--color-text-3);
+  }
+  @media (min-width: 56.25rem) {
+    .chapter__n {
+      position: sticky;
+      top: calc(var(--nav-h) + 1.5rem);
+      align-self: start;
+    }
+  }
+
+  .chapter__title {
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    max-width: 24ch;
+  }
+
+  .chapter__body {
+    max-width: var(--container-body);
+  }
+  @media (min-width: 56.25rem) {
+    .chapter__body {
+      grid-column: 2;
+    }
+  }
+</style>
