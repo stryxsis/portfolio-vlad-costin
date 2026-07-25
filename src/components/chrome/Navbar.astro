@@ -131,7 +131,13 @@ const isCurrent = (href: string) => path === href;
       gap: 1.25rem;
       border-radius: var(--radius-pill);
       border-color: var(--color-hairline);
-      background-color: color-mix(in oklab, var(--color-canvas) 82%, transparent);
+      /* 92% e non 82%: la navbar passa SOPRA le due sezioni full-bleed chiare, e
+         a 82% la carta traspare abbastanza da portare il pill a un grigio medio
+         (#343434). Restava conforme — 4.9:1 coi link — ma leggeva come slavato
+         invece che come scelto. A 92% resta near-black su qualunque fondo: la
+         chrome appartiene alla stanza scura, e le sezioni chiare sono finestre
+         che le passano dietro. */
+      background-color: color-mix(in oklab, var(--color-canvas) 92%, transparent);
       backdrop-filter: blur(14px);
     }
   }
@@ -213,7 +219,7 @@ const isCurrent = (href: string) => path === href;
   /* -- Menu mobile ------------------------------------------------------- */
   .nav__mobile {
     width: 100%;
-    background-color: color-mix(in oklab, var(--color-canvas) 88%, transparent);
+    background-color: color-mix(in oklab, var(--color-canvas) 94%, transparent);
     backdrop-filter: blur(14px);
   }
   @media (min-width: 56.25rem) {

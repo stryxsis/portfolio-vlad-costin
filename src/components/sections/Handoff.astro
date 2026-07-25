@@ -1,0 +1,152 @@
+---
+/**
+ * M12 — OVERLAP-STICKY HANDOFF. Il meccanismo centrale della coreografia.
+ *
+ * Il cambio di palette NON è un'animazione di colore: è OCCLUSIONE. La sezione
+ * uscente resta incollata (`position: sticky; top: 0`) e la entrante, che ha un
+ * fondo opaco e sta più avanti nel DOM, le scorre sopra coprendola. Costo per
+ * frame: zero paint. Ed è la risposta sia al "voglio fluidità, non sezioni
+ * impilate" sia al requisito di performance — la stessa scelta risolve entrambi.
+ *
+ * ⚠ IL VINCOLO GEOMETRICO, che è il motivo per cui questo wrapper esiste.
+ * Un elemento sticky smette di essere incollato a
+ *   (altezza del blocco contenitore − altezza propria).
+ * La entrante inizia a coprire quando il suo bordo superiore arriva a viewport
+ * top, cioè dopo aver scrollato `offsetDellaEntrante` dentro il contenitore.
+ * Perché la copertura avvenga MENTRE l'uscente è ancora incollata serve:
+ *
+ *   offsetEntrante ≤ altezzaContenitore − altezzaSchermo
+ *   (schermo + viaggio) ≤ (schermo + viaggio + hEntrante) − schermo
+ *   ⟹ hEntrante ≥ altezzaSchermo
+ *
+ * Se la entrante è più bassa di uno schermo, sticky e occlusione COMBACIANO
+ * invece di sovrapporsi: l'uscente si sgancia nell'istante esatto in cui la
+ * entrante inizia a entrare, e l'effetto non c'è. Per questo `.ho__in` ha
+ * `min-height: 100svh` — il vincolo è reso vero dal CSS, non affidato a chi usa
+ * il componente.
+ *
+ * Perché serve anche il WRAPPER e non basta rendere sticky la sezione: la corsa
+ * dello sticky è limitata dal blocco contenitore. Senza wrapper il contenitore
+ * sarebbe `<main>`, e l'uscente resterebbe incollata dietro TUTTE le sezioni
+ * successive — visibile in ogni buco lasciato da un fondo non opaco.
+ *
+ * Nessun `pin: true` e nessun JS: l'occlusione è CSS puro e funziona anche senza
+ * JavaScript. Il JS aggiunge solo il rientro dell'uscente (vedi stage.ts).
+ */
+interface Props {
+  /**
+   * Nome che accoppia schermo e occlusore per il rientro in stage.ts.
+   * Deve essere unico nella pagina.
+   */
+  name: string;
+  /**
+   * Fondo della sezione ENTRANTE. Deve essere OPACO: è l'opacità a produrre
+   * l'occlusione. `canvas` serve per i passaggi senza cambio di palette, dove
+   * l'effetto è "la sezione nuova emerge attraverso quella vecchia".
+   */
+  tone: 'canvas' | 'paper' | 'accent';
+  /**
+   * Corsa di scroll extra fra schermo e entrante, per le stage che devono
+   * svolgersi nel tempo (i piatti di §30). In `svh`. Senza JS non viene
+   * renderizzata: sarebbe solo scroll vuoto.
+   */
+  travel?: number;
+}
+const { name, tone, travel } = Astro.props;
+
+/* Le classi che in global.css riportano il focus ring a un colore leggibile
+   sopra i fondi invertiti. */
+const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent' } as const;
+---
+
+<div class="ho">
+  <div class="ho__out" data-screen={name}>
+    <slot name="out" />
+  </div>
+
+  {
+    travel && (
+      <div
+        class="ho__travel"
+        style={`--travel: ${travel}svh`}
+        data-travel={name}
+        aria-hidden="true"
+      />
+    )
+  }
+
+  <div class:list={['ho__in', `ho__in--${tone}`, TONE_CONTEXT[tone]]} data-occludes={name}>
+    <slot name="in" />
+  </div>
+</div>
+
+<style>
+  /* NESSUN overflow e NESSUN contain qui: entrambi renderebbero il wrapper un
+     contenitore di scroll o di paint, e uno sticky discendente si aggancerebbe a
+     lui invece che alla viewport. È il vincolo numero uno da non rompere in
+     nessun antenato di una stage. */
+  .ho {
+    position: relative;
+  }
+
+  .ho__in {
+    position: relative;
+    /* Sopra l'uscente: entrambi sono posizionati, quindi vince l'ordine nel DOM,
+       ma lo z-index esplicito rende l'intenzione leggibile. */
+    z-index: 1;
+    /* Vedi il vincolo geometrico in testa al file: sotto uno schermo l'effetto
+       non esiste. 104 e non 100: a 100 esatti il limite è soddisfatto per un
+       pelo — la copertura si completa nell'istante preciso in cui lo sticky si
+       sgancia — e basta un pixel di crescita della sezione uscente per passare
+       dall'altra parte del vincolo. Il 4% è il margine che rende l'invariante
+       robusta invece che fortunata; `verify-stage.mjs` pretende che ci sia. */
+    min-height: 104svh;
+  }
+
+  .ho__in--canvas {
+    background-color: var(--color-canvas);
+  }
+  .ho__in--paper {
+    background-color: var(--color-paper);
+    color: var(--color-paper-text-1);
+  }
+  .ho__in--accent {
+    background-color: var(--color-accent);
+    /* Sul fondo accento pieno la tipografia è near-black, mai bianca: più
+       editoriale, e l'unica delle due combinazioni che passa AA. */
+    color: var(--color-canvas);
+  }
+
+  /* Sotto i 900px niente stage: sezioni in fila, nessuno sticky, nessuna corsa
+     di scroll vuota. 900px è la soglia di motion di tutto il sito. */
+  .ho__travel {
+    display: none;
+  }
+
+  /* ⚠ LO STICKY È GATATO SU `js-anim`, e non per prudenza generica.
+     Senza JS la stage §30 torna in flusso normale: i tre piatti si impilano e la
+     sezione uscente diventa alta ~2100px. Un elemento sticky più alto della
+     viewport incolla il proprio bordo SUPERIORE, e tutto il resto diventa
+     irraggiungibile — due progetti su tre spariti. Quindi senza JS niente sticky
+     e niente occlusione: pagina impilata, tutto leggibile. È lo stesso principio
+     del pre-hiding dei reveal — nessuno stato in cui il contenuto è inaccessibile.
+
+     Corollario: l'occlusione M12 richiede il JS, anche se non è il JS a
+     produrla. Non perché serva ad animarla, ma perché serve a garantire che le
+     sezioni uscenti stiano in uno schermo. */
+  @media (min-width: 56.25rem) {
+    :global(html.js-anim) .ho__out {
+      position: sticky;
+      top: 0;
+    }
+    :global(html.js-anim) .ho__travel {
+      display: block;
+      height: var(--travel);
+    }
+  }
+
+  /* Nessun blocco `prefers-reduced-motion: reduce`: `js-anim` viene aggiunta
+     dallo script inline solo con `no-preference`, quindi gatare sulla classe
+     copre già il movimento ridotto. Con `reduce` non c'è sticky, non c'è corsa,
+     e le sezioni sono semplicemente in fila. */
+</style>

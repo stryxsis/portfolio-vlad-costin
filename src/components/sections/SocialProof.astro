@@ -1,0 +1,174 @@
+---
+/**
+ * §20 SOCIAL PROOF
+ *
+ * I loghi non ci sono ancora, quindi rende i nomi trattati tipograficamente. Il
+ * componente passa da solo ai loghi quando arriveranno: basta aggiungere `logo`
+ * alle voci in src/data/clients.ts, senza toccare questo file.
+ *
+ * `kind` è etichettato per quello che è. Chiamare "cliente" un'azienda in cui si
+ * è stati dipendenti è il genere di ambiguità che un lettore attento nota
+ * subito, e costa più credibilità di quanta ne porti. Qui il gruppo lo dichiara.
+ *
+ * È LA SEZIONE PIÙ TRANQUILLA del sito, e per scelta: nessun handoff in uscita,
+ * nessuna stage, un solo reveal. Serve a far pesare la stage che arriva dopo —
+ * il ritmo si costruisce anche con le pause, non solo con gli eventi.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+import { CLIENTS } from '../../data/clients';
+
+const GROUPS = [
+  { kind: 'lavoro' as const, label: 'Dove ho lavorato' },
+  { kind: 'studio' as const, label: 'Dove ho studiato' },
+  { kind: 'cliente' as const, label: 'Per chi ho lavorato' },
+];
+
+const groups = GROUPS.map((g) => ({
+  ...g,
+  items: CLIENTS.filter((c) => c.kind === g.kind),
+})).filter((g) => g.items.length > 0);
+---
+
+<section class="sp" data-section id="dove">
+  <div class="sp__grid">
+    <div class="sp__idx">
+      <SectionIndex n="20" label="Dove" />
+    </div>
+
+    <div class="sp__body">
+      <h2 class="sp__title" data-split="lines">
+        Aule e uffici veri, non un elenco di loghi presi da internet.
+      </h2>
+
+      {/* La deriva orizzontale in scrub è l'unico movimento della sezione. */}
+      <div class="sp__drift" data-drift>
+        {
+          groups.map((g) => (
+            <div class="sp__group" data-reveal>
+              <p class="sp__label">{g.label}</p>
+              <ul class="sp__list">
+                {g.items.map((c) => (
+                  <li class="sp__item">
+                    {c.url ? (
+                      <a href={c.url} class="sp__link" rel="noopener" target="_blank">
+                        {c.name}
+                      </a>
+                    ) : (
+                      <span class="sp__name">{c.name}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sp {
+    padding-block: var(--spacing-section);
+  }
+
+  .sp__grid {
+    display: grid;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    gap: 2rem;
+  }
+  @media (min-width: 56.25rem) {
+    .sp__grid {
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .sp__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .sp__body {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+    }
+  }
+
+  .sp__title {
+    max-width: 22ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  .sp__drift {
+    display: grid;
+    gap: clamp(2.5rem, 5vw, 4rem);
+    margin-top: clamp(3rem, 7vw, 6rem);
+  }
+
+  .sp__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  .sp__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem clamp(1.5rem, 3.5vw, 3.5rem);
+    margin-top: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* I nomi sono trattati come tipografia, non come chip in una scatola: nessun
+     bordo, nessun fondo. Quando arriveranno i loghi SVG monocromatici prendono
+     esattamente questo posto e questa altezza. */
+  .sp__item {
+    font-size: var(--text-h3);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    color: var(--color-text-2);
+  }
+
+  .sp__name {
+    display: inline-block;
+  }
+
+  .sp__link {
+    display: inline-block;
+    color: inherit;
+    text-decoration: none;
+    /* Il filetto in hover è un pseudo-elemento che scala: nessuna animazione di
+       `text-decoration`, che costerebbe un paint del testo. */
+    position: relative;
+  }
+  .sp__link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.15em;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 320ms var(--ease-out-expo);
+  }
+  @media (hover: hover) {
+    .sp__link:hover {
+      color: var(--color-text-1);
+    }
+    .sp__link:hover::after {
+      transform: scaleX(1);
+    }
+  }
+  .sp__link:focus-visible::after {
+    transform: scaleX(1);
+  }
+</style>

@@ -8,7 +8,8 @@
  * condiviso), poi i reveal e la navbar, che dipendono da quello.
  */
 import { initScroll } from './scroll';
-import { initReveal, showEverything } from './reveal';
+import { initReveal, initSectionState, showEverything } from './reveal';
+import { initStages } from './stage';
 import { initNav } from './nav';
 
 declare global {
@@ -30,7 +31,12 @@ function boot(): void {
 
     initScroll();
     initReveal();
+    initStages();
     initNav();
+
+    // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
+    // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).
+    initSectionState();
   } catch (err) {
     // Se l'inizializzazione fallisce, il contenuto pre-nascosto resterebbe
     // invisibile: un sito rotto è peggio di un sito senza animazioni.

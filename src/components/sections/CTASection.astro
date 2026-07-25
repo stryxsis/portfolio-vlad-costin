@@ -1,0 +1,128 @@
+---
+/**
+ * §70 CTA — l'inversione SEGNALE.
+ *
+ * Delle due inversioni full-bleed del sito questa è "agire, adesso": il fondo è
+ * l'accento pieno, l'unico punto in cui il budget dell'accento è il 100% dei
+ * pixel per scelta. La tipografia sopra è NEAR-BLACK e non bianca — più
+ * editoriale, e l'unica delle due combinazioni conforme AA.
+ *
+ * Come lo statement, non ha numero d'indice: è una dichiarazione, non contenuto.
+ *
+ * Il fondo opaco è ciò che occlude la sezione precedente (M12): il colore non
+ * viene animato, arriva coprendo. Vedi Handoff.astro.
+ */
+import Button from '../primitives/Button.astro';
+import { SITE } from '../../lib/site';
+---
+
+<section class="cta" id="scrivimi">
+  <div class="cta__wrap">
+    <p class="cta__label">Il pezzo che manca</p>
+
+    <h2 class="cta__title" data-split="words">Raccontami cosa ti serve.</h2>
+
+    <p class="cta__lede">
+      Rispondo io, non un modulo automatico. Anche solo per capire se ha senso
+      lavorare insieme.
+    </p>
+
+    <div class="cta__actions">
+      <Button href="/contatti" variant="filled" tone="accent">Apri il form</Button>
+      {/* Il mailto reale sta sempre in chiaro: la pagina non è mai un vicolo
+          cieco, nemmeno se il form si rompe o il JS non parte. */}
+      <a class="cta__mail" href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Nessun `background-color` qui: lo mette `.ho__in--accent` del Handoff, che è
+     l'elemento che DEVE essere opaco per occludere. Metterlo anche qui vorrebbe
+     dire due dichiarazioni dello stesso colore che possono divergere. */
+  .cta {
+    display: grid;
+    /* minmax(0, 1fr) e non la colonna implicita `auto`: una traccia `auto` si
+       dimensiona sul max-content del figlio e può superare il contenitore, che è
+       la causa classica dell'overflow orizzontale in grid. Misurato: senza
+       questa riga il documento andava a 423px su una viewport da 390. */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    min-height: 100svh;
+    /* Come per lo statement: il respiro viene da `min-height` più un contenuto
+       corto, non dal padding. Con `--spacing-statement` la sezione arrivava a
+       1132px e il titolo restava tagliato dal bordo alto della viewport. */
+    padding-block: clamp(3rem, 8vh, 6rem);
+  }
+
+  .cta__wrap {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .cta__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent-text-2);
+  }
+
+  .cta__title {
+    margin-top: clamp(1.5rem, 4vw, 3rem);
+    /* 14 caratteri: la misura più corta del sito. */
+    max-width: 14ch;
+    font-size: var(--text-mega);
+    line-height: 0.84;
+    letter-spacing: -0.045em;
+    font-weight: 500;
+  }
+
+  .cta__lede {
+    margin-top: clamp(1.5rem, 3vw, 2.5rem);
+    max-width: 34ch;
+    font-size: var(--text-lede);
+    /* Stesso token del label, e non un alpha più alto: la lede scende a 19px sui
+       viewport stretti, quindi NON è "testo grande" e le serve 4.5:1 pieni.
+       A 0.75 di alpha erano 4.20:1 — passava solo perché a 1440px il corpo
+       arriva a 26px e rientra nella soglia del testo grande. Un contrasto che
+       dipende dalla larghezza della finestra non è conforme, è fortunato. */
+    color: var(--color-accent-text-2);
+  }
+
+  .cta__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .cta__mail {
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.05em;
+    color: var(--color-canvas);
+    text-decoration: none;
+  }
+  .cta__mail::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.25em;
+    height: 1px;
+    background-color: rgb(11 11 12 / 0.45);
+    transform-origin: left;
+    transition: transform 280ms var(--ease-out-expo);
+  }
+  @media (hover: hover) {
+    .cta__mail:hover::after {
+      transform: scaleY(2);
+    }
+  }
+</style>

@@ -7,6 +7,13 @@
  * passando dietro i nodi. Un trigger per segmento costerebbe cinque trigger e
  * darebbe lo stesso risultato visivo.
  *
+ * PER PARAMETRIZZARLA DA FUORI si usano le custom property, non le classi: una
+ * classe passata dalla pagina non riceve lo scope della pagina e non fa niente
+ * (vedi la nota sulla prop `class` qui sotto), mentre una custom property
+ * EREDITA attraverso il confine del componente. Quindi
+ * `.mia-cella { --tl-year-size: 6rem }` sul wrapper funziona, ed è il modo
+ * previsto per ritarare i numerali senza toccare questo file.
+ *
  * Il filetto NON si chiude: sborda sotto l'ultima voce ed esce dal blocco. Il
  * contenitore che usa questo componente non deve quindi avere `overflow: clip`
  * o `hidden` sull'asse verticale, altrimenti la coda viene tagliata e il gesto
@@ -30,8 +37,15 @@ interface Props {
   entries: TimelineEntry[];
   /** Mostra solo le prime N voci: il teaser in Home ne mostra 3, la About tutte. */
   limit?: number;
+  /**
+   * Omette i paragrafi di dettaglio. Serve al teaser della Home, che deve stare
+   * in UNO schermo per poter fare da sezione uscente di un handoff M12 (vedi il
+   * vincolo geometrico in Handoff.astro). È anche coerente col suo ruolo: è un
+   * assaggio, il racconto sta sulla pagina About.
+   */
+  compact?: boolean;
 }
-const { entries, limit } = Astro.props;
+const { entries, limit, compact = false } = Astro.props;
 const items = limit ? entries.slice(0, limit) : entries;
 ---
 
@@ -41,7 +55,11 @@ const items = limit ? entries.slice(0, limit) : entries;
   <ol class="tl__list">
     {
       items.map((entry, i) => (
-        <TimelineItem entry={entry} showYear={items[i - 1]?.year !== entry.year} />
+        <TimelineItem
+          entry={entry}
+          showYear={items[i - 1]?.year !== entry.year}
+          compact={compact}
+        />
       ))
     }
   </ol>

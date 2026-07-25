@@ -112,6 +112,18 @@ await sleep(2500);
    elementi animati allo scroll: `window.scrollTo` non va bene perché Lenis
    intercetta lo scroll e la posizione programmatica litiga con la sua
    interpolazione, mentre un evento wheel è ciò che Lenis si aspetta davvero. */
+/* JUMP=<px|bottom> salta la posizione invece di scorrerla. Non è un modo comodo
+   di scrollare: è uno SCENARIO da testare a parte, perché succede davvero — link
+   ancora, tasto Fine, ripristino della posizione al reload — e un elemento
+   ancora a opacità 0 dopo un salto è contenuto invisibile, cioè il peggior modo
+   di rompersi. */
+if (process.env.JUMP) {
+  const target =
+    process.env.JUMP === 'bottom' ? 'document.documentElement.scrollHeight' : process.env.JUMP;
+  await send('Runtime.evaluate', { expression: `window.scrollTo(0, ${target})` }, sid);
+  await sleep(2200);
+}
+
 const wheels = Number(process.env.WHEEL ?? 0);
 for (let i = 0; i < wheels; i++) {
   await send(
@@ -127,6 +139,8 @@ const expr = `(() => {
   const de = document.documentElement;
   const out = {
     viewport: innerWidth + 'x' + innerHeight,
+    scrollY: Math.round(window.scrollY),
+    docHeight: de.scrollHeight,
     docScrollWidth: de.scrollWidth,
     docClientWidth: de.clientWidth,
     overflowX: de.scrollWidth - de.clientWidth,
@@ -154,10 +168,15 @@ const expr = `(() => {
       out.boxes[sel + (i ? '[' + i + ']' : '')] = {
         w: Math.round(r.width), h: Math.round(r.height),
         left: Math.round(r.left), right: Math.round(r.right),
+        // Offset nel DOCUMENTO, non nella viewport: è quello che serve per
+        // sapere a che scroll si trova una sezione.
+        docTop: Math.round(r.top + window.scrollY),
         maxW: cs.maxWidth, fs: cs.fontSize,
         // Il transform calcolato: serve per i filetti animati, dove l'altezza
         // misurata è 0 a scaleY(0) e il dato utile è la matrice.
         tf: cs.transform,
+        op: cs.opacity,
+        vis: cs.visibility,
       };
     });
   }

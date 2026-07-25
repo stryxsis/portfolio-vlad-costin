@@ -1,0 +1,157 @@
+---
+/**
+ * SEZIONE STATEMENT — l'aside tipografico.
+ *
+ * NON ha numero d'indice, ed è un'assenza deliberata: nel sito ogni sezione di
+ * contenuto è numerata, quindi è la numerazione stessa a dichiarare che questa
+ * non è contenuto ma una pausa. Chi legge non lo formalizza, ma lo sente.
+ *
+ * Un solo corpo tipografico, ~78% di pixel vuoti, misura di 16 caratteri: sono
+ * questi tre numeri a farlo leggere come una dichiarazione invece che come un
+ * paragrafo urlato. Tre righe da 16 caratteri a 176px occupano mezzo schermo.
+ *
+ * È <h2> e non <p>: lo statement È il titolo della sezione, quindi la semantica
+ * è corretta — e in più `aria-label` (che SplitText metterebbe sul contenitore)
+ * è PROIBITO sul ruolo `paragraph`, mentre su un heading no.
+ */
+import type { Statement } from '../../data/statements';
+
+interface Props {
+  statement: Statement;
+  /**
+   * ⚠ `tone` qui governa SOLO il colore dell'accento e della label, non il
+   * fondo. Il fondo lo mette `.ho__in--<tone>` del Handoff che la contiene,
+   * perché è quello l'elemento che DEVE essere opaco per occludere: dichiararlo
+   * anche qui creerebbe due fonti per lo stesso colore, libere di divergere.
+   * Conseguenza: `tone` va tenuto uguale al `tone` del Handoff.
+   */
+  tone?: 'paper' | 'canvas';
+  id?: string;
+}
+const { statement, tone = 'paper', id } = Astro.props;
+
+/**
+ * Spezza il testo nei frammenti da accentare.
+ *
+ * L'alternativa — scrivere l'HTML con gli <em> già dentro la stringa in
+ * statements.ts — è stata scartata: metterebbe markup in un file di dati e
+ * costringerebbe a `set:html`, cioè a rinunciare all'escaping su un testo che si
+ * riscrive spesso. Qui la stringa resta testo puro e l'accento è una lista di
+ * sottostringhe da cercarci dentro.
+ */
+function splitOnAccents(text: string, accents: string[]): { text: string; accent: boolean }[] {
+  // Dalla più lunga: se un accento è contenuto in un altro, va marcato prima
+  // quello lungo, altrimenti il corto lo spezzerebbe a metà.
+  const targets = [...accents].sort((a, b) => b.length - a.length).filter(Boolean);
+  let parts: { text: string; accent: boolean }[] = [{ text, accent: false }];
+
+  for (const target of targets) {
+    parts = parts.flatMap((part) => {
+      if (part.accent) return [part];
+      const i = part.text.indexOf(target);
+      if (i === -1) return [part];
+      return [
+        { text: part.text.slice(0, i), accent: false },
+        { text: target, accent: true },
+        { text: part.text.slice(i + target.length), accent: false },
+      ];
+    });
+  }
+  return parts.filter((p) => p.text.length > 0);
+}
+
+const parts = splitOnAccents(statement.text, [...statement.accent]);
+
+/* Guardia di sviluppo: un accento che non compare nel testo è un errore di
+   battitura che passerebbe inosservato — lo statement si vedrebbe senza
+   accento, cioè quasi identico. Meglio rumoroso, e solo in dev per non far
+   fallire una build di produzione per una virgola. */
+if (import.meta.env.DEV) {
+  const missing = statement.accent.filter((a) => !statement.text.includes(a));
+  if (missing.length > 0) {
+    console.warn(
+      `[Statement] accento non trovato nel testo: ${missing.map((m) => `"${m}"`).join(', ')}`
+    );
+  }
+}
+---
+
+<section class:list={['st', `st--${tone}`]} id={id}>
+  <div class="st__wrap">
+    <p class="st__label">{statement.label}</p>
+    {/* M2 word-mask: è il reveal parola per parola messo dove non costa nulla —
+        sotto la piega, quindi mai candidato LCP. */}
+    <h2 class="st__text" data-split="words">
+      {parts.map((p) => (p.accent ? <em>{p.text}</em> : p.text))}
+    </h2>
+  </div>
+</section>
+
+<style>
+  .st {
+    display: grid;
+    /* Vedi la nota in CTASection: una traccia implicita `auto` si dimensiona sul
+       max-content e sfonda il contenitore. */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    /* Il respiro viene da `min-height: 100svh` più un contenuto corto, NON dal
+       padding: con `--spacing-statement` (fino a 320px per lato) la sezione
+       arrivava a 1489px e lo statement finiva a cavallo di due schermate. */
+    padding-block: clamp(3rem, 8vh, 6rem);
+    min-height: 100svh;
+  }
+
+  .st__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    width: 100%;
+  }
+
+  .st__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .st--paper .st__label {
+    color: var(--color-paper-text-2);
+  }
+  .st--canvas .st__label {
+    color: var(--color-text-3);
+  }
+
+  /* ⚠ LA MISURA E IL NUMERO DI RIGHE VINCONO SULLA DIMENSIONE.
+     Il piano prevedeva `--text-mega` su 16 caratteri, contando su statement di
+     2-3 righe. Lo statement reale è di 76 caratteri: a 176px su 16ch diventa
+     CINQUE righe da 740px, e sommate al padding la sezione superava di molto una
+     schermata — cioè la frase non si vedeva mai tutta insieme. Una dichiarazione
+     che va letta in due schermate non è una dichiarazione, è un paragrafo grande.
+     È la stessa regola già applicata al titolo dell'hero.
+
+     Con 20ch a 84px sono quattro righe da ~310px, che stanno in uno schermo con
+     più di metà dei pixel vuoti. Se un giorno lo statement si accorcia sotto i
+     ~45 caratteri, `--text-mega` torna praticabile. */
+  .st__text {
+    margin-top: clamp(2rem, 4vw, 3rem);
+    max-width: 20ch;
+    font-size: clamp(2rem, 5.2vw, 5.25rem); /* 32 → 84px */
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+
+  .st__text em {
+    font-style: normal;
+  }
+  /* Sul paper l'accento standard (5.80:1 su canvas) diventa illeggibile: qui
+     serve --accent-deep, che è 4.56:1 SUL PAPER. */
+  .st--paper .st__text em {
+    color: var(--color-accent-deep);
+  }
+  .st--canvas .st__text em {
+    color: var(--color-accent);
+  }
+</style>

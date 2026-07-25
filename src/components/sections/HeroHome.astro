@@ -22,10 +22,22 @@ import { Picture } from 'astro:assets';
 import portrait from '../../assets/brand/vlad-portrait.jpg';
 import Button from '../primitives/Button.astro';
 import SectionIndex from '../primitives/SectionIndex.astro';
+
+/**
+ * Proporzione REALE del file, non un numero scritto a mano.
+ *
+ * Serve al CSS per non trovarsi mai due vincoli in conflitto sulle due
+ * dimensioni: senza, `height: 46svh` più `max-width: 68vw` si contendono la
+ * geometria su una viewport alta e stretta, e il ritratto viene schiacciato
+ * (misurato: 0.74 invece di 0.80). Derivandola da `ImageMetadata`, il giorno in
+ * cui la foto placeholder viene sostituita con una di proporzione diversa il
+ * vincolo si aggiorna da sé — che è il punto di "sostituisci un file".
+ */
+const portraitRatio = (portrait.width / portrait.height).toFixed(4);
 ---
 
 <section class="hero" data-section id="inizio">
-  <div class="hero__grid">
+  <div class="hero__grid" style={`--hero-ratio: ${portraitRatio}`}>
     <div class="hero__idx">
       <SectionIndex n="00" label="Inizio" />
     </div>
@@ -141,9 +153,15 @@ import SectionIndex from '../primitives/SectionIndex.astro';
   .hero__img {
     width: auto;
     /* Mobile: alta abbastanza perché il nucleo luminoso resti nel frame dopo
-       che il mask ha consumato i bordi, ma non tanto da spingere il testo giù. */
-    height: 46svh;
-    max-width: 68vw;
+       che il mask ha consumato i bordi, ma non tanto da spingere il testo giù.
+
+       ⚠ UN SOLO VINCOLO ALLA VOLTA. `height` fissa più `max-width` significa due
+       vincoli su due dimensioni diverse: quando entrambi mordono — viewport alta
+       e stretta — la proporzione salta e il ritratto si schiaccia. Qui il limite
+       di larghezza è espresso COME limite di altezza, dividendolo per la
+       proporzione reale del file: la larghezza risultante non può superare 68vw,
+       quindi non serve nessun `max-width` e non c'è niente da contendere. */
+    height: min(46svh, calc(68vw / var(--hero-ratio, 0.8)));
     /* LA DISSOLVENZA. Mask statico: un solo raster, messo in cache dal
        compositor, MAI animato — animare un mask o un blur costerebbe una
        ri-rasterizzazione per frame. Sta in CSS e non cotto nel JPG per poterlo
@@ -188,9 +206,9 @@ import SectionIndex from '../primitives/SectionIndex.astro';
     }
     .hero__img {
       /* Più alta di quanto sembri necessario: il mask consuma i bordi, quindi
-         il nucleo visibile è un'ellisse più piccola del frame. */
+         il nucleo visibile è un'ellisse più piccola del frame. Anche qui un solo
+         vincolo: nessun `max-width` a contendersi la geometria. */
       height: min(74svh, 46rem);
-      max-width: none;
     }
   }
 
@@ -270,13 +288,18 @@ import SectionIndex from '../primitives/SectionIndex.astro';
     gap: 0.75rem;
   }
 
+  /* NESSUNA `opacity` qui. --color-text-3 è il pavimento assoluto del contrasto
+     (4.57:1): un'opacità sopra lo scavalca in silenzio — 0.65 lo portava a
+     2.55:1, cioè sotto AA, senza che nel foglio di stile comparisse alcun colore
+     fuori norma. È il modo più facile di violare la regola credendo di
+     rispettarla, ed è il motivo per cui il pavimento va difeso sul colore
+     calcolato e non sul token dichiarato. */
   .hero__note {
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-text-3);
-    opacity: 0.65;
   }
 
   /* -- Affordance di scroll ---------------------------------------------- */

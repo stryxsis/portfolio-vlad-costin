@@ -30,8 +30,10 @@ interface Props {
    * due volte di fila legge come un errore di rendering, non come struttura.
    */
   showYear?: boolean;
+  /** Omette il dettaglio e stringe il passo: vedi Timeline.astro. */
+  compact?: boolean;
 }
-const { entry, showYear = true } = Astro.props;
+const { entry, showYear = true, compact = false } = Astro.props;
 
 /* `datetime` non ammette intervalli: le due metà del periodo diventano due
    <time> distinti, ognuno con la sua data ISO. È l'unica marcatura corretta di
@@ -41,7 +43,12 @@ const { from, to } = periodParts(entry.from, entry.to);
 const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
 ---
 
-<li class="tli" data-kind={entry.kind} data-current={entry.current ? '' : undefined}>
+<li
+  class="tli"
+  data-kind={entry.kind}
+  data-current={entry.current ? '' : undefined}
+  data-compact={compact ? '' : undefined}
+>
   {
     /* aria-hidden: l'anno è già dentro il <time> qui sotto. Senza, uno screen
        reader annuncerebbe "2017, studio, set 2017, giu 2022". */
@@ -75,7 +82,7 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
     <p class="tli__org">
       {entry.org}{entry.place && <span class="tli__place">, {entry.place}</span>}
     </p>
-    <p class="tli__detail">{entry.detail}</p>
+    {!compact && <p class="tli__detail">{entry.detail}</p>}
   </div>
 </li>
 
@@ -97,6 +104,11 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
       'node body';
     row-gap: 0;
     padding-bottom: clamp(3rem, 6vw, 5.5rem);
+  }
+  /* Senza il dettaglio serve meno respiro sotto: altrimenti le voci compatte
+     galleggiano in uno spazio calibrato su un paragrafo che non c'è. */
+  .tli[data-compact] {
+    padding-bottom: clamp(2rem, 4vw, 3rem);
   }
   @media (min-width: 56.25rem) {
     .tli {

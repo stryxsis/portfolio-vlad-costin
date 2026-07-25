@@ -140,9 +140,30 @@ ok('SplitText NON aggiunge aria-label (proibito su p/div)', p.splitAriaLabel ===
 ok('testo dello statement integro', (p.splitTextContent || '').startsWith('Prima di annoiarti'));
 ok('titolo hero SEMPRE opaco (regola LCP)', p.heroLineOpacities.every((o) => o === '1'), p.heroLineOpacities.join(','));
 
-// Scorri in fondo: i data-reveal devono diventare visibili
-await evaluate(`window.scrollTo(0, document.body.scrollHeight); true`);
-await sleep(2200);
+/**
+ * Scorre con eventi wheel REALI passati da CDP.
+ *
+ * Non si usa `window.scrollTo`: Lenis intercetta lo scroll e, se sta già
+ * interpolando verso un bersaglio (per esempio dopo il test dello smooth scroll
+ * qui sopra), il suo loop rAF sovrascrive la posizione impostata a mano e la
+ * pagina non arriva dove si crede. Una rotellina è invece esattamente ciò che
+ * Lenis si aspetta.
+ */
+async function wheelTo(ticks, delta = 500) {
+  for (let i = 0; i < ticks; i++) {
+    await send(
+      'Input.dispatchMouseEvent',
+      { type: 'mouseWheel', x: 720, y: 450, deltaX: 0, deltaY: delta },
+      sid
+    );
+    await sleep(70);
+  }
+  await sleep(1100);
+}
+
+// Scorrimento normale fino in fondo: alla fine TUTTI i data-reveal devono essere
+// visibili, perché li si è attraversati uno per uno.
+await wheelTo(26);
 const after = await evaluate(PROBE);
 ok(
   'data-reveal visibili dopo lo scroll',
@@ -150,6 +171,23 @@ ok(
   after.revealOpacities.join(',')
 );
 ok('filetto disegnato (scaleX 1)', /matrix\(1,/.test(after.ruleScaleX || ''), after.ruleScaleX);
+
+/* Scenario del SALTO, su una pagina appena caricata (Lenis a riposo, altrimenti
+   sovrascrive la posizione). Tasto Fine, link ancora, ripristino dello scroll al
+   reload: la fascia d'ingresso viene attraversata in un solo update, quindi
+   nessun evento di ingresso scatta. Senza la rete di sicurezza in reveal.ts gli
+   elementi resterebbero invisibili PER SEMPRE — anche continuando a scorrere.
+   È il difetto più grave possibile, ed è il più banale da innescare. */
+await load(URL_);
+await evaluate(`window.scrollTo(0, document.documentElement.scrollHeight); true`);
+await sleep(2400);
+const jumped = await evaluate(PROBE);
+const jumpedY = await evaluate('Math.round(window.scrollY)');
+ok(
+  'salto in fondo: nessun contenuto resta invisibile',
+  jumpedY > 1000 && jumped.revealOpacities.every((o) => Number(o) > 0.9),
+  `scrollY ${jumpedY} · ${jumped.revealOpacities.join(',')}`
+);
 
 /* ---- 2. Reduced motion -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sid);

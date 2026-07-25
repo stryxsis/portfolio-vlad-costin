@@ -1,0 +1,88 @@
+---
+/**
+ * Una testimonianza.
+ *
+ * Esiste già ma non è ancora usata da nessuno: TESTIMONIALS è vuoto di proposito
+ * (vedi src/data/testimonials.ts). Sta qui perché il giorno in cui arriva una
+ * citazione vera il lavoro sia zero — non perché serva adesso.
+ *
+ * <blockquote> + <cite> e non due <p>: la citazione ha una semantica propria, ed
+ * è anche la forma che un motore di risposta riconosce come attribuita a
+ * qualcuno invece che come testo dell'autore del sito.
+ */
+import type { Testimonial } from '../../lib/types';
+
+interface Props {
+  item: Testimonial;
+}
+const { item } = Astro.props;
+---
+
+<figure class="tc" data-reveal>
+  <blockquote class="tc__quote" data-split="lines">
+    {item.quote}
+  </blockquote>
+
+  <figcaption class="tc__by">
+    <cite class="tc__name">
+      {
+        item.linkedin ? (
+          <a href={item.linkedin} rel="noopener" target="_blank">
+            {item.name}
+          </a>
+        ) : (
+          item.name
+        )
+      }
+    </cite>
+    <span class="tc__role">{item.role}</span>
+  </figcaption>
+</figure>
+
+<style>
+  .tc {
+    margin: 0;
+  }
+
+  .tc__quote {
+    margin: 0;
+    /* Nessuna virgoletta decorativa gigante: è il cliché della sezione
+       testimonianze. Il rientro e la misura corta dicono già che è una
+       citazione. */
+    max-width: 30ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 500;
+  }
+
+  .tc__by {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    margin-top: clamp(1.5rem, 3vw, 2.5rem);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tc__name {
+    font-style: normal;
+    color: var(--color-text-1);
+  }
+  .tc__name a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-hairline-strong);
+  }
+  .tc__name a:hover {
+    border-bottom-color: var(--color-accent);
+  }
+
+  .tc__role {
+    color: var(--color-text-3);
+  }
+</style>

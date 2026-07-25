@@ -1,0 +1,131 @@
+---
+/**
+ * §50 ASSAGGIO PERCORSO — tre voci di timeline su cinque.
+ *
+ * DEVE STARE IN UNO SCHERMO. Non è una preferenza estetica: è la sezione uscente
+ * dell'handoff verso la CTA, e un elemento sticky più alto della viewport
+ * incollerebbe il proprio bordo superiore rendendo irraggiungibile la parte
+ * bassa. Per questo usa `Timeline` in modalità `compact` (niente paragrafi di
+ * dettaglio) — che è anche coerente col suo ruolo: è un assaggio, il racconto
+ * sta sulla About.
+ *
+ * Il numerale del primo anno è tirato verso l'alto fino quasi a toccare la
+ * cucitura con la sezione precedente. Il piano prevedeva che sconfinasse FUORI
+ * dalla sezione, sopra la carta di §40; l'ho tenuto dentro perché un numerale a
+ * cavallo di due palette opposte richiede o un clip (e `overflow` su un antenato
+ * di una stage sgancerebbe lo sticky) o un cambio di colore a metà glifo:
+ * entrambi fragili, per una tensione visiva che la sola vicinanza già produce.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+import Timeline from '../primitives/Timeline.astro';
+import Button from '../primitives/Button.astro';
+import { TIMELINE } from '../../data/timeline';
+
+interface Props {
+  n?: string;
+}
+const { n = '60' } = Astro.props;
+---
+
+<section class="jt" data-section id="percorso-breve">
+  <div class="jt__wrap">
+    <div class="jt__idx">
+      <SectionIndex n={n} label="Percorso" />
+    </div>
+
+    <div class="jt__head">
+      <h2 class="jt__title" data-split="lines">Come sono arrivato qui.</h2>
+      <p class="jt__lede">Le tappe che contano. Le altre due sono sulla pagina Chi sono.</p>
+    </div>
+
+    {/* Wrapper e non `class` sul componente: gli stili scoped non raggiungono la
+        radice di un figlio. Le custom property invece EREDITANO, ed è così che
+        si ritara la dimensione dei numerali da qui. */}
+    <div class="jt__tl">
+      <Timeline entries={TIMELINE} limit={3} compact />
+    </div>
+
+    <div class="jt__more">
+      <Button href="/chi-sono" variant="outline">Il percorso completo</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .jt {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr); /* vedi la nota in CTASection */
+    align-content: center;
+    min-height: 100svh;
+    /* Padding contenuto: la sezione deve stare in uno schermo (vedi la nota in
+       testa al file), quindi lo spazio verticale è la prima cosa da stringere.
+       Misurato: con 8vh sforava di 32px. */
+    padding-block: clamp(2rem, 5vh, 4rem);
+  }
+
+  .jt__wrap {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  @media (min-width: 56.25rem) {
+    .jt__wrap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .jt__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .jt__head {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+    }
+    .jt__tl {
+      grid-column: 2 / span 9;
+      grid-row: 2;
+    }
+    .jt__more {
+      grid-column: 2 / span 9;
+      grid-row: 3;
+    }
+  }
+
+  .jt__head {
+    margin-top: 1.5rem;
+  }
+  @media (min-width: 56.25rem) {
+    .jt__head {
+      margin-top: 0;
+    }
+  }
+
+  .jt__title {
+    max-width: 22ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  .jt__lede {
+    margin-top: 1rem;
+    max-width: 44ch;
+    font-size: var(--text-base);
+    color: var(--color-text-2);
+  }
+
+  .jt__tl {
+    /* Numerali più grandi che sulla About: qui sono POCHI e devono portare da
+       soli il peso della sezione. Passa per ereditarietà nel componente. */
+    --tl-year-size: clamp(2.25rem, 4.2vw, 4.5rem);
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .jt__more {
+    margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  }
+</style>

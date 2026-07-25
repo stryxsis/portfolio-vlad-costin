@@ -1,0 +1,314 @@
+---
+/**
+ * §30 IN EVIDENZA — la stage sticky. La sezione più costosa della pagina.
+ *
+ * Tre "piatti" sovrapposti nella stessa grid-area, uno visibile alla volta. Il
+ * cambio è guidato da UN SOLO ScrollTrigger.
+ *
+ * M13 — L'OCCLUSIONE Z, la firma visiva del sito: titolo e cover vivono nella
+ * stessa cella di griglia, la cover ha `z-index: 1` e copre le ultime lettere
+ * del titolo. La sovrapposizione è FISSA IN CSS (colonne 6-12 sopra un titolo
+ * che occupa 1-7), mai calcolata in JS: un `getBoundingClientRect()` per
+ * decidere di quanto sovrapporre significherebbe misurare durante lo scroll, che
+ * è il modo più affidabile di introdurre jank.
+ *
+ * PERCHÉ IL CAMBIO NON È IN SCRUB.
+ * Il piano prevedeva una timeline in scrub con i piatti che si scambiano a
+ * p=0.30/0.62. L'implementazione usa invece `onUpdate` che calcola l'indice
+ * attivo e scrive SOLO quando cambia, lasciando la dissolvenza a una transizione
+ * CSS. Due vantaggi misurabili: zero scritture di stile per frame (due in tutta
+ * la stage invece di ~600), e una dissolvenza a durata propria invece che
+ * incollata alla velocità del dito — un cross-fade in scrub è mollo, perché se
+ * l'utente si ferma a metà resta mezzo dissolto.
+ *
+ * PRECAUZIONI DI PERFORMANCE (questa sezione le richiede tutte):
+ * - cover con larghezza/altezza intrinseche da ImageMetadata → nessun reflow
+ * - nessuna misura dentro onUpdate
+ * - `visibility` e non solo `opacity` sui piatti inattivi: un piatto a opacità 0
+ *   resterebbe cliccabile e nell'albero di accessibilità, e i suoi link
+ *   entrerebbero nell'ordine di tabulazione
+ * - sotto 900px o senza JS: piatti in flusso normale, tutti visibili
+ */
+import { Picture } from 'astro:assets';
+import SectionIndex from '../primitives/SectionIndex.astro';
+import { featuredProjects } from '../../lib/collections';
+
+interface Props {
+  /** Nome dello schermo nel Handoff che la contiene (vedi Handoff.astro). */
+  name: string;
+}
+const { name } = Astro.props;
+
+const projects = await featuredProjects(3);
+const total = String(projects.length).padStart(2, '0');
+---
+
+<section class="fp" data-section data-plates={name} id="in-evidenza">
+  <div class="fp__wrap">
+    <div class="fp__head">
+      <SectionIndex n="30" label="In evidenza" />
+    </div>
+
+    <h2 class="fp__h">Tre lavori, per esteso.</h2>
+
+    <div class="fp__plates">
+      {
+        projects.map((p, i) => (
+          <article class="fp__plate" data-plate>
+            <p class="fp__n">
+              {String(i + 1).padStart(2, '0')} <span aria-hidden="true">/</span> {total}
+            </p>
+
+            {/* Stretched-link: un solo <a> reale, tutto il piatto cliccabile. */}
+            <h3 class="fp__title">
+              <a class="fp__link" href={`/portfolio/${p.id}`}>
+                {p.data.title}
+              </a>
+            </h3>
+
+            {/* `lazy` su tutti e tre: la stage è sempre sotto la piega, quindi
+                nessuna di queste cover concorre all'LCP. Un `eager` qui
+                ruberebbe banda al ritratto dell'hero, che invece ci concorre. */}
+            <div class="fp__cover clip-frame">
+              <Picture
+                src={p.data.cover}
+                alt={p.data.coverAlt}
+                widths={[600, 900, 1300]}
+                sizes="(min-width: 56.25rem) 58vw, 92vw"
+                formats={['avif', 'webp']}
+                loading="lazy"
+                decoding="async"
+                class="fp__img"
+              />
+            </div>
+
+            <p class="fp__sub">{p.data.subtitle}</p>
+            <p class="fp__meta">{p.data.year} · {p.data.role}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ⚠ DEVE STARE IN UNO SCHERMO, e il padding è la prima cosa da tenere corta.
+     Un elemento sticky più alto della viewport incolla il proprio bordo
+     SUPERIORE, e la parte che sfora resta irraggiungibile finché è incollato:
+     con `--spacing-section` la sezione arrivava a 949px su una viewport di 900,
+     cioè 49px di sezione che nessuno poteva mai vedere. Qui erano padding vuoto,
+     ma è un difetto latente — il giorno in cui il contenuto cresce, sparisce
+     contenuto vero. `verify-stage.mjs` lo controlla a ogni esecuzione. */
+  .fp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr); /* vedi la nota in CTASection */
+    align-content: center;
+    min-height: 100svh;
+    padding-block: clamp(2rem, 5vh, 4rem);
+  }
+
+  .fp__wrap {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .fp__h {
+    margin-top: 1.5rem;
+    max-width: 22ch;
+    font-size: var(--text-h3);
+    color: var(--color-text-2);
+    font-weight: 400;
+  }
+  @media (min-width: 56.25rem) {
+    .fp__wrap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .fp__head {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .fp__h {
+      grid-column: 2 / span 6;
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .fp__plates {
+      grid-column: 1 / span 12;
+      grid-row: 2;
+    }
+  }
+
+  /* -- Default: piatti in flusso, tutti visibili ---------------------------
+     È lo stato senza JS, con JS in errore, e sotto i 900px. Nessun piatto è
+     nascosto in questo stato: la sezione degrada in un elenco di tre progetti. */
+  .fp__plates {
+    display: grid;
+    gap: clamp(3rem, 7vw, 5rem);
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .fp__plate {
+    position: relative; /* riferimento per l'::after dello stretched-link */
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .fp__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+
+  .fp__title {
+    font-size: clamp(2rem, 5.4vw, 5.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.038em;
+    font-weight: 500;
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  .fp__link {
+    color: var(--color-text-1);
+    text-decoration: none;
+    transition: color 240ms var(--ease-snappy);
+  }
+  .fp__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .fp__cover {
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-1);
+  }
+
+  .fp__img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    transition: transform 520ms var(--ease-out-expo);
+  }
+
+  .fp__sub {
+    max-width: 40ch;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  .fp__meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  @media (hover: hover) {
+    .fp__plate:hover .fp__img {
+      transform: scale(1.03);
+    }
+    .fp__plate:hover .fp__link {
+      color: var(--color-accent);
+    }
+  }
+
+  /* -- Stage: solo ≥900px E con JS attivo ---------------------------------- */
+  @media (min-width: 56.25rem) {
+    :global(html.js-anim) .fp__plates {
+      /* I piatti si sovrappongono in un'unica cella. */
+      display: grid;
+      grid-template-areas: 'stack';
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    :global(html.js-anim) .fp__plate {
+      grid-area: stack;
+      /* Griglia interna a 12 colonne: è qui che vive l'occlusione M13. */
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0.75rem clamp(1rem, 1.5vw, 2rem);
+      align-content: center;
+      /* `visibility` e non solo opacity: toglie il piatto anche dall'albero di
+         accessibilità e dall'ordine di tabulazione. Si transiziona per davvero
+         — è animabile in modo discreto, e la regola CSS è che durante la
+         transizione vale `visible` se lo è uno dei due estremi: quindi entra
+         subito e esce solo alla fine della dissolvenza. Esattamente ciò che
+         serve. */
+      visibility: hidden;
+      opacity: 0;
+      transform: translate3d(0, 2.5%, 0);
+      transition:
+        opacity 520ms var(--ease-out-expo),
+        transform 620ms var(--ease-out-expo),
+        visibility 520ms;
+    }
+
+    :global(html.js-anim) .fp__plate.is-active {
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Tutto parte dalla colonna 2, come l'intestazione della sezione: con i
+       piatti a filo di colonna 1 il titolo del progetto risultava sfalsato di una
+       colonna rispetto a "Tre lavori, per esteso", e la sezione sembrava composta
+       da due griglie diverse. */
+    :global(html.js-anim) .fp__n {
+      grid-column: 2 / span 4;
+      grid-row: 1;
+    }
+
+    /* M13 — il titolo sta SOTTO, colonne 2-8. */
+    :global(html.js-anim) .fp__title {
+      grid-column: 2 / span 7;
+      grid-row: 2;
+      z-index: 0;
+      align-self: center;
+      max-width: none;
+    }
+
+    /* ...e la cover sopra, colonne 7-12: le colonne 7 e 8 sono la zona di
+       sovrapposizione, dove le ultime lettere del titolo finiscono dietro la
+       fotografia. Larghezza e posizione sono costanti, quindi il compositor
+       disegna questo strato una volta sola. */
+    :global(html.js-anim) .fp__cover {
+      grid-column: 7 / span 6;
+      grid-row: 2;
+      z-index: 1;
+      align-self: center;
+    }
+
+    :global(html.js-anim) .fp__img {
+      max-height: 46svh;
+      width: 100%;
+    }
+
+    :global(html.js-anim) .fp__sub {
+      grid-column: 2 / span 4;
+      grid-row: 3;
+    }
+    :global(html.js-anim) .fp__meta {
+      grid-column: 2 / span 4;
+      grid-row: 4;
+    }
+  }
+
+  /* Nessun blocco `prefers-reduced-motion: reduce` qui, e non è una
+     dimenticanza: `html.js-anim` viene aggiunta dallo script inline SOLO se
+     `prefers-reduced-motion: no-preference`, quindi gatare sulla classe implica
+     già il consenso al movimento. Se l'utente cambia impostazione a sessione
+     aperta, il ramo reduce di reveal.ts rimuove la classe e la stage si smonta
+     da sola. Un blocco `reduce` con !important qui sarebbe una seconda fonte di
+     verità per la stessa regola. */
+</style>

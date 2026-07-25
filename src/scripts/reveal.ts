@@ -104,23 +104,105 @@ export function initReveal(): void {
       );
     });
 
-    // M4 — rise-in generico. `batch` accorpa gli elementi che entrano insieme
-    // in un solo callback invece di creare N trigger indipendenti.
+    /* M4 — rise-in generico. `batch` accorpa gli elementi che entrano insieme in
+       un solo callback invece di creare N trigger indipendenti.
+
+       ⚠ NIENTE `once: true`, e la contabilità di "già rivelato" è fatta a mano.
+       Motivo, verificato in Chrome: con `once` un SALTO di posizione (link
+       ancora, tasto Fine, ripristino dello scroll al reload) attraversa start e
+       end nello stesso update, ScrollTrigger reclama i trigger, e gli elementi
+       restano a opacità 0 — anche continuando a scorrere, perché il trigger non
+       esiste più. Contenuto invisibile in modo permanente, cioè il modo peggiore
+       di rompersi, sullo scenario più banale che ci sia: ricaricare la pagina a
+       metà.
+
+       Tre coperture, quindi:
+         onEnter      lo scorrimento normale verso il basso
+         onEnterBack  si torna su dentro la fascia dopo esserla passata
+         onLeave      la fascia è stata attraversata in un colpo → mostra SUBITO,
+                      senza animazione: un'entrata di cui nessuno ha visto
+                      l'inizio non è un'animazione, è solo un ritardo. */
+    const revealed = new WeakSet<Element>();
+
+    const reveal = (els: Element[], animate: boolean): void => {
+      const fresh = els.filter((el) => !revealed.has(el));
+      if (fresh.length === 0) return;
+      fresh.forEach((el) => revealed.add(el));
+
+      gsap.to(fresh, {
+        yPercent: 0,
+        autoAlpha: 1,
+        duration: animate ? 0.8 : 0,
+        stagger: animate ? 0.06 : 0,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+    };
+
     ScrollTrigger.batch('[data-reveal]', {
       interval: 0.1,
       batchMax: 6,
       start: 'clamp(top 88%)',
-      once: true,
-      onEnter: (batch) =>
-        gsap.to(batch, {
-          yPercent: 0,
-          autoAlpha: 1,
-          duration: 0.8,
-          stagger: 0.06,
-          ease: 'power2.out',
-          overwrite: true,
-        }),
+      onEnter: (batch) => reveal(batch, true),
+      onEnterBack: (batch) => reveal(batch, true),
+      onLeave: (batch) => reveal(batch, false),
     });
+
+    /* RETE DI SICUREZZA, e serve davvero.
+       Qualsiasi approccio a EVENTI perde una transizione di stato che salta il
+       mezzo: se la posizione passa da "elemento sotto la viewport" a "elemento
+       sopra la viewport" in un solo update, non c'è nessun ingresso da
+       osservare, e l'elemento resta a opacità 0 per sempre. Succede su cose
+       banali: tasto Fine, link ancora, ripristino della posizione al reload.
+       Contenuto invisibile in modo permanente è il peggior modo di rompersi, e
+       tutto l'impianto `js-anim` esiste per impedirlo — questa è la stessa
+       garanzia estesa allo scroll.
+
+       La soluzione è un controllo di STATO, non di evento, e l'invariante è
+       questo: QUANDO LO SCORRIMENTO SI FERMA, NIENTE CHE SIA IN VISTA PUÒ ESSERE
+       ANCORA NASCOSTO. Se lo scroll è fermo e un elemento sta oltre la propria
+       soglia d'ingresso a opacità 0, non c'è nessun evento futuro che lo
+       salverà: è già un difetto.
+
+       Due modi di mostrarlo, secondo dove si trova:
+         - completamente sopra la viewport → subito, senza animazione: un
+           ingresso di cui nessuno ha visto l'inizio non è un'animazione, è solo
+           un ritardo;
+         - ancora almeno in parte visibile → con l'animazione, così se la rete
+           dovesse anticipare il batch al primo caricamento non si perde nulla.
+       La contabilità in `revealed` impedisce che rete e batch si pestino.
+
+       Quando gira: al `refresh` (iniziale, dopo `fonts.ready`, a ogni resize) e
+       allo `scrollEnd`. Nessun costo per frame, e si stacca da sola appena tutti
+       gli elementi sono stati rivelati. */
+    let pending = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+
+    const sweepPassed = (): void => {
+      if (pending.length === 0) return;
+
+      const threshold = window.innerHeight * 0.88;
+      const late: HTMLElement[] = [];
+      const missed: HTMLElement[] = [];
+
+      for (const el of pending) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0) missed.push(el);
+        else if (r.top < threshold) late.push(el);
+      }
+
+      if (missed.length > 0) reveal(missed, false);
+      if (late.length > 0) reveal(late, true);
+
+      pending = pending.filter((el) => !revealed.has(el));
+      if (pending.length === 0) {
+        ScrollTrigger.removeEventListener('refresh', sweepPassed);
+        ScrollTrigger.removeEventListener('scrollEnd', sweepPassed);
+      }
+    };
+
+    ScrollTrigger.addEventListener('refresh', sweepPassed);
+    ScrollTrigger.addEventListener('scrollEnd', sweepPassed);
+    sweepPassed();
 
     // M11 — il filetto che si disegna. transform-origin è in CSS.
     document.querySelectorAll<HTMLElement>('[data-rule]').forEach((el) => {
@@ -154,18 +236,9 @@ export function initReveal(): void {
       });
     });
 
-    // Stato attivo della sezione: fa passare ad accento il numero d'indice.
-    // Un toggle di classe (un paint), non un'animazione di colore per frame.
-    document.querySelectorAll<HTMLElement>('[data-section]').forEach((section) => {
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top 60%',
-        end: 'bottom 40%',
-        onToggle: (self) => section.classList.toggle('is-active', self.isActive),
-      });
-    });
-
     return () => {
+      ScrollTrigger.removeEventListener('refresh', sweepPassed);
+      ScrollTrigger.removeEventListener('scrollEnd', sweepPassed);
       splits.forEach((s) => s.revert());
       splits.length = 0;
     };
@@ -177,6 +250,41 @@ export function initReveal(): void {
   mm.add('(prefers-reduced-motion: reduce)', () => {
     showEverything();
   });
+}
+
+/**
+ * Stato attivo della sezione: fa passare ad accento il numero d'indice.
+ *
+ * IntersectionObserver e NON uno ScrollTrigger per sezione. La prima versione
+ * creava un trigger per ogni `[data-section]`: sulla Home sono otto trigger che
+ * esistono solo per commutare una classe. L'observer ne usa ZERO e delega
+ * l'osservazione al browser, che la fa fuori dal thread principale.
+ *
+ * Fuori da `gsap.matchMedia` di proposito: non è movimento, è uno stato. Con
+ * `prefers-reduced-motion: reduce` il numero della sezione corrente deve
+ * comunque colorarsi — è un'informazione di orientamento, non un'animazione.
+ */
+export function initSectionState(): () => void {
+  const sections = document.querySelectorAll<HTMLElement>('[data-section]');
+  if (sections.length === 0 || !('IntersectionObserver' in window)) return () => {};
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        e.target.classList.toggle('is-active', e.isIntersecting);
+      }
+    },
+    {
+      /* La banda centrale della viewport: una sezione è "attiva" quando la si
+         sta leggendo, non quando ne affaccia un bordo. -40%/-40% lascia una
+         finestra del 20% al centro — con due sezioni corte adiacenti possono
+         risultare attive entrambe, ed è corretto: lo sono davvero. */
+      rootMargin: '-40% 0px -40% 0px',
+    }
+  );
+
+  sections.forEach((s) => io.observe(s));
+  return () => io.disconnect();
 }
 
 export { showEverything };

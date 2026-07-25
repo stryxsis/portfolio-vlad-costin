@@ -1,16 +1,74 @@
 ---
 /**
- * HOME.
- * Milestone 3: hero + §10, che è l'ancora prestazionale del progetto.
- * Le sezioni §20–§80 e le stage sticky arrivano nel milestone 7.
+ * HOME — le nove sezioni.
+ *
+ * §00 Hero · §10 Cosa faccio · §20 Dove · §30 In evidenza · §40 Statement
+ * §50 Dicono (spenta) · §60 Percorso · §70 CTA · §80 Footer (nel layout)
+ *
+ * TRE HANDOFF M12, e sono la struttura della pagina, non un effetto aggiunto
+ * sopra. Il cambio di sezione avviene per OCCLUSIONE: l'uscente resta incollata,
+ * la entrante le scorre sopra con un fondo opaco. Zero paint per frame, e nessuna
+ * "sezione impilata" — vedi Handoff.astro per il vincolo geometrico che rende
+ * l'effetto possibile.
+ *
+ *   intro    hero → §10   tono canvas   il cambio è di contenuto, non di palette
+ *   featured §30  → §40   tono paper    la prima inversione: la pausa
+ *   closing  §60  → §70   tono accent   la seconda: agire, adesso
+ *
+ * SUL PERCHÉ §50 E §60 SONO INVERTITE RISPETTO AL PIANO.
+ * Nel piano l'ordine era §50 percorso, §60 testimonianze. Le testimonianze sono
+ * spente (nessuna citazione reale), e la sezione uscente di un handoff deve stare
+ * in UNO schermo: l'unica delle due che può farlo è il teaser del percorso. Se
+ * il percorso fosse rimasto al §50, accendere le testimonianze avrebbe messo
+ * dentro un handoff una sezione alta due schermi — cioè avrebbe rotto lo sticky
+ * a distanza di mesi, senza un errore visibile in nessun file. Invertendole, il
+ * giorno in cui arriva una citazione vera la si aggiunge e basta.
+ *
+ * §20 non ha handoff in uscita, ed è deliberato: è la sezione più tranquilla e
+ * serve a far pesare la stage che arriva. Il ritmo si costruisce anche con le
+ * pause.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Handoff from '../components/sections/Handoff.astro';
 import HeroHome from '../components/sections/HeroHome.astro';
 import WhatIDo from '../components/sections/WhatIDo.astro';
+import SocialProof from '../components/sections/SocialProof.astro';
+import FeaturedProjects from '../components/sections/FeaturedProjects.astro';
+import Statement from '../components/sections/Statement.astro';
+import Testimonials from '../components/sections/Testimonials.astro';
+import JourneyTeaser from '../components/sections/JourneyTeaser.astro';
+import CTASection from '../components/sections/CTASection.astro';
+import { STATEMENTS } from '../data/statements';
 import { SITE } from '../lib/site';
 ---
 
 <BaseLayout description={SITE.description}>
-  <HeroHome />
-  <WhatIDo />
+  <Handoff name="intro" tone="canvas">
+    <HeroHome slot="out" />
+    <WhatIDo slot="in" />
+  </Handoff>
+
+  <SocialProof />
+
+  {/* La corsa di 220svh è il tempo in cui i tre piatti si scambiano mentre lo
+      schermo resta incollato. È l'equivalente onesto di ciò che `pin: true`
+      farebbe iniettando un pin-spacer nel DOM: qui la distanza è un elemento
+      dichiarato, non una mutazione di layout al refresh. */}
+  <Handoff name="featured" tone="paper" travel={220}>
+    <FeaturedProjects slot="out" name="featured" />
+    <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
+  </Handoff>
+
+  <Testimonials n="50" />
+
+  {/* `travel` anche qui, ma per un motivo diverso da §30: là è il tempo in cui i
+      piatti si scambiano, qui è TEMPO DI LETTURA. Senza, la CTA inizia a coprire
+      il teaser nell'istante esatto in cui il teaser ha finito di comparire, e le
+      tre tappe del percorso restano leggibili per un fotogramma. Va bene per un
+      hero, non per contenuto che si deve leggere: uno schermo di corsa lo tiene
+      fermo e intero prima che l'accento arrivi. */}
+  <Handoff name="closing" tone="accent" travel={100}>
+    <JourneyTeaser slot="out" n="60" />
+    <CTASection slot="in" />
+  </Handoff>
 </BaseLayout>

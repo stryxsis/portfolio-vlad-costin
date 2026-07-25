@@ -30,6 +30,13 @@
   --color-accent: #5b84ff; /* keyword, CTA, stato attivo           5.80:1 */
   --color-accent-hi: #8aa5ff; /* focus ring, label micro su scuro     8.35:1 */
   --color-accent-deep: #2b5cff; /* accento DENTRO le paper         4.56:1/paper */
+  /* Testo secondario SOPRA il fondo accento pieno.
+     È un colore solido e non un near-black in alpha: `rgb(11 11 12 / 0.65)`
+     compone a 3.5:1 e fallisce AA, e con l'alpha il valore reale dipende dal
+     fondo — cioè non è verificabile leggendo il token. Questo è misurato:
+     4.57:1 su --color-accent. Il tono resta il near-black tinto di accento, che
+     è ciò che l'alpha produceva, solo dichiarato una volta. */
+  --color-accent-text-2: #1b233d; /* su accento                        4.57:1 */
 
   /* Sezioni invertite full-bleed ("le finestre" nella stanza scura)         */
   --color-paper: #f2f1ed;
@@ -84,7 +91,13 @@
   --text-display--letter-spacing: -0.04em;
   --text-display--font-weight: 500;
 
-  --text-mega: clamp(4.5rem, 2.333rem + 9.63vw, 11rem); /*         72 -> 176 */
+  /* Il MINIMO è vincolato dalla parola più lunga che questo corpo deve rendere,
+     non dal gusto: a 72px "Raccontami" (10 caratteri) misura ~396px e su una
+     viewport da 390 sfondava il documento di 33px. Una parola non si spezza, e
+     `max-width` in ch non la trattiene. A 56px sta in 308px, dentro i 350
+     disponibili al netto del gutter. Regola pratica per Geist 500:
+     px_max ≈ larghezza_disponibile / (caratteri × 0.55).                       */
+  --text-mega: clamp(3.5rem, 1.833rem + 7.407vw, 11rem); /*        56 -> 176 */
   --text-mega--line-height: 0.84;
   --text-mega--letter-spacing: -0.045em;
   --text-mega--font-weight: 500;

@@ -13,7 +13,8 @@
     "check": "astro check",
     "sync": "astro sync",
     "verify:anim": "node tools/verify-anim.mjs",
-    "measure": "node tools/measure.mjs"
+    "measure": "node tools/measure.mjs",
+    "verify:stage": "node tools/verify-stage.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.3",

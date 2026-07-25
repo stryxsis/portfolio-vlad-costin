@@ -1,0 +1,86 @@
+---
+/**
+ * §60 TESTIMONIANZE — spenta.
+ *
+ * Doppia condizione per accendersi: il flag in site.ts E almeno una voce reale
+ * in src/data/testimonials.ts. Due controlli e non uno perché sono due errori
+ * diversi: alzare il flag senza avere citazioni renderebbe una sezione vuota, e
+ * avere citazioni col flag basso le terrebbe nascoste senza dirlo.
+ *
+ * UNA sola card larga, non una griglia da tre. Tre testimonianze affiancate
+ * dicono "ne ho collezionate tre"; una sola, grande, dice "leggi questa".
+ * Quando ce ne saranno diverse, restano impilate — mai in griglia.
+ *
+ * Nessuna testimonianza inventata come segnaposto: su un portfolio è l'unica
+ * cosa che, se scoperta, azzera la fiducia in tutto il resto della pagina.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+import TestimonialCard from '../primitives/TestimonialCard.astro';
+import { TESTIMONIALS } from '../../data/testimonials';
+import { SITE } from '../../lib/site';
+
+interface Props {
+  n?: string;
+}
+const { n = '50' } = Astro.props;
+
+const show = SITE.features.testimonials && TESTIMONIALS.length > 0;
+---
+
+{
+  show && (
+    <section class="ts" data-section id="dicono">
+      <div class="ts__wrap">
+        <div class="ts__idx">
+          <SectionIndex n={n} label="Dicono" />
+        </div>
+        <div class="ts__body">
+          {TESTIMONIALS.map((t) => (
+            <TestimonialCard item={t} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .ts {
+    padding-block: var(--spacing-section);
+  }
+
+  .ts__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+  @media (min-width: 56.25rem) {
+    .ts__wrap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .ts__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    /* Colonne 2-10: larga, ma non a piena pagina. Una citazione che arriva al
+       bordo perde la qualità di essere una voce dentro la pagina. */
+    .ts__body {
+      grid-column: 2 / span 9;
+      grid-row: 1;
+    }
+  }
+
+  .ts__body {
+    display: grid;
+    gap: clamp(4rem, 8vw, 7rem);
+    margin-top: 1.5rem;
+  }
+  @media (min-width: 56.25rem) {
+    .ts__body {
+      margin-top: 0;
+    }
+  }
+</style>
