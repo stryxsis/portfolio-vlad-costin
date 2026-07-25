@@ -1,0 +1,46 @@
+/**
+ * L'unico entry point del JS del sito.
+ *
+ * NON è un'isola: è un modulo ES normale importato da un <script> che Astro
+ * processa, bundla e deduplica. Nessun framework, nessuna idratazione.
+ *
+ * Ordine obbligato: prima lo scroll (crea l'istanza Lenis e il ticker
+ * condiviso), poi i reveal e la navbar, che dipendono da quello.
+ */
+import { initScroll } from './scroll';
+import { initReveal, showEverything } from './reveal';
+import { initNav } from './nav';
+
+declare global {
+  interface Window {
+    __vcBooted?: boolean;
+  }
+}
+
+function boot(): void {
+  // Guardia di idempotenza: se un giorno si aggiungesse ClientRouter, questo
+  // impedisce doppie istanze di Lenis e ScrollTrigger duplicati.
+  if (window.__vcBooted) return;
+  window.__vcBooted = true;
+
+  try {
+    // Segnala al watchdog inline che il JS delle animazioni è partito, così
+    // non rimuove la classe che tiene nascosti gli elementi da rivelare.
+    document.documentElement.dataset.animReady = '1';
+
+    initScroll();
+    initReveal();
+    initNav();
+  } catch (err) {
+    // Se l'inizializzazione fallisce, il contenuto pre-nascosto resterebbe
+    // invisibile: un sito rotto è peggio di un sito senza animazioni.
+    console.error('[boot] inizializzazione animazioni fallita:', err);
+    showEverything();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot, { once: true });
+} else {
+  boot();
+}

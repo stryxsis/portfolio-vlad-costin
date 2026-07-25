@@ -250,6 +250,26 @@ html.lenis body {
 }
 
 /* ============================================================================
+   PRE-HIDING DEI REVEAL
+   Gli elementi da animare all'ingresso partono nascosti, ma SOLO sotto
+   `html.js-anim` — classe messa da uno script inline in <head> unicamente se
+   il JS gira E l'utente non ha chiesto meno movimento, e rimossa da un
+   watchdog se il bundle non parte.
+
+   Conseguenza voluta: senza JS, con JS in errore, o per un crawler, il
+   contenuto è visibile e completo. Non esiste nessuno stato in cui il testo
+   resta invisibile.
+
+   `data-split` NON viene pre-nascosto: SplitText avvolge le righe in
+   contenitori clippati e anima le righe interne, quindi il testo non deve
+   sparire prima — nasconderlo qui produrrebbe un lampo al re-split.
+   ========================================================================= */
+html.js-anim [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 8%, 0);
+}
+
+/* ============================================================================
    UTILITY DI PROGETTO
    ========================================================================= */
 

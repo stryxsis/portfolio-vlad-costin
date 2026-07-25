@@ -40,18 +40,37 @@ const { bodyClass, ...seo } = Astro.props;
     <link rel="sitemap" href="/sitemap-index.xml" />
 
     {/*
-      GATE DEL PRE-HIDING — 130 byte, inline, prima del paint.
+      GATE DEL PRE-HIDING — inline, prima del paint.
       Le animazioni di ingresso nascondono il contenuto in CSS, ma SOLO sotto
       `html.js-anim`. Se il JS non gira (crawler, JS disattivato, errore di
       rete) o se l'utente ha chiesto meno movimento, la classe non viene
       aggiunta e il contenuto è visibile e completo dal primo frame.
-      Deve stare qui e non in un modulo: un modulo è deferred e il testo
+      Deve stare qui e non in un modulo: un modulo è `defer` e il testo
       sfarfallerebbe.
+
+      Il watchdog è l'assicurazione contro il caso peggiore: se il bundle non
+      arriva o va in errore, `animReady` non viene mai impostato e la classe
+      cade da sola, rendendo visibile tutto. Senza questo, un errore JS
+      lascerebbe la pagina con il testo invisibile.
     */}
     <script is:inline>
       if (matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-        document.documentElement.classList.add('js-anim');
+        var r = document.documentElement;
+        r.classList.add('js-anim');
+        setTimeout(function () {
+          if (r.dataset.animReady !== '1') r.classList.remove('js-anim');
+        }, 2500);
       }
+    </script>
+
+    {/*
+      L'UNICO <script> del sito. Astro lo processa: TypeScript compilato,
+      import npm risolti, bundle unico e deduplicato fra le pagine.
+      Non è `is:inline` (che rinuncerebbe a bundling e TS) e non è un'isola
+      (non c'è alcun framework da idratare).
+    */}
+    <script>
+      import '../scripts/boot';
     </script>
   </head>
 

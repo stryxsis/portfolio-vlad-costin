@@ -11,7 +11,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "sync": "astro sync"
+    "sync": "astro sync",
+    "verify:anim": "node tools/verify-anim.mjs",
+    "measure": "node tools/measure.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.3",
