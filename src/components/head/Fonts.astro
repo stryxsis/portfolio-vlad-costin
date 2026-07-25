@@ -1,0 +1,14 @@
+---
+/**
+ * I <Font /> di Astro, in un unico posto.
+ *
+ * Preload SOLO Geist: è il carattere di tutto il testo sopra la piega.
+ * Il mono compare in label micro e metadati — il suo fallback metric-matched
+ * è indistinguibile per i ~200ms che serve, e precaricarlo ruberebbe banda al
+ * carattere che determina l'LCP.
+ */
+import { Font } from 'astro:assets';
+---
+
+<Font cssVariable="--font-geist" preload />
+<Font cssVariable="--font-geist-mono" />

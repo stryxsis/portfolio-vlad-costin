@@ -1,0 +1,92 @@
+---
+/**
+ * Tutti i meta tag di una pagina, in un solo componente.
+ *
+ * Scritto a mano invece di usare `astro-seo`: quel pacchetto ha una superficie
+ * props annidata più verbosa di questa piatta, richiede di passare l'immagine
+ * OG due volte (`openGraph.image.url` è documentato come ignorato), e calcola
+ * il canonical da `Astro.url` invece che da `site` — che è esattamente il bug
+ * degli URL assoluti dev/prod che `src/lib/seo.ts` esiste per prevenire.
+ * Zero JS spedito in entrambi i casi, quindi l'unico asse che conta è il
+ * controllo.
+ */
+import { SITE } from '../../lib/site';
+import { abs, canonicalFor, titleFor } from '../../lib/seo';
+
+interface Props {
+  /** Titolo della pagina, senza suffisso. Omesso => titolo di default. */
+  title?: string;
+  /** Meta description. Omessa => la descrizione canonica del sito. */
+  description?: string;
+  /** Override del canonical. Di norma NON serve: si deriva da Astro.url.pathname. */
+  canonical?: string;
+  /** Path o URL dell'immagine OG. Omesso => l'immagine di default. */
+  ogImage?: string;
+  ogImageAlt?: string;
+  /** 'website' per le pagine, 'article' per i case study e i post. */
+  ogType?: 'website' | 'article' | 'profile';
+  /** true su 404 e pagine di servizio: escluse dagli indici. */
+  noindex?: boolean;
+  /** Il grafo JSON-LD della pagina. Un solo <script> per pagina. */
+  jsonLd?: unknown;
+}
+
+const {
+  title,
+  description = SITE.description,
+  canonical,
+  ogImage,
+  ogImageAlt = SITE.ogImage.alt,
+  ogType = 'website',
+  noindex = false,
+  jsonLd,
+} = Astro.props;
+
+const pageTitle = titleFor(title, SITE.titleDefault, SITE.titleTemplate);
+const canonicalUrl = canonical ? abs(canonical) : canonicalFor(Astro.url.pathname);
+const imageUrl = abs(ogImage ?? SITE.ogImage.path);
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>{pageTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+
+{/* max-image-preview:large abilita le anteprime grandi nei risultati di ricerca */}
+{
+  noindex ? (
+    <meta name="robots" content="noindex, nofollow" />
+  ) : (
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  )
+}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content={SITE.locale} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:secure_url" content={imageUrl} />
+<meta property="og:image:width" content={String(SITE.ogImage.width)} />
+<meta property="og:image:height" content={String(SITE.ogImage.height)} />
+<meta property="og:image:alt" content={ogImageAlt} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={pageTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+<meta name="twitter:image:alt" content={ogImageAlt} />
+
+<meta name="author" content={SITE.author.name} />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0B0B0C" />
+
+{
+  jsonLd && (
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+  )
+}

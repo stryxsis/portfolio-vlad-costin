@@ -1,1 +1,292 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* ============================================================================
+   DESIGN TOKEN
+   Tailwind v4: i token vivono QUI, non in un tailwind.config.js (che non
+   esiste). Ogni chiave dentro un namespace riconosciuto (--color-*, --text-*,
+   --spacing-*, --ease-*, --container-*, --breakpoint-*, --radius-*) genera le
+   utility corrispondenti.
+   ========================================================================= */
+@theme {
+  /* -- Colori ---------------------------------------------------------------
+     Niente #000 (su OLED spegne i pixel e crea smear nello scroll) e niente
+     #FFF (vibra su nero). Off-black freddo + off-white caldo.
+     I contrasti sono misurati su --color-canvas #0B0B0C.                    */
+  --color-canvas: #0b0b0c;
+  --color-surface-1: #131316; /* card, navbar contratta                      */
+  --color-surface-2: #1b1b1f; /* hover di superficie, chip                   */
+  --color-hairline: #26262b; /* filetti DECORATIVI, mai informativi  1.31:1 */
+  --color-hairline-strong: #63636b; /* bordi interattivi a riposo    3.31:1 */
+  --color-text-1: #f5f5f3; /* titoli, statement, body             18.0:1 */
+  --color-text-2: #a3a3a0; /* body secondario, descrizioni         7.78:1 */
+  --color-text-3: #7a7a77; /* label mono, metadati                 4.57:1
+                                  ^ PAVIMENTO ASSOLUTO: nessun grigio piu'
+                                    scuro per il testo, mai. Il #666 su nero
+                                    e' il tell numero uno dell'amatore.      */
+
+  /* Accento: UN SOLO colore in tutto il sito.
+     Per cambiarlo basta toccare queste tre righe.                           */
+  --color-accent: #5b84ff; /* keyword, CTA, stato attivo           5.80:1 */
+  --color-accent-hi: #8aa5ff; /* focus ring, label micro su scuro     8.35:1 */
+  --color-accent-deep: #2b5cff; /* accento DENTRO le paper         4.56:1/paper */
+
+  /* Sezioni invertite full-bleed ("le finestre" nella stanza scura)         */
+  --color-paper: #f2f1ed;
+  --color-paper-text-1: #0b0b0c; /*                                   17.4:1 */
+  --color-paper-text-2: #4f4f4c; /*                                    7.27:1 */
+  --color-paper-hairline: #d6d4ce;
+
+  /* -- Scala tipografica fluida (360px -> 1440px) ---------------------------
+     clamp() dentro il token: le utility text-* restano fluide senza media
+     query. Le sub-key --text-X--line-height / --letter-spacing /
+     --font-weight sono il rimpiazzo v4 della sintassi a tupla di v3.
+     Pesi: SOLO 400 e 500. L'impatto viene da dimensione e spazio, non dal
+     peso — i pesi grassi sono la scorciatoia che fa sembrare i titoli
+     "da template".                                                          */
+  --text-micro: clamp(0.6875rem, 0.667rem + 0.093vw, 0.75rem); /*  11 -> 12  */
+  --text-micro--line-height: 1;
+  --text-micro--letter-spacing: 0.1em;
+  --text-micro--font-weight: 500;
+
+  --text-label: clamp(0.75rem, 0.708rem + 0.185vw, 0.875rem); /*   12 -> 14  */
+  --text-label--line-height: 1.1;
+  --text-label--letter-spacing: 0.09em;
+  --text-label--font-weight: 500;
+
+  --text-sm: clamp(0.875rem, 0.833rem + 0.185vw, 1rem); /*         14 -> 16  */
+  --text-sm--line-height: 1.55;
+
+  --text-base: clamp(1rem, 0.938rem + 0.278vw, 1.1875rem); /*      16 -> 19  */
+  --text-base--line-height: 1.65;
+
+  --text-lede: clamp(1.1875rem, 1.042rem + 0.648vw, 1.625rem); /*  19 -> 26  */
+  --text-lede--line-height: 1.4;
+  --text-lede--letter-spacing: -0.01em;
+
+  --text-h3: clamp(1.375rem, 1.167rem + 0.926vw, 2rem); /*         22 -> 32  */
+  --text-h3--line-height: 1.15;
+  --text-h3--letter-spacing: -0.015em;
+  --text-h3--font-weight: 500;
+
+  --text-h2: clamp(1.875rem, 1.333rem + 2.407vw, 3.5rem); /*       30 -> 56  */
+  --text-h2--line-height: 1.05;
+  --text-h2--letter-spacing: -0.025em;
+  --text-h2--font-weight: 500;
+
+  --text-h1: clamp(2.5rem, 1.5rem + 4.444vw, 5.5rem); /*           40 -> 88  */
+  --text-h1--line-height: 0.98;
+  --text-h1--letter-spacing: -0.032em;
+  --text-h1--font-weight: 500;
+
+  --text-display: clamp(3.25rem, 1.583rem + 7.407vw, 8.25rem); /*  52 -> 132 */
+  --text-display--line-height: 0.9;
+  --text-display--letter-spacing: -0.04em;
+  --text-display--font-weight: 500;
+
+  --text-mega: clamp(4.5rem, 2.333rem + 9.63vw, 11rem); /*         72 -> 176 */
+  --text-mega--line-height: 0.84;
+  --text-mega--letter-spacing: -0.045em;
+  --text-mega--font-weight: 500;
+
+  /* Wordmark a piena larghezza. Il coefficiente vw si ritara UNA volta col
+     font reale: regola pratica per Geist 500 => vw ~= 93 / n_caratteri.
+     Per "LAVORI" (6 caratteri) => 15.5vw. Mai misurare in JS.               */
+  --text-colossal: clamp(5rem, 15.5vw, 17.5rem);
+  --text-colossal--line-height: 0.78;
+  --text-colossal--letter-spacing: -0.05em;
+  --text-colossal--font-weight: 500;
+
+  /* -- Misure di riga (--container-* genera le utility max-w-*) -------------
+     E' la misura CORTA che fa leggere uno statement come una dichiarazione
+     invece che come un paragrafo urlato: 3 righe da 16 caratteri a 88px
+     occupano mezzo schermo.                                                 */
+  --container-body: 34rem; /* ~60ch a 19px                                   */
+  --container-lede: 44ch;
+  --container-statement: 22ch;
+  --container-hero: 18ch;
+  --container-mega: 16ch;
+  --container-cta: 14ch;
+
+  /* -- Spazio -------------------------------------------------------------- */
+  --spacing: 0.25rem; /* moltiplicatore base: genera p-4, gap-6, ...         */
+  --spacing-gutter: clamp(1.25rem, 4vw, 4rem); /*  20 ->  64px               */
+  --spacing-section: clamp(6rem, 10vw, 10rem); /*  96 -> 160px               */
+  --spacing-statement: clamp(10rem, 18vw, 20rem); /* 160 -> 320px            */
+
+  /* -- Easing -------------------------------------------------------------- */
+  --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --radius-card: 0.875rem;
+  --radius-pill: 999px;
+
+  /* -- Breakpoint: 600 / 900 / 1200 / 1600 ---------------------------------
+     md (900px) e' anche la SOGLIA DI MOTION: sotto, le stage sticky
+     complesse si disattivano e tornano in flusso normale.                   */
+  --breakpoint-sm: 37.5rem; /*  600px */
+  --breakpoint-md: 56.25rem; /*  900px */
+  --breakpoint-lg: 75rem; /* 1200px */
+  --breakpoint-xl: 100rem; /* 1600px */
+  --breakpoint-2xl: initial;
+}
+
+/* Bridge verso i font generati dall'API Fonts di Astro.
+   DEVE essere `@theme inline`, altrimenti l'utility copia il valore invece di
+   emettere var(--font-geist) e il fallback metric-matched non si applica. */
+@theme inline {
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Variabili NON tokenizzate: vanno in :root, non in @theme, altrimenti
+   Tailwind genererebbe una utility morta per ognuna. */
+:root {
+  --nav-h: 4.5rem;
+  --z-below: -1;
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 10;
+  --z-nav: 100;
+  --z-overlay: 1000;
+}
+
+@layer base {
+  html {
+    /* Una sola palette, nessun toggle tema: color-scheme e' fisso e fa
+       scegliere al browser scrollbar e widget nativi scuri.                 */
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    /* scroll-behavior: smooth rompe il timing di refresh di ScrollTrigger,
+       ed e' comunque superfluo: lo smooth scroll lo fa Lenis.               */
+    scroll-behavior: auto !important;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-text-1);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.65;
+    /* Mai overflow-x sul body: le sezioni full-bleed usano
+       width:100vw + margin-inline: calc(50% - 50vw).                        */
+    overflow-x: clip;
+  }
+
+  /* Il tracking negativo e l'interlinea sotto 1 stanno nei token; qui si
+     azzerano solo i default del browser. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 500;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-canvas);
+  }
+
+  /* Focus ring globale: 8.35:1 su canvas. Mai rimuovere l'outline senza
+     sostituirlo — e' l'unica affordance per chi naviga da tastiera. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-hi);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Dentro le sezioni chiare l'accento chiaro sparirebbe. */
+  .on-paper :focus-visible {
+    outline-color: var(--color-accent-deep);
+  }
+  /* Sopra il fondo accento pieno serve il near-black. */
+  .on-accent :focus-visible {
+    outline-color: var(--color-canvas);
+  }
+
+  img,
+  picture,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+/* ============================================================================
+   LENIS — CSS obbligatorio (1.3.25). Senza queste regole Lenis si comporta
+   male: altezza sbagliata, iframe che rubano il wheel, scroll lock che
+   sfarfalla. Lo scroll lock si fa con lenis.stop()/start(), MAI con
+   overflow:hidden sul body (causerebbe un layout shift da scomparsa
+   della scrollbar).
+   ========================================================================= */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+.lenis.lenis-autoToggle {
+  transition-property: overflow;
+  transition-duration: 1ms;
+  transition-behavior: allow-discrete;
+}
+
+/* ============================================================================
+   UTILITY DI PROGETTO
+   ========================================================================= */
+
+/* Sezione a tutta larghezza che esce dal contenitore senza generare
+   overflow orizzontale sul documento. */
+@utility full-bleed {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+/* Wrapper per i reveal mascherati: `clip` invece di `hidden` perche' non crea
+   un contenitore di scroll (e quindi non rompe position: sticky dentro). */
+@utility clip-frame {
+  overflow: clip;
+}
+
+/* Allineamento ottico del primo glifo ai corpi display: la sidebearing del
+   font rompe la colonna. Si applica a occhio, una volta, sul singolo titolo. */
+@utility opt-round {
+  text-indent: -0.035em; /* C O G Q S A V W */
+}
+@utility opt-flat {
+  text-indent: -0.015em; /* tutto il resto   */
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   Oltre a questo, nel ramo reduce il JS non istanzia nemmeno Lenis e non crea
+   alcuno ScrollTrigger (vedi src/scripts/).
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

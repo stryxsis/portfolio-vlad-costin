@@ -1,0 +1,88 @@
+---
+/**
+ * Lo scheletro di ogni pagina. Contiene l'unico <head> del sito e l'unico
+ * punto in cui il CSS globale viene importato.
+ */
+import '../styles/global.css';
+
+import Seo from '../components/head/Seo.astro';
+import Fonts from '../components/head/Fonts.astro';
+import { SITE } from '../lib/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  ogType?: 'website' | 'article' | 'profile';
+  noindex?: boolean;
+  jsonLd?: unknown;
+  /** Classe extra sul <body>, per le pagine che partono su fondo diverso. */
+  bodyClass?: string;
+}
+
+const { bodyClass, ...seo } = Astro.props;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+  <head>
+    <Seo {...seo} />
+    <Fonts />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    {/*
+      GATE DEL PRE-HIDING — 130 byte, inline, prima del paint.
+      Le animazioni di ingresso nascondono il contenuto in CSS, ma SOLO sotto
+      `html.js-anim`. Se il JS non gira (crawler, JS disattivato, errore di
+      rete) o se l'utente ha chiesto meno movimento, la classe non viene
+      aggiunta e il contenuto è visibile e completo dal primo frame.
+      Deve stare qui e non in un modulo: un modulo è deferred e il testo
+      sfarfallerebbe.
+    */}
+    <script is:inline>
+      if (matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+        document.documentElement.classList.add('js-anim');
+      }
+    </script>
+  </head>
+
+  <body class={bodyClass}>
+    <a href="#contenuto" class="skip-link">Vai al contenuto</a>
+
+    <main id="contenuto">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  /* Il link di salto è invisibile finché non riceve il focus da tastiera.
+     Non usare display:none: lo rimuoverebbe dall'ordine di tabulazione. */
+  .skip-link {
+    position: absolute;
+    top: 0;
+    left: var(--spacing-gutter, 1.25rem);
+    z-index: var(--z-overlay);
+    padding: 0.75rem 1.25rem;
+    background-color: var(--color-accent);
+    color: var(--color-canvas);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    border-radius: 0 0 0.5rem 0.5rem;
+    transform: translateY(-100%);
+    transition: transform 180ms var(--ease-out-expo);
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+  }
+</style>

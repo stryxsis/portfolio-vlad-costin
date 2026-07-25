@@ -1,0 +1,14 @@
+# Normalizza i fine riga: LF nel repo, a prescindere dalla piattaforma.
+# Evita diff spuri quando si lavora su Windows.
+* text=auto eol=lf
+
+# Binari: mai toccati.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
