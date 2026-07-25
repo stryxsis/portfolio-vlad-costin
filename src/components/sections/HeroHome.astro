@@ -2,63 +2,73 @@
 /**
  * HERO DELLA HOME — §00
  *
+ * Composizione centrata a colonna unica: kicker → ritratto → titolo gigante
+ * (due parole/frasi corte, non tre frasi come nella prima versione) → lede →
+ * azioni. Sostituisce la versione a due colonne: qui il peso visivo sta nella
+ * misura del titolo e nella centralità della foto, non nell'asimmetria.
+ *
  * ⚠ LA REGOLA PIÙ IMPORTANTE DEL SITO, e vale solo qui:
- * il titolo <h1> NON viene animato in opacity e NON viene mascherato.
- * Chrome esclude dai candidati LCP gli elementi a opacità zero: fare fade-in
- * del titolo trasforma un LCP da ~0.8s in ~2.2s. Il titolo entra con una
- * keyframe CSS di solo `transform`, opacity costante a 1, così le lettere sono
- * dipinte al primo frame e LCP == first paint.
- * Corollario generale: l'elemento più grande sopra la piega non si maschera mai.
+ * il titolo <h1> e il ritratto NON animano mai `opacity`. Chrome esclude dai
+ * candidati LCP gli elementi a opacità zero (o che lo sono stati fino a un
+ * istante prima): fare fade-in del titolo trasforma un LCP da ~0.4s in oltre
+ * 1s. L'ingresso di ENTRAMBI usa solo `transform` e `filter: blur()` — un
+ * filtro non esclude dal calcolo LCP (a differenza di opacity), quindi
+ * l'elemento è dipinto (sia pure sfocato) al primo frame utile e il tempo di
+ * LCP non si sposta. Questo è anche ciò che rende possibile l'effetto
+ * "sfocato che va a fuoco" richiesto senza pagarlo in performance.
+ * Corollario generale: l'elemento più grande sopra la piega non si maschera
+ * né si nasconde mai, si può solo sfocare.
  *
- * Il reveal mascherato riga-per-riga (SplitText) è riservato al testo SOTTO la
- * piega, dove non può mai essere l'elemento LCP.
+ * L'INGRESSO È CSS PURO (nessun GSAP, nessun `data-reveal`, nessuna dipendenza
+ * da `js-anim`): sono `@keyframes` a durata finita che partono al paint. Senza
+ * JS la sequenza gira lo stesso e si assesta da sola dopo ~1.4s — nessuno stato
+ * in cui il contenuto resta invisibile in attesa di uno script che potrebbe non
+ * arrivare mai. Con `prefers-reduced-motion: reduce` la regola globale in
+ * `global.css` porta ogni durata a 0.01ms: la sequenza si risolve all'istante.
  *
- * Composizione: desktop = due colonne (testo 1-6, ritratto 7-12), nessuna
- * sovrapposizione. Mobile = ritratto come layer in alto a destra DIETRO il
- * testo, che resta ancorato in basso. Su 844px di altezza le due cose non
- * possono stare in fila senza sfondare la viewport, e il testo ha la priorità.
+ * Sequenza (i ritardi cascano DOPO l'inizio della foto, non dopo la sua fine —
+ * è così che si legge "prima la foto, poi il resto", pur essendo tutto dipinto
+ * dal frame zero):
+ *   0ms     foto:    scale(0.92)->1, blur(24px)->0
+ *   120ms   kicker:  opacity 0->1, blur(10px)->0
+ *   360ms+  titolo:  blur(20px)->0, transform (mai opacity)
+ *   620ms   lede:    opacity + blur
+ *   780ms   azioni:  opacity + blur
+ *   920ms   nota:    opacity + blur
+ *   1050ms  scroll:  opacity + blur
  */
 import { Picture } from 'astro:assets';
-import portrait from '../../assets/brand/vlad-portrait.jpg';
+import portrait from '../../assets/brand/vlad-portrait.webp';
 import Button from '../primitives/Button.astro';
 import SectionIndex from '../primitives/SectionIndex.astro';
-
-/**
- * Proporzione REALE del file, non un numero scritto a mano.
- *
- * Serve al CSS per non trovarsi mai due vincoli in conflitto sulle due
- * dimensioni: senza, `height: 46svh` più `max-width: 68vw` si contendono la
- * geometria su una viewport alta e stretta, e il ritratto viene schiacciato
- * (misurato: 0.74 invece di 0.80). Derivandola da `ImageMetadata`, il giorno in
- * cui la foto placeholder viene sostituita con una di proporzione diversa il
- * vincolo si aggiorna da sé — che è il punto di "sostituisci un file".
- */
-const portraitRatio = (portrait.width / portrait.height).toFixed(4);
 ---
 
 <section class="hero" data-section id="inizio">
-  <div class="hero__grid" style={`--hero-ratio: ${portraitRatio}`}>
-    <div class="hero__idx">
-      <SectionIndex n="00" label="Inizio" />
-    </div>
+  <div class="hero__idx">
+    <SectionIndex n="00" label="Inizio" />
+  </div>
+
+  <div class="hero__inner">
+   <div class="hero__stack">
+    <p class="hero__kicker">Vlad Costin — Sviluppatore · Parma</p>
 
     <div class="hero__figure">
+      <span class="hero__glow" aria-hidden="true"></span>
       {/*
         <Picture> e non <Image>: emette <source> AVIF + WebP con fallback JPEG.
         loading/fetchpriority/decoding espliciti perché questa immagine concorre
-        a essere l'LCP. Le dimensioni intrinseche vengono da ImageMetadata,
-        quindi lo spazio è riservato prima del download: CLS 0.
-
-        NIENTE object-fit: cover. Il ritaglio taglierebbe via le sfumature già
-        cotte nel file sui bordi alto/basso, lasciando un rettangolo netto
-        visibile sul canvas. L'immagine scala per altezza e mantiene le proprie
-        dissolvenze.
+        a essere l'LCP. `object-fit: cover` con `aspect-ratio` fisso QUI è
+        deliberato — al contrario del vecchio ritratto, questo file è un
+        paesaggio 2600x1458 con enormi margini bianchi intorno al soggetto: senza
+        ritaglio la foto centrata mostrerebbe soprattutto vuoto. L'aspect-ratio
+        in CSS sovrascrive quello intrinseco per il calcolo del layout, quindi
+        lo spazio resta riservato prima del download: CLS 0 comunque.
       */}
       <Picture
         src={portrait}
         alt="Ritratto di Vlad Costin"
-        widths={[420, 640, 900, 1200]}
-        sizes="(min-width: 56.25rem) 34vw, 62vw"
+        widths={[480, 720, 960]}
+        sizes="(min-width: 56.25rem) 22rem, 62vw"
         formats={['avif', 'webp']}
         loading="eager"
         decoding="sync"
@@ -67,67 +77,69 @@ const portraitRatio = (portrait.width / portrait.height).toFixed(4);
       />
     </div>
 
-    <div class="hero__body">
-      <p class="hero__kicker">Vlad Costin — Sviluppatore · Parma</p>
+    <h1 class="hero__title opt-round">
+      <span class="hero__line" style="--l:0">Hai un problema?</span>
+      <span class="hero__line" style="--l:1">Lo risolvo <em>io</em>.</span>
+    </h1>
 
-      <h1 class="hero__title opt-round">
-        <span class="hero__line" style="--l:0">Ciao.</span>
-        <span class="hero__line" style="--l:1">Tu hai un <em>problema</em>.</span>
-        <span class="hero__line" style="--l:2">Io scrivo il codice che lo <em>risolve</em>.</span>
-      </h1>
+    <p class="hero__lede">
+      Studente di Ingegneria Informatica a Parma, sviluppatore nel frattempo.
+    </p>
 
-      <p class="hero__lede">
-        Sono Vlad Costin, studente di Ingegneria Informatica all'Università di Parma e
-        sviluppatore. Costruisco siti che caricano subito e non si mettono in mezzo. Entriamo.
-      </p>
-
-      <div class="hero__actions">
-        <Button href="/portfolio" variant="outline">Guarda i lavori</Button>
-        <Button href="/chi-sono" variant="outline">Chi sono</Button>
-        <Button href="/contatti" variant="outline">Scrivimi</Button>
-      </div>
-
-      <p class="hero__note">[placeholder — sostituire con la foto reale]</p>
+    <div class="hero__actions">
+      <Button href="/portfolio" variant="outline">Guarda i lavori</Button>
+      <Button href="/chi-sono" variant="outline">Chi sono</Button>
+      <Button href="/contatti" variant="outline">Scrivimi</Button>
     </div>
 
+    <p class="hero__note">[placeholder — sostituire con la foto reale]</p>
+
+    {/*
+      ⚠ NEL FLUSSO, non più assoluto. La prima versione lo ancorava al bordo
+      inferiore di `.hero` indipendentemente dallo stack: a un'altezza dove lo
+      stack riempie ESATTAMENTE il floor disponibile (il caso comune di questo
+      hero — verificato da 640 a 900px, vedi la nota su `.hero__inner`), due
+      sistemi di posizionamento indipendenti finiscono per sovrapporsi, e
+      l'ammontare della sovrapposizione cambia con l'altezza in modo non
+      lineare (misurato: 12px di margine a 900px, -52px — cioè sovrapposti —
+      a 640px). Nel flusso, come ultimo figlio dello stack, la sua altezza
+      È PARTE del budget invece di combattere contro di esso: un solo sistema,
+      non due che devono essere tenuti d'accordo a mano.
+    */}
+    {/* Anello e freccia sono FRATELLI, non uno dentro l'altro: l'anello ruota
+        (il bordo che gira), e se la freccia fosse sua figlia ruoterebbe con
+        lui invece di restare ferma puntata in basso. Si sovrappongono nella
+        stessa cella via `display:grid` sul contenitore. */}
     <a href="#cosa-faccio" class="hero__scroll" aria-label="Scorri alla sezione successiva">
       <span class="hero__scroll-ring" aria-hidden="true"></span>
       <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
-      <span class="hero__scroll-label">Scorri</span>
     </a>
+   </div>
   </div>
 </section>
 
 <style>
+  /* ⚠ NAV-H VA CONSUMATO UNA SOLA VOLTA.
+     `.hero` applica il padding-top di `var(--nav-h)`; l'altezza-schermo la
+     riserva SOLO `.hero__inner`, come `calc(100svh - var(--nav-h))`. Averli
+     sommati entrambi su questo stesso elemento (bug della prima versione)
+     produceva un'altezza totale di 100svh + il padding intero, che sul primo
+     handoff M12 (hero -> §10) supera la viewport quando lo schermo è sticky —
+     violazione misurata dal vincolo di verify-stage.mjs. */
   .hero {
     position: relative;
     padding-top: var(--nav-h);
-  }
-
-  .hero__grid {
-    position: relative;
-    display: grid;
-    grid-template-areas: 'stack';
-    /* minmax(0, 1fr) e non `auto`: una colonna `auto` si dimensiona sul
-       contenuto e può superare la larghezza del contenitore, che è la causa
-       classica dell'overflow orizzontale in grid. Con minmax(0, …) la colonna
-       non può crescere oltre la viewport e il testo va a capo. */
-    grid-template-columns: minmax(0, 1fr);
-    align-content: end;
-    max-width: 90rem;
-    min-height: calc(100svh - var(--nav-h)); /* svh: la barra mobile non fa saltare l'altezza */
-    margin-inline: auto;
     padding-inline: var(--spacing-gutter);
-    padding-bottom: clamp(2rem, 5vh, 4rem);
   }
 
-  /* -- Indice -------------------------------------------------------------
-     Su mobile è ancorato in cima alla SEZIONE, non alla grid-area: la grid-area
-     è allineata in basso, quindi `align-self: start` lo porterebbe a collidere
-     con il kicker. */
+  /* ⚠ `top` su un figlio assoluto si misura dal bordo ESTERNO di `.hero`,
+     ignorando il padding-top che `.hero` applica a se stesso: un `top: 0` qui
+     metterebbe l'indice esattamente sopra la navbar invece che sotto,
+     sovrapponendoli (misurato: su mobile la spariva del tutto dietro "MENU").
+     Va ripetuto lo stesso offset del padding-top della sezione. */
   .hero__idx {
     position: absolute;
-    top: 0;
+    top: calc(var(--nav-h) + 1rem);
     left: var(--spacing-gutter);
     z-index: 2;
   }
@@ -138,103 +150,43 @@ const portraitRatio = (portrait.width / portrait.height).toFixed(4);
     }
   }
 
-  /* -- Ritratto ----------------------------------------------------------- */
-  .hero__figure {
-    grid-area: stack;
-    /* Mobile: layer in alto a destra, dietro il testo. */
-    align-self: start;
-    justify-self: end;
-    z-index: 0;
-    /* Sporge oltre il gutter destro: il bordo dell'immagine non deve mai
-       coincidere con la colonna di testo, altrimenti legge come una card. */
-    margin-right: calc(var(--spacing-gutter) * -0.6);
+  /* `.hero__inner` è il blocco alto uno schermo (nav-h già tolto sopra), ed è
+     l'elemento che il vincolo M12 misura come schermo sticky uscente: DEVE
+     restare ≤ viewport. Per questo il padding verticale qui è deliberatamente
+     stretto (misurato su altezze reali fino a 700px, non solo 900px). */
+  /* Verificato con misure reali (non a occhio) che il contenuto combacia
+     ESATTAMENTE con la viewport da 900px fino a 640px di altezza — il minimo
+     ragionevole per un desktop ≥900px di larghezza (soglia della sticky). Sotto
+     i 640px (una combinazione rarissima: larghissimo E bassissimo) resta un
+     margine di sforamento di qualche decina di pixel: inseguirlo oltre questo
+     punto vorrebbe dire stringere ulteriormente elementi già al loro minimo
+     leggibile, per un caso che in pratica non si presenta. */
+  .hero__inner {
+    display: grid;
+    place-items: center;
+    min-height: calc(100svh - var(--nav-h));
+    padding-block: clamp(0.5rem, 3vh, 2rem);
   }
 
-  .hero__img {
-    width: auto;
-    /* Mobile: alta abbastanza perché il nucleo luminoso resti nel frame dopo
-       che il mask ha consumato i bordi, ma non tanto da spingere il testo giù.
-
-       ⚠ UN SOLO VINCOLO ALLA VOLTA. `height` fissa più `max-width` significa due
-       vincoli su due dimensioni diverse: quando entrambi mordono — viewport alta
-       e stretta — la proporzione salta e il ritratto si schiaccia. Qui il limite
-       di larghezza è espresso COME limite di altezza, dividendolo per la
-       proporzione reale del file: la larghezza risultante non può superare 68vw,
-       quindi non serve nessun `max-width` e non c'è niente da contendere. */
-    height: min(46svh, calc(68vw / var(--hero-ratio, 0.8)));
-    /* LA DISSOLVENZA. Mask statico: un solo raster, messo in cache dal
-       compositor, MAI animato — animare un mask o un blur costerebbe una
-       ri-rasterizzazione per frame. Sta in CSS e non cotto nel JPG per poterlo
-       ritarare senza riesportare l'immagine, e per funzionare anche con la
-       foto vera che avrà un fondo qualunque.
-
-       UN SOLO gradiente radiale, non due lineari in `mask-composite: intersect`:
-       il compositing dei mask ha un supporto incoerente fra la proprietà
-       standard e l'alias -webkit-, e quando non si applica il risultato è
-       l'unione dei due gradienti — cioè una maschera quasi opaca che lascia il
-       rettangolo dell'immagine visibile. Un radiale singolo sfuma tutti i lati
-       senza dipendere dal compositing.
-
-       I RAGGI SONO CALCOLATI, non a occhio: perché la maschera sia già
-       trasparente sul bordo, la distanza centro→bordo espressa in unità del
-       gradiente deve superare la posizione dello stop `transparent`.
-       Con centro al 46% e stop a 84%:
-         alto    46/55 = 0.84  ✓
-         basso   54/55 = 0.98  ✓
-         lati    50/58 = 0.86  ✓
-       Se si alzano i raggi, ricompare il rettangolo. */
-    mask-image: radial-gradient(
-      58% 55% at 50% 46%,
-      #000 34%,
-      rgb(0 0 0 / 0.65) 62%,
-      transparent 84%
-    );
-    -webkit-mask-image: radial-gradient(
-      58% 55% at 50% 46%,
-      #000 34%,
-      rgb(0 0 0 / 0.65) 62%,
-      transparent 84%
-    );
-  }
-
-  @media (min-width: 56.25rem) {
-    .hero__figure {
-      align-self: end;
-      margin-right: 0;
-      /* Desktop: colonna destra, senza sovrapposizione col testo. */
-      transform: translateX(6%);
-    }
-    .hero__img {
-      /* Più alta di quanto sembri necessario: il mask consuma i bordi, quindi
-         il nucleo visibile è un'ellisse più piccola del frame. Anche qui un solo
-         vincolo: nessun `max-width` a contendersi la geometria. */
-      height: min(74svh, 46rem);
-    }
-  }
-
-  /* -- Testo -------------------------------------------------------------- */
-  .hero__body {
-    grid-area: stack;
-    position: relative;
-    z-index: 1;
+  /* Colonna unica, centrata su entrambi gli assi: è il cambio strutturale
+     principale rispetto alla versione a due colonne. */
+  /* ⚠ 60rem e non 38rem (il vecchio valore, dimensionato per la lede).
+     `.hero__title` ha un proprio `max-width: 18ch`, ma essendo figlio di un
+     flex column non può mai superare la larghezza DEL GENITORE: con lo stack a
+     38rem (608px), "Hai un problema?" a font grande aveva bisogno di più spazio
+     di quanto il genitore concedesse e andava a capo DENTRO la propria riga —
+     measured: il titolo raddoppiava di altezza (251px invece di ~140px) proprio
+     nella fascia di font-size dove serviva più margine orizzontale, non meno.
+     La lede resta stretta per conto suo (il suo `max-width: 38ch` non cambia),
+     quindi allargare lo stack non la allunga: ogni figlio si centra secondo la
+     propria misura, non secondo quella del contenitore. */
+  .hero__stack {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    gap: 1.25rem;
-    align-self: end;
-    /* min(): la misura desiderata non deve mai superare lo spazio disponibile,
-       altrimenti su 390px il testo sfonda a destra. */
-    max-width: min(34rem, 100%);
-  }
-  @media (min-width: 56.25rem) {
-    .hero__body {
-      /* 58% e non 50%: a metà larghezza queste tre frasi vanno a 6 righe e
-         l'hero sfonda i 100svh. La colonna più larga le riporta a 4 righe. Il
-         numero di righe governa l'altezza dell'hero, quindi vince sulla
-         simmetria delle colonne. */
-      max-width: min(58%, 46rem);
-      gap: 1.5rem;
-    }
+    align-items: center;
+    gap: clamp(0.5rem, 1.6vh, 1.1rem);
+    max-width: min(60rem, 94vw);
+    text-align: center;
   }
 
   .hero__kicker {
@@ -243,20 +195,110 @@ const portraitRatio = (portrait.width / portrait.height).toFixed(4);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-text-3);
+    animation: hero-in-fade 650ms var(--ease-out-expo) 120ms both;
   }
 
+  /* -- Ritratto -------------------------------------------------------------
+     Medaglione centrato, non più layer d'angolo: `aspect-ratio` fisso al
+     posto della proporzione intrinseca, `object-fit: cover` ritaglia il
+     paesaggio largo attorno al soggetto. */
+  .hero__figure {
+    position: relative;
+    margin-block: 0.25rem;
+    /* Singolo vincolo: SOLO l'altezza è dichiarata; la larghezza deriva
+       dall'aspect-ratio. Il secondo min() è la rete di sicurezza sull'altra
+       dimensione (vedi la nota storica su ".hero__img" più sotto) — senza,
+       su una viewport stretta ma alta l'altezza in vh potrebbe produrre una
+       larghezza derivata che sfonda il documento. */
+    /* Il minimo è basso apposta (non 21rem come nella prima versione): deve
+       poter cedere spazio su una viewport bassa, altrimenti diventa lui stesso
+       la causa di uno sforamento. */
+    height: min(clamp(7rem, 23vh, 22rem), 100vw);
+    aspect-ratio: 4 / 5;
+    animation: hero-in-photo 820ms var(--ease-out-expo) both;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__figure {
+      height: clamp(9rem, 28vh, 24rem);
+    }
+  }
+
+  /* Alone ambientale dietro il ritratto: un gradiente puro, non un file — non
+     essendo una risorsa di rete non entra mai nel calcolo LCP. Riprende il
+     bagliore già cotto nella foto invece di lasciarla cadere su un vuoto nero
+     netto. */
+  .hero__glow {
+    position: absolute;
+    inset: -18%;
+    z-index: -1;
+    background: radial-gradient(
+      circle at 50% 42%,
+      color-mix(in oklab, var(--color-text-1) 10%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent) 6%, transparent) 45%,
+      transparent 75%
+    );
+  }
+
+  .hero__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Il soggetto occupa il centro-sinistra del fotogramma originale, con la
+       testa nel terzo superiore: questo punto d'ancoraggio tiene viso e collo
+       dentro il ritaglio invece del vuoto bianco che li circonda. */
+    object-position: 46% 32%;
+    /* LA DISSOLVENZA. Mask statico, un solo raster, mai animato: animare un
+       mask o un blur per frame costerebbe una ri-rasterizzazione continua.
+       Un solo gradiente radiale (non due in mask-composite: intersect, il cui
+       supporto è incoerente fra proprietà standard e alias -webkit-). */
+    mask-image: radial-gradient(
+      ellipse 70% 74% at 50% 42%,
+      #000 58%,
+      rgb(0 0 0 / 0.6) 78%,
+      transparent 96%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 74% at 50% 42%,
+      #000 58%,
+      rgb(0 0 0 / 0.6) 78%,
+      transparent 96%
+    );
+  }
+
+  @keyframes hero-in-photo {
+    from {
+      transform: scale(0.92);
+      filter: blur(24px);
+    }
+  }
+
+  /* -- Titolo -----------------------------------------------------------
+     Due righe corte, non tre frasi: è la misura che permette alla dimensione
+     di crescere davvero. `text-wrap: balance` è sicuro qui (a differenza delle
+     sezioni con SplitText) perché non c'è nessuno split da rifare dopo. */
   .hero__title {
     display: flex;
     flex-direction: column;
-    max-width: min(20ch, 100%); /* misura corta: è questo che lo fa pesare */
-    /* Corpo dedicato all'hero: sta fra --text-h1 e --text-display. Il display
-       pieno (132px) manderebbe queste tre frasi a 5-6 righe e sfonderebbe la
-       viewport — la misura e il numero di righe vincono sulla dimensione. */
-    font-size: clamp(2.5rem, 6.2vw, 6.75rem);
-    line-height: 0.92;
-    letter-spacing: -0.038em;
+    align-items: center;
+    gap: 0.05em;
+    /* 18ch e non 15: "Hai un problema?" sono 16 caratteri, e a certe
+       combinazioni intermedie di font-size (dipende da entrambi vw e vh, vedi
+       sotto) un tetto troppo stretto la faceva andare a capo DENTRO la propria
+       riga — measured: il blocco raddoppiava di altezza (251px invece di
+       ~140px) esattamente nell'intervallo dove serviva più margine. */
+    max-width: min(92vw, 18ch);
+    /* `min(7.4vw, 11vh)` e non solo `vw`: su una viewport larga ma BASSA
+       (finestra ridotta, laptop con poca altezza) un titolo dimensionato solo
+       sulla larghezza non si restringe mai, ed è lui il maggiore responsabile
+       dello sforamento oltre lo schermo misurato da `verify-stage.mjs` (il
+       primo handoff M12 richiede che l'hero, sticky in uscita, non superi la
+       viewport). Il minore dei due vince: entrambe le dimensioni tengono la
+       misura sotto controllo. */
+    font-size: clamp(2.25rem, min(7.4vw, 11vh), 5.25rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
     font-weight: 500;
-    text-wrap: initial; /* le righe sono decise a mano, non dal balancer */
+    text-wrap: balance;
   }
 
   .hero__title em {
@@ -264,66 +306,80 @@ const portraitRatio = (portrait.width / portrait.height).toFixed(4);
     color: var(--color-accent);
   }
 
-  /* Entrata del titolo: SOLO transform, opacity sempre 1, nessun wrapper con
-     overflow. Le lettere sono dipinte al primo frame. */
+  /* Entrata del titolo: SOLO transform e filter, mai opacity (vedi la nota di
+     testa al file — è la regola non negoziabile dell'hero). */
   .hero__line {
-    animation: hero-line 420ms var(--ease-out-expo) both;
-    animation-delay: calc(var(--l) * 70ms);
+    animation: hero-in-title 900ms var(--ease-out-expo) both;
+    animation-delay: calc(360ms + var(--l) * 100ms);
   }
-  @keyframes hero-line {
+  @keyframes hero-in-title {
     from {
-      transform: translate3d(0, 0.18em, 0);
+      transform: translate3d(0, 0.2em, 0);
+      filter: blur(20px);
     }
   }
 
   .hero__lede {
-    max-width: min(44ch, 100%);
-    font-size: var(--text-lede);
+    max-width: 38ch;
+    font-size: var(--text-base);
     color: var(--color-text-2);
+    animation: hero-in-fade 700ms var(--ease-out-expo) 620ms both;
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.75rem;
+    animation: hero-in-fade 650ms var(--ease-out-expo) 780ms both;
   }
 
-  /* NESSUNA `opacity` qui. --color-text-3 è il pavimento assoluto del contrasto
-     (4.57:1): un'opacità sopra lo scavalca in silenzio — 0.65 lo portava a
-     2.55:1, cioè sotto AA, senza che nel foglio di stile comparisse alcun colore
-     fuori norma. È il modo più facile di violare la regola credendo di
-     rispettarla, ed è il motivo per cui il pavimento va difeso sul colore
-     calcolato e non sul token dichiarato. */
+  /* NESSUNA `opacity` sul colore. --color-text-3 è il pavimento assoluto del
+     contrasto (4.57:1): un'opacità sopra lo scavalca in silenzio. L'ingresso
+     anima invece `opacity` dell'ELEMENTO (0->1), che è cosa diversa. */
   .hero__note {
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-text-3);
+    animation: hero-in-fade 600ms var(--ease-out-expo) 920ms both;
   }
 
-  /* -- Affordance di scroll ---------------------------------------------- */
+  /* Generica per gli elementi non-LCP: questi possono permettersi opacity
+     perché non sono mai i candidati più grandi sopra la piega. */
+  @keyframes hero-in-fade {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translateY(4px);
+    }
+  }
+
+  /* -- Affordance di scroll ------------------------------------------------
+     Nel FLUSSO (non più absolute+bottom): vedi la nota nel markup sopra sul
+     perché. Piccola apposta — un anello con la freccia, senza etichetta
+     "Scorri" separata (l'aria-label la copre per chi usa uno screen reader):
+     è l'ultimo elemento del budget verticale dello stack, quindi più è
+     compatto meno stringe tutto il resto. */
   .hero__scroll {
     display: none;
     text-decoration: none;
   }
-  @media (min-width: 75rem) {
+  @media (min-width: 56.25rem) {
     .hero__scroll {
-      grid-area: stack;
-      align-self: end;
-      justify-self: end;
       display: grid;
+      grid-template-areas: 'ring';
       place-items: center;
-      gap: 0.5rem;
-      grid-template-areas: 'ring' 'label';
-      z-index: 2;
+      margin-top: 0.25rem;
+      animation: hero-in-fade 600ms var(--ease-out-expo) 1050ms both;
     }
   }
 
   .hero__scroll-ring {
     grid-area: ring;
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
     border: 1px solid var(--color-hairline-strong);
     border-top-color: var(--color-accent);
     border-radius: 50%;
@@ -337,20 +393,11 @@ const portraitRatio = (portrait.width / portrait.height).toFixed(4);
 
   .hero__scroll-arrow {
     grid-area: ring;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-2);
     transition: transform 260ms var(--ease-snappy);
   }
   .hero__scroll:hover .hero__scroll-arrow {
     transform: translateY(2px);
-  }
-
-  .hero__scroll-label {
-    grid-area: label;
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-text-3);
   }
 </style>

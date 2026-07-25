@@ -211,7 +211,7 @@ await send('Emulation.setScriptExecutionDisabled', { value: false }, sid);
 const html = await (await fetch(URL_)).text();
 ok('senza JS: nessun data-reveal pre-nascosto in HTML', !/style="[^"]*opacity:\s*0/.test(html));
 ok('senza JS: il testo dello statement è nell\'HTML', html.includes('costruisco cose'));
-ok('senza JS: il titolo hero è nell\'HTML', html.includes('Io scrivo il codice che lo'));
+ok('senza JS: il titolo hero è nell\'HTML', html.includes('Hai un problema?') && html.includes('Lo risolvo'));
 
 /* ---- esito -------------------------------------------------------------- */
 console.log('\n================ ESITO ================');
