@@ -1,0 +1,142 @@
+---
+/**
+ * /chi-sono
+ *
+ * Milestone 6: la pagina esiste per davvero (il link in navbar non è più rotto)
+ * e rende i dati reali del CV attraverso Timeline e SkillsGrid.
+ *
+ * Arrivano nel milestone 8: l'hero a tre frame tipografici sovrapposti (§00),
+ * la sezione filosofia full-bleed su fondo paper (§10) e il backstage (§40).
+ * I numeri d'indice sono già distanziati per lasciare quei posti liberi.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionIndex from '../components/primitives/SectionIndex.astro';
+import Timeline from '../components/primitives/Timeline.astro';
+import SkillsGrid from '../components/sections/SkillsGrid.astro';
+import { TIMELINE } from '../data/timeline';
+import { SITE } from '../lib/site';
+---
+
+<BaseLayout
+  title="Chi sono"
+  description="Vlad Costin: sviluppatore e studente di Ingegneria Informatica a Parma. Il percorso, gli strumenti, e cosa sta studiando adesso."
+  ogType="profile"
+>
+  {/* §00 — L'h1 è candidato LCP: nessun data-split, nessun fade. Si anima solo
+      la lede, che sta più in basso e non entra nel calcolo. */}
+  <section class="ab" data-section id="chi-sono">
+    <div class="ab__wrap">
+      <SectionIndex n="00" label="Chi sono" />
+      <h1 class="ab__title">Studio.<br />Lavoro.<br />Spesso nello stesso pomeriggio.</h1>
+      <p class="ab__lede" data-split="lines">{SITE.bio}</p>
+    </div>
+  </section>
+
+  {/* §20 — Il percorso. Il filetto verticale della timeline sborda in basso di
+      proposito: questa sezione non deve avere overflow clippato. */}
+  <section class="jr" data-section id="percorso">
+    <div class="jr__wrap">
+      <div class="jr__idx">
+        <SectionIndex n="20" label="Percorso" />
+      </div>
+      <div class="jr__head">
+        <h2 class="jr__title" data-split="lines">
+          In ordine, ma non in fila: studio e lavoro si sovrappongono.
+        </h2>
+      </div>
+      {/* Wrapper e non `class` sul componente: vedi la nota in Timeline.astro. */}
+      <div class="jr__tl">
+        <Timeline entries={TIMELINE} />
+      </div>
+    </div>
+  </section>
+
+  <SkillsGrid n="30" />
+</BaseLayout>
+
+<style>
+  .ab {
+    padding-top: calc(var(--nav-h) + clamp(3rem, 8vh, 6rem));
+    padding-bottom: var(--spacing-section);
+  }
+
+  .ab__wrap,
+  .jr__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .ab__title {
+    margin-top: 1.5rem;
+    /* La misura corta è ciò che fa leggere le tre righe come una dichiarazione:
+       il <br /> è manuale perché la spezzatura è parte del testo, non un
+       accidente della larghezza. */
+    max-width: 18ch;
+    font-size: var(--text-display);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+  }
+
+  .ab__lede {
+    margin-top: clamp(2rem, 4vw, 3rem);
+    max-width: 44ch;
+    font-size: var(--text-lede);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--color-text-2);
+  }
+
+  .jr {
+    padding-block: var(--spacing-section);
+  }
+
+  /* Stessa griglia a 12 colonne di WhatIDo e SkillsGrid, col numero d'indice
+     nella colonna destra: nel sito le sezioni di CONTENUTO hanno l'indice a
+     destra, gli hero lo hanno sopra il titolo. Tenere le due regole distinte è
+     ciò che rende il dispositivo un sistema invece di una decorazione. */
+  @media (min-width: 56.25rem) {
+    .jr__wrap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    /* La cella dell'indice attraversa entrambe le righe: `position: sticky` ha
+       come corsa l'altezza della propria cella, quindi limitandola alla riga
+       della testata l'indice si sgancerebbe subito invece di accompagnare tutta
+       la timeline. */
+    .jr__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1 / span 2;
+      justify-self: end;
+    }
+    .jr__head {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+      margin-top: 0;
+    }
+    /* La timeline prende più colonne della testata: le serve larghezza per la
+       colonna dell'anno più il corpo. */
+    .jr__tl {
+      grid-column: 2 / span 10;
+      grid-row: 2;
+    }
+  }
+
+  /* Su mobile indice e titolo stanno impilati: serve lo stacco. Su desktop sono
+     in colonne diverse e il margine viene azzerato sopra. */
+  .jr__head {
+    margin-top: 1.5rem;
+  }
+
+  .jr__title {
+    max-width: 22ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  .jr__tl {
+    margin-top: clamp(4rem, 8vw, 7rem);
+  }
+</style>

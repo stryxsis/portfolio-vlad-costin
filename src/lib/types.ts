@@ -5,9 +5,10 @@
 export interface TimelineEntry {
   /** Anno di inizio, usato come numerale gigante. */
   year: number;
-  /** Etichetta leggibile del periodo, es. "set 2022 — feb 2025". */
-  period: string;
-  /** Date ISO per l'attributo datetime di <time>: è questo che le macchine leggono. */
+  /** Date ISO ("2022-09"), sia per l'attributo datetime di <time> sia per
+   *  generare l'etichetta leggibile: l'etichetta NON si scrive a mano, la
+   *  produce `periodParts()` in src/lib/format.ts. Una data in due formati in
+   *  due campi diversi divergerebbe alla prima modifica distratta. */
   from: string;
   to?: string;
   kind: 'studio' | 'lavoro';

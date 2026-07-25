@@ -1,0 +1,90 @@
+---
+/**
+ * La timeline: il filetto verticale e le sue voci.
+ *
+ * Il filetto è UN elemento con un solo ScrollTrigger in scrub che ne fa
+ * `scaleY 0 → 1`: i "segmenti connettori" sono il filetto stesso che si disegna
+ * passando dietro i nodi. Un trigger per segmento costerebbe cinque trigger e
+ * darebbe lo stesso risultato visivo.
+ *
+ * Il filetto NON si chiude: sborda sotto l'ultima voce ed esce dal blocco. Il
+ * contenitore che usa questo componente non deve quindi avere `overflow: clip`
+ * o `hidden` sull'asse verticale, altrimenti la coda viene tagliata e il gesto
+ * si perde (nel milestone 8 quella coda diventa il filetto iniziale della
+ * sezione successiva).
+ */
+import type { TimelineEntry } from '../../lib/types';
+import TimelineItem from './TimelineItem.astro';
+
+/**
+ * NESSUNA prop `class`, deliberatamente. Gli stili scoped di Astro non
+ * raggiungono l'elemento radice di un componente figlio: la classe arriverebbe
+ * sul <div class="tl">, ma la regola compilata della pagina chiede
+ * `[data-astro-cid-<pagina>]` e la radice porta `[data-astro-cid-timeline]`.
+ * Il risultato è una classe che c'è nell'HTML e non fa niente — un errore
+ * silenzioso, quindi il tipo peggiore.
+ * Per posizionare la timeline in una griglia si usa un wrapper:
+ *   <div class="mia-cella"><Timeline entries={...} /></div>
+ */
+interface Props {
+  entries: TimelineEntry[];
+  /** Mostra solo le prime N voci: il teaser in Home ne mostra 3, la About tutte. */
+  limit?: number;
+}
+const { entries, limit } = Astro.props;
+const items = limit ? entries.slice(0, limit) : entries;
+---
+
+<div class="tl">
+  <span class="tl__rail" data-rail aria-hidden="true"></span>
+
+  <ol class="tl__list">
+    {
+      items.map((entry, i) => (
+        <TimelineItem entry={entry} showYear={items[i - 1]?.year !== entry.year} />
+      ))
+    }
+  </ol>
+</div>
+
+<style>
+  /* Le colonne sono definite QUI e lette dalle voci: una sola fonte per la x del
+     filetto e per quella dei nodi. Se divergessero, i nodi non starebbero sul
+     filo — ed è il tipo di disallineamento che si nota subito. */
+  .tl {
+    --tl-year-col: 0rem;
+    --tl-rail-col: 1.5rem;
+    position: relative;
+  }
+  @media (min-width: 56.25rem) {
+    .tl {
+      --tl-year-col: 10rem;
+      --tl-rail-col: 2.5rem;
+    }
+  }
+
+  .tl__rail {
+    position: absolute;
+    top: 0.65rem; /* all'altezza del primo nodo */
+    /* -0.5px: il centro della colonna è dove `justify-self: center` mette il
+       CENTRO del nodo, ma `left` posiziona il BORDO del filetto. Senza la
+       correzione il filo passa mezzo pixel a destra dei nodi — invisibile a
+       DPR 1, un pixel intero di disallineamento su uno schermo retina. */
+    left: calc(var(--tl-year-col) + var(--tl-rail-col) / 2 - 0.5px);
+    width: 1px;
+    bottom: -2.5rem; /* la coda che non si chiude */
+    background-color: var(--color-hairline);
+    transform-origin: top;
+  }
+  /* Senza JS il filetto è già disegnato. Con JS parte da zero e lo disegna lo
+     scroll (M11b in src/scripts/reveal.ts). */
+  :global(html.js-anim) .tl__rail {
+    transform: scaleY(0);
+  }
+
+  .tl__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+</style>

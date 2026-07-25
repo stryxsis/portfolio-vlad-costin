@@ -1,0 +1,191 @@
+---
+/**
+ * §30 INVENTARIO — le competenze.
+ *
+ * NON barre di percentuale. Una barra al 70% non significa niente (70% di cosa?
+ * misurato da chi?) ed è il cliché più riconoscibile del portfolio da studente:
+ * chi legge sa che il numero è stato scelto a occhio. Un elenco tipografico dice
+ * la stessa cosa senza inventare dati, e costa zero pixel di grafica.
+ *
+ * La forma è quella di un inventario reale: riga per gruppo, etichetta mono a
+ * sinistra, voci in colonne a destra. Le voci vanno a capo una per riga (CSS
+ * `columns`) e non a nuvola di chip, perché una lista incolonnata si scorre con
+ * l'occhio mentre una nuvola va letta tutta.
+ *
+ * Nessun accento in questa sezione: è quella tranquilla, e il budget
+ * dell'accento serve altrove.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+import { SKILLS, LANGUAGES } from '../../data/skills';
+
+interface Props {
+  /** Numero d'indice della sezione nella pagina che la ospita. */
+  n?: string;
+  id?: string;
+}
+const { n = '30', id = 'competenze' } = Astro.props;
+---
+
+<section class="sk" data-section id={id}>
+  <div class="sk__grid">
+    <div class="sk__idx">
+      <SectionIndex n={n} label="Inventario" />
+    </div>
+
+    <div class="sk__body">
+      <h2 class="sk__title" data-split="lines">
+        Gli strumenti, elencati senza percentuali inventate.
+      </h2>
+
+      <div class="sk__groups">
+        {
+          /* `data-reveal` sul GRUPPO e non sulle singole voci: sono ~36 voci, e
+             una per elemento significherebbe sei o sette batch di ScrollTrigger
+             solo per questa sezione. Il gruppo è comunque l'unità giusta —
+             l'onda che si vuole vedere è quella delle righe. */
+          SKILLS.map((g) => (
+            <div class="sk__group" data-reveal>
+              <div class="sk__head">
+                <h3 class="sk__label">{g.label}</h3>
+                {g.note && <p class="sk__note">{g.note}</p>}
+              </div>
+              <ul class="sk__items">
+                {g.items.map((item) => (
+                  <li class="sk__item">{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+
+        {/* Le lingue chiudono l'inventario: stessa forma, valore accostato. */}
+        <div class="sk__group" data-reveal>
+          <div class="sk__head">
+            <h3 class="sk__label">Lingue</h3>
+          </div>
+          <ul class="sk__items">
+            {
+              LANGUAGES.map((l) => (
+                <li class="sk__item">
+                  {l.name}
+                  <span class="sk__level">{l.level}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sk {
+    padding-block: var(--spacing-section);
+  }
+
+  .sk__grid {
+    display: grid;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    gap: 2rem;
+  }
+  @media (min-width: 56.25rem) {
+    .sk__grid {
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .sk__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .sk__body {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+    }
+  }
+
+  .sk__title {
+    max-width: 22ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  .sk__groups {
+    margin-top: clamp(3rem, 6vw, 5rem);
+  }
+
+  /* Il filetto superiore è il separatore: nessun bordo di card, nessuna
+     superficie. Le righe sono tenute insieme dallo spazio. */
+  .sk__group {
+    display: grid;
+    gap: 1rem;
+    padding-block: clamp(1.5rem, 3vw, 2.25rem);
+    border-top: 1px solid var(--color-hairline);
+  }
+  @media (min-width: 37.5rem) {
+    .sk__group {
+      grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+      gap: clamp(1.5rem, 3vw, 3rem);
+    }
+  }
+
+  .sk__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  .sk__note {
+    margin-top: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    /* text-3 e non hairline-strong: a 11px serve 4.5:1, e hairline-strong è
+       3.31:1. Il pavimento del contrasto per il testo è --color-text-3. */
+    color: var(--color-text-3);
+  }
+
+  /* `columns` invece di flex-wrap: le voci restano una per riga e incolonnate,
+     che è la differenza tra un inventario e una nuvola di tag. */
+  .sk__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+  }
+  @media (min-width: 75rem) {
+    .sk__items {
+      columns: 3;
+    }
+  }
+
+  .sk__item {
+    break-inside: avoid;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.9;
+    color: var(--color-text-1);
+  }
+
+  /* `display: block` e non un inline accostato al nome: "Italiano madrelingua"
+     è 19 caratteri e andava a capo dentro la colonna, mentre "Romeno
+     madrelingua" (18) no. Un a capo che dipende da un carattere di differenza
+     legge come un difetto; metterlo sempre sulla riga sotto lo rende una
+     scelta, e a quel punto il livello può anche rimpicciolirsi. */
+  .sk__level {
+    display: block;
+    font-size: var(--text-micro);
+    line-height: 1.4;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+</style>

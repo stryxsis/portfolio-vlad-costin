@@ -35,8 +35,16 @@ const year = new Date().getFullYear();
       </div>
     </div>
 
-    <!-- Wordmark-texture: tagliato dal bordo, escluso dallo screen reader -->
-    <p class="foot__wordmark" aria-hidden="true">VLAD COSTIN</p>
+    <!-- Wordmark-texture: tagliato dal bordo, escluso dallo screen reader.
+         Il testo arriva da una custom property e viene reso da ::before (vedi
+         la nota nel CSS): il nome resta un dato di site.ts, non una stringa
+         scritta a mano nel foglio di stile. -->
+    <p
+      class="foot__wordmark"
+      aria-hidden="true"
+      style={`--wordmark: "${SITE.author.name.toUpperCase()}"`}
+    >
+    </p>
 
     <div class="foot__base">
       <p>© {year} {SITE.author.name}</p>
@@ -133,7 +141,21 @@ const year = new Date().getFullYear();
 
   /* Il gesto di chiusura: il wordmark sale a incastrarsi nell'ultima
      schermata. Il taglio è ottenuto con margin-bottom negativo + overflow:clip
-     sul footer, non con position absolute. */
+     sul footer, non con position absolute.
+
+     PERCHÉ IL TESTO STA IN ::before E NON NEL MARKUP.
+     A 1.14:1 questo è un audit di contrasto fallito. WCAG 1.4.3 esenta
+     esplicitamente il testo puramente decorativo, quindi la regola non è
+     violata — ma axe non può saperlo da un <p> che contiene testo, e segnala.
+     Un falso positivo lasciato lì abbassa il punteggio per sempre e, peggio,
+     nasconde i fallimenti VERI nella stessa voce dell'audit. In contenuto
+     generato la natura decorativa è verificabile dallo strumento: non è un
+     nodo di testo, quindi non è testo. Aspetto identico, informazione zero,
+     nessun rumore negli audit futuri. */
+  .foot__wordmark::before {
+    content: var(--wordmark, '');
+  }
+
   .foot__wordmark {
     margin-top: clamp(4rem, 10vw, 9rem);
     margin-bottom: -0.28em;

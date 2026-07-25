@@ -1,0 +1,226 @@
+---
+/**
+ * Una voce della timeline.
+ *
+ * Due decisioni portano tutto il peso di questo componente:
+ *
+ * 1. L'ANNO È LA STRUTTURA. Il numerale gigante sta in una colonna sua,
+ *    allineato a destra contro il filetto, e NON si anima: quando il contenuto
+ *    entra, l'impalcatura è già lì. `tabular-nums` non è un vezzo — senza,
+ *    "2017" e "2022" hanno larghezze diverse e il bordo destro della colonna
+ *    balla da una voce all'altra.
+ *
+ * 2. LO SCOSTAMENTO RENDE VISIBILE L'INTRECCIO. `kind` non è una decorazione:
+ *    per un autodidatta studio e lavoro non sono due fasi in fila, si
+ *    sovrappongono. Le voci `studio` sono rientrate rispetto a quelle `lavoro`,
+ *    così scorrendo il filetto il percorso zigzaga invece di allinearsi. È il
+ *    concetto della pagina reso con una proprietà CSS, non spiegato a parole.
+ *
+ * L'accento è riservato a `current`: nel sito l'accento significa sempre
+ * "adesso" (numero di sezione attivo, CTA), e qui vuol dire la stessa cosa.
+ */
+import type { TimelineEntry } from '../../lib/types';
+import { periodParts } from '../../lib/format';
+
+interface Props {
+  entry: TimelineEntry;
+  /**
+   * false quando la voce precedente ha lo stesso anno di inizio. Nei dati reali
+   * capita (JEParma e Sonoco iniziano entrambe nel 2025): un "2025" ripetuto
+   * due volte di fila legge come un errore di rendering, non come struttura.
+   */
+  showYear?: boolean;
+}
+const { entry, showYear = true } = Astro.props;
+
+/* `datetime` non ammette intervalli: le due metà del periodo diventano due
+   <time> distinti, ognuno con la sua data ISO. È l'unica marcatura corretta di
+   "da / a", ed è ciò che rende il percorso leggibile da una macchina. */
+const { from, to } = periodParts(entry.from, entry.to);
+
+const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
+---
+
+<li class="tli" data-kind={entry.kind} data-current={entry.current ? '' : undefined}>
+  {
+    /* aria-hidden: l'anno è già dentro il <time> qui sotto. Senza, uno screen
+       reader annuncerebbe "2017, studio, set 2017, giu 2022". */
+    showYear && (
+      <p class="tli__year" aria-hidden="true">
+        {entry.year}
+      </p>
+    )
+  }
+
+  <span class="tli__node" aria-hidden="true"></span>
+
+  <div class="tli__body" data-reveal>
+    <p class="tli__meta">
+      <span class="tli__kind">{KIND_LABEL[entry.kind]}</span>
+      <span class="tli__sep" aria-hidden="true"></span>
+      <span class="tli__dates">
+        <time datetime={from.iso}>{from.label}</time>
+        <span class="tli__dash" aria-hidden="true">—</span>
+        {
+          to ? (
+            <time datetime={to.iso}>{to.label}</time>
+          ) : (
+            <span class="tli__now">in corso</span>
+          )
+        }
+      </span>
+    </p>
+
+    <h3 class="tli__role">{entry.role}</h3>
+    <p class="tli__org">
+      {entry.org}{entry.place && <span class="tli__place">, {entry.place}</span>}
+    </p>
+    <p class="tli__detail">{entry.detail}</p>
+  </div>
+</li>
+
+<style>
+  /* Le colonne arrivano da `.tl` (Timeline.astro) come custom property, così il
+     filetto verticale del contenitore e i nodi delle voci non possono finire su
+     due x diverse. I fallback servono se la voce viene usata fuori da Timeline. */
+  /* Su mobile l'anno sta SOPRA il corpo e il nodo condivide la riga col corpo,
+     non con l'anno: così il nodo resta allineato alla prima riga di testo anche
+     nelle voci senza numerale (il secondo 2025), dove altrimenti resterebbe da
+     solo in cima a una riga vuota. `row-gap: 0` e il margine sull'anno, perché
+     una riga vuota con row-gap lascerebbe comunque uno spazio fantasma. */
+  .tli {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--tl-rail-col, 1.5rem) minmax(0, 1fr);
+    grid-template-areas:
+      '.    year'
+      'node body';
+    row-gap: 0;
+    padding-bottom: clamp(3rem, 6vw, 5.5rem);
+  }
+  @media (min-width: 56.25rem) {
+    .tli {
+      grid-template-columns:
+        var(--tl-year-col, 10rem)
+        var(--tl-rail-col, 2.5rem)
+        minmax(0, 1fr);
+      grid-template-areas: 'year node body';
+      align-items: start;
+    }
+  }
+
+  .tli__year {
+    grid-area: year;
+    margin-bottom: 0.75rem;
+    /* Il minimo è 2rem e non 1.5rem: a 24px il numerale finiva a filo del ruolo
+       (--text-h3, 22px su mobile) e smetteva di leggersi come struttura. */
+    font-size: var(--tl-year-size, clamp(2rem, 3.2vw, 3.25rem));
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-3);
+  }
+  @media (min-width: 56.25rem) {
+    .tli__year {
+      margin-bottom: 0;
+      text-align: right;
+      padding-right: clamp(0.75rem, 1.5vw, 1.5rem);
+    }
+  }
+
+  /* Il nodo ha il fondo canvas e sta sopra il filetto: è il filetto a passargli
+     dietro, quindi le voci leggono come perline su un filo. */
+  .tli__node {
+    position: relative;
+    z-index: 1;
+    grid-area: node;
+    justify-self: center;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: 0.4rem; /* tarato a occhio sull'altezza-x della label mono */
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: 50%;
+    background-color: var(--color-canvas);
+  }
+  .tli[data-kind='lavoro'] .tli__node {
+    background-color: var(--color-hairline-strong);
+  }
+  .tli[data-current] .tli__node {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+  }
+
+  .tli__body {
+    grid-area: body;
+  }
+  /* Vedi la nota 2 in testa al file: è QUESTO rientro a mostrare l'intreccio.
+     Su mobile lo prende anche il numerale, che sta sopra il corpo e deve stargli
+     a filo; su desktop no, perché lì l'anno vive nella sua colonna allineata a
+     destra e rientrarlo lo staccherebbe dal filetto. */
+  .tli[data-kind='studio'] .tli__body,
+  .tli[data-kind='studio'] .tli__year {
+    padding-left: clamp(1rem, 2.5vw, 2.75rem);
+  }
+  @media (min-width: 56.25rem) {
+    .tli[data-kind='studio'] .tli__year {
+      padding-left: 0;
+    }
+  }
+
+  .tli__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+  .tli__kind {
+    color: var(--color-text-2);
+  }
+  .tli__sep {
+    width: clamp(1rem, 2vw, 2rem);
+    height: 1px;
+    background-color: var(--color-hairline);
+  }
+  .tli__dates {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .tli__dash {
+    color: var(--color-hairline-strong);
+  }
+  .tli__now {
+    color: var(--color-accent);
+  }
+
+  .tli__role {
+    margin-top: 1rem;
+    max-width: 24ch;
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .tli__org {
+    margin-top: 0.4rem;
+    font-size: var(--text-sm);
+    color: var(--color-text-1);
+  }
+  .tli__place {
+    color: var(--color-text-3);
+  }
+
+  .tli__detail {
+    margin-top: 1rem;
+    max-width: 46ch;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+</style>

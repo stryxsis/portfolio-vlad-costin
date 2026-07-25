@@ -11,7 +11,6 @@ import type { TimelineEntry } from '../lib/types';
 export const TIMELINE: TimelineEntry[] = [
   {
     year: 2017,
-    period: 'set 2017 — giu 2022',
     from: '2017-09',
     to: '2022-06',
     kind: 'studio',
@@ -22,7 +21,6 @@ export const TIMELINE: TimelineEntry[] = [
   },
   {
     year: 2022,
-    period: 'set 2022 — feb 2025',
     from: '2022-09',
     to: '2025-02',
     kind: 'lavoro',
@@ -34,7 +32,6 @@ export const TIMELINE: TimelineEntry[] = [
   },
   {
     year: 2024,
-    period: 'set 2024 — in corso',
     from: '2024-09',
     kind: 'studio',
     role: 'Laurea triennale in Ingegneria Informatica',
@@ -45,7 +42,6 @@ export const TIMELINE: TimelineEntry[] = [
   },
   {
     year: 2025,
-    period: 'gen 2025 — in corso',
     from: '2025-01',
     kind: 'lavoro',
     role: 'Developer',
@@ -57,7 +53,6 @@ export const TIMELINE: TimelineEntry[] = [
   },
   {
     year: 2025,
-    period: 'apr 2025 — set 2025',
     from: '2025-04',
     to: '2025-09',
     kind: 'lavoro',

@@ -1,6 +1,8 @@
 /**
  * Misura il layout reale in Chrome via CDP.
- * Uso: node measure.mjs <url> <width> <height>
+ * Uso: node measure.mjs <url> <width> <height> [screenshot.png]
+ * Selettori da ispezionare: variabile d'ambiente SELECTORS, separati da virgola.
+ *   SELECTORS='.tl__rail,.tli__year' node tools/measure.mjs http://... 1440 900
  *
  * Serve perché "sembra che vada oltre" non è una diagnosi: qui si leggono
  * scrollWidth, clientWidth e i rect degli elementi che possono sfondare.
@@ -8,6 +10,19 @@
 import { spawn } from 'node:child_process';
 
 const [url = 'http://localhost:4321/', W = '390', H = '844'] = process.argv.slice(2);
+
+const DEFAULT_SELECTORS = [
+  '.hero__grid',
+  '.hero__body',
+  '.hero__title',
+  '.hero__lede',
+  '.hero__figure',
+  '.hero__img',
+  '.hero__actions',
+];
+const SELECTORS = process.env.SELECTORS
+  ? process.env.SELECTORS.split(',').map((s) => s.trim())
+  : DEFAULT_SELECTORS;
 const CHROME =
   process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
@@ -76,8 +91,37 @@ await send(
   { width: +W, height: +H, deviceScaleFactor: 1, mobile: +W < 700 },
   sid
 );
+
+/* REDUCE=1 emula `prefers-reduced-motion: reduce`. Serve per ispezionare una
+   pagina intera: nel ramo normale gli elementi `data-reveal` sotto la piega
+   sono a opacità 0 in attesa dello scroll, quindi uno screenshot full-page
+   mostrerebbe pagina vuota. Nel ramo reduce il JS li rende tutti visibili nella
+   posizione finale — che è esattamente lo stato di layout da giudicare. */
+if (process.env.REDUCE) {
+  await send(
+    'Emulation.setEmulatedMedia',
+    { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] },
+    sid
+  );
+}
+
 await send('Page.navigate', { url }, sid);
 await sleep(2500);
+
+/* WHEEL=<n> manda n scrollate di rotellina prima di misurare. Serve per gli
+   elementi animati allo scroll: `window.scrollTo` non va bene perché Lenis
+   intercetta lo scroll e la posizione programmatica litiga con la sua
+   interpolazione, mentre un evento wheel è ciò che Lenis si aspetta davvero. */
+const wheels = Number(process.env.WHEEL ?? 0);
+for (let i = 0; i < wheels; i++) {
+  await send(
+    'Input.dispatchMouseEvent',
+    { type: 'mouseWheel', x: +W / 2, y: +H / 2, deltaX: 0, deltaY: 400 },
+    sid
+  );
+  await sleep(120);
+}
+if (wheels) await sleep(1200); // lascia finire l'interpolazione di Lenis
 
 const expr = `(() => {
   const de = document.documentElement;
@@ -101,15 +145,21 @@ const expr = `(() => {
       });
     }
   }
-  for (const sel of ['.hero__grid', '.hero__body', '.hero__title', '.hero__lede', '.hero__figure', '.hero__img', '.hero__actions']) {
-    const el = document.querySelector(sel);
-    if (!el) continue;
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    out.boxes[sel] = {
-      w: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right),
-      maxW: cs.maxWidth, fs: cs.fontSize,
-    };
+  for (const sel of ${JSON.stringify(SELECTORS)}) {
+    // querySelectorAll: per i componenti ripetuti (voci di timeline, card) il
+    // dato utile è se TUTTE le occorrenze sono allineate, non solo la prima.
+    document.querySelectorAll(sel).forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      out.boxes[sel + (i ? '[' + i + ']' : '')] = {
+        w: Math.round(r.width), h: Math.round(r.height),
+        left: Math.round(r.left), right: Math.round(r.right),
+        maxW: cs.maxWidth, fs: cs.fontSize,
+        // Il transform calcolato: serve per i filetti animati, dove l'altezza
+        // misurata è 0 a scaleY(0) e il dato utile è la matrice.
+        tf: cs.transform,
+      };
+    });
   }
   return JSON.stringify(out, null, 2);
 })()`;
@@ -123,7 +173,12 @@ console.log(result.result.value ?? JSON.stringify(result));
    Page.captureScreenshot rispetta setDeviceMetricsOverride. */
 const shotPath = process.argv[5];
 if (shotPath) {
-  const { result: shot } = await send('Page.captureScreenshot', { format: 'png' }, sid);
+  const { result: shot } = await send(
+    'Page.captureScreenshot',
+    // FULLPAGE=1 cattura oltre la viewport: l'intera pagina in un'immagine.
+    { format: 'png', captureBeyondViewport: Boolean(process.env.FULLPAGE) },
+    sid
+  );
   const { writeFileSync } = await import('node:fs');
   writeFileSync(shotPath, Buffer.from(shot.data, 'base64'));
   console.log('\nscreenshot -> ' + shotPath);

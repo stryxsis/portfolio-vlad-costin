@@ -10,7 +10,8 @@
  *   M1  data-split="lines"  reveal mascherato riga per riga
  *   M2  data-split="words"  reveal mascherato parola per parola (statement corti)
  *   M4  data-reveal         rise-in generico
- *   M11 data-rule           filetto che si disegna
+ *   M11 data-rule           filetto orizzontale che si disegna (once)
+ *   M11b data-rail          filetto verticale della timeline (scrub)
  *
  * Tutto vive dentro gsap.matchMedia(): nel ramo `prefers-reduced-motion: reduce`
  * non viene creato NESSUNO ScrollTrigger e il contenuto è semplicemente visibile.
@@ -21,7 +22,7 @@ import { SplitText } from 'gsap/SplitText';
 
 /** Stop di sicurezza: se qualcosa va storto, il contenuto resta leggibile. */
 function showEverything(): void {
-  gsap.set('[data-split], [data-reveal], [data-rule]', {
+  gsap.set('[data-split], [data-reveal], [data-rule], [data-rail]', {
     clearProps: 'all',
     autoAlpha: 1,
     visibility: 'visible',
@@ -128,6 +129,28 @@ export function initReveal(): void {
         duration: 0.7,
         ease: 'power2.out',
         scrollTrigger: { trigger: el, start: 'clamp(top 92%)', once: true },
+      });
+    });
+
+    // M11b — il filetto VERTICALE della timeline, disegnato in scrub.
+    // Differenze rispetto a M11: asse Y invece di X, e scrub invece di `once`,
+    // perché qui il filetto deve seguire la lettura voce per voce (è il gesto
+    // dei "segmenti connettori") invece di comparire tutto in una volta.
+    // `ease: 'none'` è obbligatorio in scrub: un easing su una posizione già
+    // guidata dallo scroll fa sembrare il filetto in ritardo sul dito.
+    document.querySelectorAll<HTMLElement>('[data-rail]').forEach((el) => {
+      gsap.to(el, {
+        scaleY: 1,
+        ease: 'none',
+        scrollTrigger: {
+          // Il contenitore, non il filetto: il filetto è alto quanto la lista,
+          // ma partendo da scaleY(0) la sua altezza misurata sarebbe zero.
+          trigger: el.parentElement ?? el,
+          start: 'top 75%',
+          end: 'bottom 65%',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
       });
     });
 

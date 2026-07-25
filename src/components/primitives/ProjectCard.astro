@@ -1,0 +1,154 @@
+---
+/**
+ * La card di un progetto. ZERO JS, non negoziabile.
+ *
+ * PATTERN STRETCHED-LINK: un solo <a> reale (sul titolo) più un `::after` con
+ * `inset: 0` che copre la card. Tutta la card è cliccabile, ma nell'albero di
+ * accessibilità esiste UN solo link, e continuano a funzionare middle-click,
+ * Cmd-click, "copia indirizzo" e l'anteprima del browser. Un `onclick` sul
+ * contenitore romperebbe tutte e quattro le cose e aggiungerebbe JS.
+ *
+ * RENDERIZZA UN <article>, NON UN <li>. La geometria nella griglia (span,
+ * altezze diverse, parallasse differenziata) è responsabilità del contenitore, e
+ * gli stili scoped di Astro non raggiungono l'elemento radice di un componente
+ * figlio: se la card fosse il <li>, la griglia non potrebbe stilarla. Il
+ * contenitore quindi fa `<li ...><ProjectCard /></li>`. Per lo stesso motivo la
+ * card non accetta una prop `class`: gli stili scoped della pagina non
+ * raggiungerebbero comunque questo <article>, e una classe che c'è nell'HTML ma
+ * non fa niente è un errore silenzioso.
+ *
+ * Nessun `will-change`: l'hover è una singola `scale` su un elemento già
+ * promosso dalla transizione, e `will-change` permanente su N card costa memoria
+ * di compositing tutto il tempo per guadagnare il primo frame di un'interazione
+ * facoltativa. Attivarlo e rimuoverlo a mano richiederebbe JS, che qui non c'è.
+ */
+import { Picture } from 'astro:assets';
+import type { Project } from '../../lib/collections';
+
+interface Props {
+  project: Project;
+  /** Numerale editoriale (1 → "01"). Se assente non viene mostrato. */
+  index?: number;
+  /**
+   * Livello del titolo. Va scelto in base alla pagina che ospita la card:
+   * 2 nell'indice del portfolio (dove sopra c'è solo l'h1), 3 dentro una
+   * sezione che ha già il suo h2. Serve per non saltare un livello.
+   */
+  level?: 2 | 3;
+  /** true solo per le card sopra la piega. */
+  eager?: boolean;
+  /** Proporzione della cover: è la leva che dà alla griglia altezze diverse. */
+  ratio?: string;
+  /** Dipende da quante colonne occupa la card: va passato dalla griglia. */
+  sizes?: string;
+}
+const {
+  project,
+  index,
+  level = 2,
+  eager = false,
+  ratio = '16 / 10',
+  sizes = '(min-width: 56.25rem) 44vw, 92vw',
+} = Astro.props;
+
+const { title, subtitle, cover, coverAlt, year, role } = project.data;
+const Heading = `h${level}` as 'h2' | 'h3';
+---
+
+<article class="pc" style={`--pc-ratio: ${ratio};`}>
+  {index !== undefined && <p class="pc__n">{String(index).padStart(2, '0')}</p>}
+
+  <div class="pc__frame clip-frame">
+    <Picture
+      src={cover}
+      alt={coverAlt}
+      widths={[400, 700, 1000, 1400]}
+      sizes={sizes}
+      formats={['avif', 'webp']}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding={eager ? 'sync' : 'async'}
+      class="pc__img"
+    />
+  </div>
+
+  <Heading class="pc__name">
+    <a class="pc__link" href={`/portfolio/${project.id}`}>{title}</a>
+  </Heading>
+  <p class="pc__sub">{subtitle}</p>
+  <p class="pc__meta">{year} · {role}</p>
+</article>
+
+<style>
+  .pc {
+    position: relative; /* riferimento per l'::after del link */
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+  }
+
+  .pc__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--color-text-3);
+  }
+
+  .pc__frame {
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-1);
+  }
+
+  .pc__img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--pc-ratio, 16 / 10);
+    object-fit: cover;
+    transition: transform 420ms var(--ease-out-expo);
+  }
+
+  .pc__name {
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .pc__link {
+    color: var(--color-text-1);
+    text-decoration: none;
+    transition: color 240ms var(--ease-snappy);
+  }
+  /* L'area cliccabile estesa. */
+  .pc__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .pc__sub {
+    max-width: 40ch;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  .pc__meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  /* Solo transform e color: nessuna proprietà che costi un layout o un paint di
+     superficie. `hover: hover` evita lo stato incollato dopo un tap su touch. */
+  @media (hover: hover) {
+    .pc:hover .pc__img {
+      transform: scale(1.04);
+    }
+    .pc:hover .pc__link {
+      color: var(--color-accent);
+    }
+  }
+</style>
