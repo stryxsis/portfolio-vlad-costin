@@ -1,0 +1,51 @@
+---
+/**
+ * Il dispositivo di numerazione delle sezioni ("00 — INIZIO", "10 — COSA FACCIO").
+ *
+ * È `position: sticky` DENTRO la sezione: accompagna la lettura e si sgancia al
+ * confine della sezione. Due righe di CSS, zero JS — il dettaglio della
+ * reference ottenuto senza costo.
+ *
+ * Le sezioni statement NON hanno numero: è la numerazione stessa a dichiararle
+ * come aside tipografico. Per questo il componente semplicemente non si usa lì.
+ */
+interface Props {
+  /** Passi di 10. L'hero è '00'. */
+  n: string;
+  label: string;
+}
+const { n, label } = Astro.props;
+---
+
+<p class="idx" data-section-index>
+  <span class="idx__n">{n}</span>
+  <span class="idx__dash" aria-hidden="true">—</span>
+  <span class="idx__label">{label}</span>
+</p>
+
+<style>
+  .idx {
+    position: sticky;
+    top: calc(var(--nav-h) + 1.5rem);
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+    /* Il numero passa ad accento quando la sezione è attiva: UN paint su
+       toggle di classe, non un'animazione di colore per frame. */
+    transition: color 260ms var(--ease-snappy);
+  }
+
+  :global([data-section].is-active) .idx {
+    color: var(--color-accent);
+  }
+
+  .idx__dash {
+    color: var(--color-hairline-strong);
+  }
+</style>

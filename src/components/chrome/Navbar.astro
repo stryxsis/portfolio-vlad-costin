@@ -1,0 +1,313 @@
+---
+/**
+ * Navbar a due stati.
+ *
+ * Stato A (top di pagina): barra trasparente a piena larghezza, nessun fondo.
+ * Stato B (scroll ≥ 80px): pill centrato con blur.
+ *
+ * UN SOLO nodo DOM, non due sovrapposti. Le differenze fra i due stati sono
+ * tutte proprietà CSS dello stesso elemento (max-width, background, border,
+ * border-radius, backdrop-filter, height), quindi si transizionano in loco.
+ * Due nodi cross-fadati avrebbero duplicato i link nell'albero di
+ * accessibilità e richiesto un aria-hidden su elementi focusabili — che è
+ * esattamente un errore di accessibilità, non un dettaglio.
+ *
+ * Il morph è innescato da UNA classe su <html> (`.nav-compact`) che uno
+ * ScrollTrigger `onToggle` accende una volta sola (src/scripts/nav.ts):
+ * un paint sulla transizione, zero lavoro per frame.
+ *
+ * `backdrop-filter` è consentito SOLO qui: l'area è ≤ 544×48px e il raggio di
+ * blur non viene mai animato. Su una superficie a tutto schermo sarebbe la
+ * singola fonte di jank più grave disponibile.
+ *
+ * Menu mobile: <details>/<summary> nativo, quindi funziona anche senza JS.
+ * Il JS aggiunge solo lenis.stop()/start() e la chiusura con Escape.
+ */
+import { NAV, SITE } from '../../lib/site';
+import Button from '../primitives/Button.astro';
+
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isCurrent = (href: string) => path === href;
+---
+
+<header class="nav" data-nav>
+  <!-- ===== Desktop: un nodo, due stati ===== -->
+  <div class="nav__bar">
+    {/* L'accessible name contiene il testo visibile "VC": senza questo,
+        aria-label e contenuto visibile non combaciano (errore WCAG 2.5.3). */}
+    <a href="/" class="nav__badge" aria-label="VC — Vlad Costin, vai alla home">VC</a>
+
+    <nav class="nav__links" aria-label="Navigazione principale">
+      {
+        NAV.map((item) => (
+          <a
+            href={item.href}
+            class="nav__link"
+            aria-current={isCurrent(item.href) ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <Button href="/contatti" variant="outline" class="nav__cta">Scrivimi</Button>
+  </div>
+
+  <!-- ===== Menu mobile: nativo, funziona senza JS ===== -->
+  <details class="nav__mobile" data-nav-mobile>
+    <summary class="nav__toggle">
+      <span>Menu</span>
+      <span class="nav__toggle-bars" aria-hidden="true"><i></i><i></i></span>
+    </summary>
+
+    <div class="nav__panel">
+      <nav aria-label="Navigazione principale">
+        {
+          NAV.map((item, i) => (
+            <a
+              href={item.href}
+              class="nav__panel-link"
+              aria-current={isCurrent(item.href) ? 'page' : undefined}
+            >
+              <span class="nav__panel-n" aria-hidden="true">
+                {String((i + 1) * 10).padStart(2, '0')}
+              </span>
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+      <a href={`mailto:${SITE.author.email}`} class="nav__panel-mail">{SITE.author.email}</a>
+    </div>
+  </details>
+</header>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: var(--z-nav);
+  }
+
+  /* -- Desktop ------------------------------------------------------------ */
+  .nav__bar {
+    display: none;
+  }
+
+  @media (min-width: 56.25rem) {
+    .nav__bar {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      /* Stato A */
+      width: 100%;
+      max-width: none;
+      height: var(--nav-h);
+      margin-inline: auto;
+      margin-top: 0;
+      padding-inline: var(--spacing-gutter);
+      border: 1px solid transparent;
+      border-radius: 0;
+      background-color: transparent;
+      transition:
+        max-width 420ms var(--ease-out-expo),
+        height 380ms var(--ease-out-expo),
+        margin-top 380ms var(--ease-out-expo),
+        padding-inline 380ms var(--ease-out-expo),
+        border-radius 380ms var(--ease-out-expo),
+        border-color 380ms var(--ease-snappy),
+        background-color 380ms var(--ease-snappy);
+    }
+
+    /* Stato B: il morph. */
+    :global(html.nav-compact) .nav__bar {
+      max-width: 36rem;
+      height: 3rem;
+      margin-top: 0.75rem;
+      padding-inline: 0.5rem;
+      gap: 1.25rem;
+      border-radius: var(--radius-pill);
+      border-color: var(--color-hairline);
+      background-color: color-mix(in oklab, var(--color-canvas) 82%, transparent);
+      backdrop-filter: blur(14px);
+    }
+  }
+
+  .nav__badge {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--color-hairline);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    color: var(--color-text-1);
+    text-decoration: none;
+    transition: border-color 240ms var(--ease-snappy);
+  }
+  .nav__badge:hover {
+    border-color: var(--color-accent);
+  }
+  :global(html.nav-compact) .nav__badge {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    margin-left: auto;
+  }
+  :global(html.nav-compact) .nav__links {
+    gap: 1.25rem;
+    margin-left: 0;
+  }
+
+  .nav__link {
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+    text-decoration: none;
+    transition: color 240ms var(--ease-snappy);
+  }
+  .nav__link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -0.4em;
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 320ms var(--ease-out-expo);
+  }
+  .nav__link:hover,
+  .nav__link[aria-current='page'] {
+    color: var(--color-text-1);
+  }
+  .nav__link:hover::after,
+  .nav__link[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  .nav__cta {
+    flex-shrink: 0;
+  }
+  :global(html.nav-compact) .nav__cta {
+    height: 2.25rem;
+    padding-inline: 1rem;
+  }
+
+  /* -- Menu mobile ------------------------------------------------------- */
+  .nav__mobile {
+    width: 100%;
+    background-color: color-mix(in oklab, var(--color-canvas) 88%, transparent);
+    backdrop-filter: blur(14px);
+  }
+  @media (min-width: 56.25rem) {
+    .nav__mobile {
+      display: none;
+    }
+  }
+
+  .nav__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--nav-h);
+    padding-inline: var(--spacing-gutter);
+    list-style: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-1);
+  }
+  .nav__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav__toggle-bars {
+    display: grid;
+    gap: 5px;
+  }
+  .nav__toggle-bars i {
+    display: block;
+    width: 24px;
+    height: 1px;
+    background-color: currentColor;
+    transition: transform 260ms var(--ease-out-expo);
+  }
+  .nav__mobile[open] .nav__toggle-bars i:first-child {
+    transform: translateY(3px) rotate(45deg);
+  }
+  .nav__mobile[open] .nav__toggle-bars i:last-child {
+    transform: translateY(-3px) rotate(-45deg);
+  }
+
+  .nav__panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: calc(100svh - var(--nav-h));
+    padding: 2rem var(--spacing-gutter) 3rem;
+    background-color: var(--color-canvas);
+    border-top: 1px solid var(--color-hairline);
+  }
+
+  .nav__panel nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav__panel-link {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 1.25rem;
+    border-bottom: 1px solid var(--color-hairline);
+    font-size: var(--text-h2);
+    letter-spacing: -0.025em;
+    color: var(--color-text-1);
+    text-decoration: none;
+  }
+  .nav__panel-link[aria-current='page'] {
+    color: var(--color-accent);
+  }
+  .nav__panel-n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    color: var(--color-text-3);
+  }
+
+  .nav__panel-mail {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  /* Senza JS resta un mostra/nascondi nativo: nessuna dipendenza dal movimento. */
+  :global(html.js-anim) .nav__panel {
+    animation: nav-panel-in 380ms var(--ease-out-expo) both;
+  }
+  @keyframes nav-panel-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -1rem, 0);
+    }
+  }
+</style>

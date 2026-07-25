@@ -1,0 +1,164 @@
+---
+/**
+ * §10 COSA FACCIO
+ *
+ * Nessuna lista a pallini in tutto il sito: dove serve enumerare si usa il
+ * dispositivo numerico mono (01 / 02 / 03) con filetto.
+ *
+ * Il filetto orizzontale sotto le clausole è deliberatamente un elemento che
+ * CUCE: nel milestone 7 il suo scaleX si completerà quando entra la §20, così
+ * il lettore vede una linea che si allunga da una sezione all'altra.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+
+const CLAUSES = [
+  {
+    n: '01',
+    title: 'Capisco il problema',
+    body: 'Prima di aprire l’editor faccio domande. Tante.',
+  },
+  {
+    n: '02',
+    title: 'Lo progetto',
+    body: 'Struttura, tipografia, gerarchia. Il codice viene dopo.',
+  },
+  {
+    n: '03',
+    title: 'Lo spedisco',
+    body: 'Veloce, accessibile, misurato. Online.',
+  },
+] as const;
+---
+
+<section class="wid" data-section id="cosa-faccio">
+  <div class="wid__grid">
+    <div class="wid__idx">
+      <SectionIndex n="10" label="Cosa faccio" />
+    </div>
+
+    <div class="wid__body">
+      <p class="wid__statement" data-split="lines">
+        Prima di annoiarti con i dettagli, il succo è questo: costruisco cose <em>veloci</em>,
+        chiare, e che la gente <em>finisce di leggere</em>.
+      </p>
+
+      <div class="wid__clauses" data-reveal-group>
+        <div class="wid__rule" data-rule></div>
+        {
+          CLAUSES.map((c) => (
+            <div class="wid__clause" data-reveal>
+              <p class="wid__clause-head">
+                <span class="wid__clause-n">{c.n}</span>
+                {c.title}
+              </p>
+              <p class="wid__clause-body">{c.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .wid {
+    padding-block: var(--spacing-section);
+  }
+
+  .wid__grid {
+    display: grid;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    gap: 2rem;
+  }
+  @media (min-width: 56.25rem) {
+    .wid__grid {
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .wid__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .wid__body {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+    }
+  }
+
+  .wid__statement {
+    max-width: 22ch; /* misura corta: legge come dichiarazione, non paragrafo */
+    font-size: var(--text-h1);
+    line-height: 0.98;
+    letter-spacing: -0.032em;
+    font-weight: 500;
+  }
+  .wid__statement em {
+    font-style: normal;
+    color: var(--color-accent);
+  }
+
+  .wid__clauses {
+    position: relative;
+    display: grid;
+    gap: 2rem;
+    margin-top: clamp(4rem, 8vw, 8rem);
+    padding-top: 2rem;
+  }
+  @media (min-width: 37.5rem) {
+    .wid__clauses {
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(1.5rem, 3vw, 3rem);
+    }
+  }
+
+  /* Il filetto che cuce le sezioni. */
+  .wid__rule {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-hairline-strong);
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  /* Con JS attivo parte a zero e si disegna allo scroll (milestone 4). */
+  :global(html.js-anim) .wid__rule {
+    transform: scaleX(0);
+  }
+
+  /* Separatori verticali fra le clausole: filetto, non bordo di card. */
+  @media (min-width: 37.5rem) {
+    .wid__clause + .wid__clause {
+      padding-left: clamp(1.5rem, 3vw, 3rem);
+      border-left: 1px solid var(--color-hairline);
+      margin-left: calc(clamp(1.5rem, 3vw, 3rem) * -1);
+    }
+  }
+
+  .wid__clause-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75em;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-1);
+  }
+
+  .wid__clause-n {
+    color: var(--color-accent);
+  }
+
+  .wid__clause-body {
+    margin-top: 0.75rem;
+    max-width: 30ch;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+</style>

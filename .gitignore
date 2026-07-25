@@ -33,3 +33,8 @@ desktop.ini
 
 # jetbrains setting folder
 .idea/
+
+# report locali di misurazione
+lh.json
+preview.log
+*.tmp.mjs

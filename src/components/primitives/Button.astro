@@ -1,0 +1,177 @@
+---
+/**
+ * Bottone polimorfico: rende <a> se riceve `href`, altrimenti <button>.
+ * ZERO JS. L'hover riempie il bottone traslando uno <span> interno — solo
+ * `transform`, mai un'animazione di `background-color` (che costerebbe un
+ * paint per frame).
+ */
+interface Props {
+  href?: string;
+  variant?: 'outline' | 'filled' | 'bar';
+  /** Su fondo accento o paper i colori si invertono. */
+  tone?: 'dark' | 'paper' | 'accent';
+  type?: 'button' | 'submit';
+  download?: boolean;
+  class?: string;
+  'aria-label'?: string;
+}
+
+const {
+  href,
+  variant = 'outline',
+  tone = 'dark',
+  type = 'button',
+  download = false,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+const classes = ['btn', `btn--${variant}`, `btn--${tone}`, className].filter(Boolean).join(' ');
+---
+
+<Tag
+  class={classes}
+  href={href}
+  type={href ? undefined : type}
+  download={href && download ? '' : undefined}
+  {...rest}
+>
+  <span class="btn__fill" aria-hidden="true"></span>
+  <span class="btn__label"><slot /></span>
+</Tag>
+
+<style>
+  .btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: clip; /* contiene lo <span> di riempimento */
+    isolation: isolate;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn__label {
+    position: relative;
+    z-index: 1;
+    transition: color 200ms var(--ease-snappy);
+  }
+
+  /* Il riempimento parte fuori dal bottone e sale in hover. */
+  .btn__fill {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transform: translate3d(0, 101%, 0);
+    transition: transform 320ms var(--ease-out-expo);
+  }
+
+  .btn:hover .btn__fill,
+  .btn:focus-visible .btn__fill {
+    transform: translate3d(0, 0, 0);
+  }
+
+  /* -- variante outline: la pill di default ------------------------------- */
+  .btn--outline {
+    height: 2.75rem;
+    padding-inline: 1.25rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-hairline-strong);
+  }
+  .btn--outline.btn--dark {
+    color: var(--color-text-1);
+  }
+  .btn--outline.btn--dark .btn__fill {
+    background-color: var(--color-text-1);
+  }
+  .btn--outline.btn--dark:hover .btn__label,
+  .btn--outline.btn--dark:focus-visible .btn__label {
+    color: var(--color-canvas);
+  }
+
+  .btn--outline.btn--paper {
+    color: var(--color-paper-text-1);
+    border-color: var(--color-paper-hairline);
+  }
+  .btn--outline.btn--paper .btn__fill {
+    background-color: var(--color-paper-text-1);
+  }
+  .btn--outline.btn--paper:hover .btn__label,
+  .btn--outline.btn--paper:focus-visible .btn__label {
+    color: var(--color-paper);
+  }
+
+  /* Su fondo accento pieno: bordo e testo near-black. */
+  .btn--outline.btn--accent {
+    color: var(--color-canvas);
+    border-color: rgb(11 11 12 / 0.35);
+  }
+  .btn--outline.btn--accent .btn__fill {
+    background-color: var(--color-canvas);
+  }
+  .btn--outline.btn--accent:hover .btn__label,
+  .btn--outline.btn--accent:focus-visible .btn__label {
+    color: var(--color-text-1);
+  }
+
+  /* -- variante filled: il bottone principale ----------------------------- */
+  .btn--filled {
+    height: 3.75rem;
+    padding-inline: 2.5rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+  }
+  .btn--filled.btn--dark {
+    background-color: var(--color-text-1);
+    color: var(--color-canvas);
+  }
+  .btn--filled.btn--dark .btn__fill {
+    background-color: var(--color-accent);
+  }
+
+  /* Sul fondo accento il bottone è near-black: mai bianco su accento. */
+  .btn--filled.btn--accent {
+    background-color: var(--color-canvas);
+    color: var(--color-text-1);
+  }
+  .btn--filled.btn--accent .btn__fill {
+    background-color: var(--color-text-1);
+  }
+  .btn--filled.btn--accent:hover .btn__label,
+  .btn--filled.btn--accent:focus-visible .btn__label {
+    color: var(--color-canvas);
+  }
+
+  /* -- variante bar: submit del form, larga quanto la colonna ------------- */
+  .btn--bar {
+    width: 100%;
+    height: 4rem;
+    font-size: var(--text-h3);
+    font-family: var(--font-sans);
+    letter-spacing: -0.015em;
+    text-transform: none;
+    background-color: var(--color-accent);
+    color: var(--color-canvas);
+    border: 0;
+  }
+  .btn--bar .btn__fill {
+    background-color: var(--color-text-1);
+  }
+
+  .btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn[disabled] .btn__fill {
+    transform: translate3d(0, 101%, 0);
+  }
+</style>

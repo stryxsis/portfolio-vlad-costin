@@ -1,0 +1,333 @@
+---
+/**
+ * HERO DELLA HOME — §00
+ *
+ * ⚠ LA REGOLA PIÙ IMPORTANTE DEL SITO, e vale solo qui:
+ * il titolo <h1> NON viene animato in opacity e NON viene mascherato.
+ * Chrome esclude dai candidati LCP gli elementi a opacità zero: fare fade-in
+ * del titolo trasforma un LCP da ~0.8s in ~2.2s. Il titolo entra con una
+ * keyframe CSS di solo `transform`, opacity costante a 1, così le lettere sono
+ * dipinte al primo frame e LCP == first paint.
+ * Corollario generale: l'elemento più grande sopra la piega non si maschera mai.
+ *
+ * Il reveal mascherato riga-per-riga (SplitText) è riservato al testo SOTTO la
+ * piega, dove non può mai essere l'elemento LCP.
+ *
+ * Composizione: desktop = due colonne (testo 1-6, ritratto 7-12), nessuna
+ * sovrapposizione. Mobile = ritratto come layer in alto a destra DIETRO il
+ * testo, che resta ancorato in basso. Su 844px di altezza le due cose non
+ * possono stare in fila senza sfondare la viewport, e il testo ha la priorità.
+ */
+import { Picture } from 'astro:assets';
+import portrait from '../../assets/brand/vlad-portrait.jpg';
+import Button from '../primitives/Button.astro';
+import SectionIndex from '../primitives/SectionIndex.astro';
+---
+
+<section class="hero" data-section id="inizio">
+  <div class="hero__grid">
+    <div class="hero__idx">
+      <SectionIndex n="00" label="Inizio" />
+    </div>
+
+    <div class="hero__figure">
+      {/*
+        <Picture> e non <Image>: emette <source> AVIF + WebP con fallback JPEG.
+        loading/fetchpriority/decoding espliciti perché questa immagine concorre
+        a essere l'LCP. Le dimensioni intrinseche vengono da ImageMetadata,
+        quindi lo spazio è riservato prima del download: CLS 0.
+
+        NIENTE object-fit: cover. Il ritaglio taglierebbe via le sfumature già
+        cotte nel file sui bordi alto/basso, lasciando un rettangolo netto
+        visibile sul canvas. L'immagine scala per altezza e mantiene le proprie
+        dissolvenze.
+      */}
+      <Picture
+        src={portrait}
+        alt="Ritratto di Vlad Costin"
+        widths={[420, 640, 900, 1200]}
+        sizes="(min-width: 56.25rem) 34vw, 62vw"
+        formats={['avif', 'webp']}
+        loading="eager"
+        decoding="sync"
+        fetchpriority="high"
+        class="hero__img"
+      />
+    </div>
+
+    <div class="hero__body">
+      <p class="hero__kicker">Vlad Costin — Sviluppatore · Parma</p>
+
+      <h1 class="hero__title opt-round">
+        <span class="hero__line" style="--l:0">Ciao.</span>
+        <span class="hero__line" style="--l:1">Tu hai un <em>problema</em>.</span>
+        <span class="hero__line" style="--l:2">Io scrivo il codice che lo <em>risolve</em>.</span>
+      </h1>
+
+      <p class="hero__lede">
+        Sono Vlad Costin, studente di Ingegneria Informatica all'Università di Parma e
+        sviluppatore. Costruisco siti che caricano subito e non si mettono in mezzo. Entriamo.
+      </p>
+
+      <div class="hero__actions">
+        <Button href="/portfolio" variant="outline">Guarda i lavori</Button>
+        <Button href="/chi-sono" variant="outline">Chi sono</Button>
+        <Button href="/contatti" variant="outline">Scrivimi</Button>
+      </div>
+
+      <p class="hero__note">[placeholder — sostituire con la foto reale]</p>
+    </div>
+
+    <a href="#cosa-faccio" class="hero__scroll" aria-label="Scorri alla sezione successiva">
+      <span class="hero__scroll-ring" aria-hidden="true"></span>
+      <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
+      <span class="hero__scroll-label">Scorri</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding-top: var(--nav-h);
+  }
+
+  .hero__grid {
+    position: relative;
+    display: grid;
+    grid-template-areas: 'stack';
+    /* minmax(0, 1fr) e non `auto`: una colonna `auto` si dimensiona sul
+       contenuto e può superare la larghezza del contenitore, che è la causa
+       classica dell'overflow orizzontale in grid. Con minmax(0, …) la colonna
+       non può crescere oltre la viewport e il testo va a capo. */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: end;
+    max-width: 90rem;
+    min-height: calc(100svh - var(--nav-h)); /* svh: la barra mobile non fa saltare l'altezza */
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    padding-bottom: clamp(2rem, 5vh, 4rem);
+  }
+
+  /* -- Indice -------------------------------------------------------------
+     Su mobile è ancorato in cima alla SEZIONE, non alla grid-area: la grid-area
+     è allineata in basso, quindi `align-self: start` lo porterebbe a collidere
+     con il kicker. */
+  .hero__idx {
+    position: absolute;
+    top: 0;
+    left: var(--spacing-gutter);
+    z-index: 2;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__idx {
+      left: auto;
+      right: var(--spacing-gutter);
+    }
+  }
+
+  /* -- Ritratto ----------------------------------------------------------- */
+  .hero__figure {
+    grid-area: stack;
+    /* Mobile: layer in alto a destra, dietro il testo. */
+    align-self: start;
+    justify-self: end;
+    z-index: 0;
+    /* Sporge oltre il gutter destro: il bordo dell'immagine non deve mai
+       coincidere con la colonna di testo, altrimenti legge come una card. */
+    margin-right: calc(var(--spacing-gutter) * -0.6);
+  }
+
+  .hero__img {
+    width: auto;
+    /* Mobile: alta abbastanza perché il nucleo luminoso resti nel frame dopo
+       che il mask ha consumato i bordi, ma non tanto da spingere il testo giù. */
+    height: 46svh;
+    max-width: 68vw;
+    /* LA DISSOLVENZA. Mask statico: un solo raster, messo in cache dal
+       compositor, MAI animato — animare un mask o un blur costerebbe una
+       ri-rasterizzazione per frame. Sta in CSS e non cotto nel JPG per poterlo
+       ritarare senza riesportare l'immagine, e per funzionare anche con la
+       foto vera che avrà un fondo qualunque.
+
+       UN SOLO gradiente radiale, non due lineari in `mask-composite: intersect`:
+       il compositing dei mask ha un supporto incoerente fra la proprietà
+       standard e l'alias -webkit-, e quando non si applica il risultato è
+       l'unione dei due gradienti — cioè una maschera quasi opaca che lascia il
+       rettangolo dell'immagine visibile. Un radiale singolo sfuma tutti i lati
+       senza dipendere dal compositing.
+
+       I RAGGI SONO CALCOLATI, non a occhio: perché la maschera sia già
+       trasparente sul bordo, la distanza centro→bordo espressa in unità del
+       gradiente deve superare la posizione dello stop `transparent`.
+       Con centro al 46% e stop a 84%:
+         alto    46/55 = 0.84  ✓
+         basso   54/55 = 0.98  ✓
+         lati    50/58 = 0.86  ✓
+       Se si alzano i raggi, ricompare il rettangolo. */
+    mask-image: radial-gradient(
+      58% 55% at 50% 46%,
+      #000 34%,
+      rgb(0 0 0 / 0.65) 62%,
+      transparent 84%
+    );
+    -webkit-mask-image: radial-gradient(
+      58% 55% at 50% 46%,
+      #000 34%,
+      rgb(0 0 0 / 0.65) 62%,
+      transparent 84%
+    );
+  }
+
+  @media (min-width: 56.25rem) {
+    .hero__figure {
+      align-self: end;
+      margin-right: 0;
+      /* Desktop: colonna destra, senza sovrapposizione col testo. */
+      transform: translateX(6%);
+    }
+    .hero__img {
+      /* Più alta di quanto sembri necessario: il mask consuma i bordi, quindi
+         il nucleo visibile è un'ellisse più piccola del frame. */
+      height: min(74svh, 46rem);
+      max-width: none;
+    }
+  }
+
+  /* -- Testo -------------------------------------------------------------- */
+  .hero__body {
+    grid-area: stack;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 1.25rem;
+    align-self: end;
+    /* min(): la misura desiderata non deve mai superare lo spazio disponibile,
+       altrimenti su 390px il testo sfonda a destra. */
+    max-width: min(34rem, 100%);
+  }
+  @media (min-width: 56.25rem) {
+    .hero__body {
+      /* 58% e non 50%: a metà larghezza queste tre frasi vanno a 6 righe e
+         l'hero sfonda i 100svh. La colonna più larga le riporta a 4 righe. Il
+         numero di righe governa l'altezza dell'hero, quindi vince sulla
+         simmetria delle colonne. */
+      max-width: min(58%, 46rem);
+      gap: 1.5rem;
+    }
+  }
+
+  .hero__kicker {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+
+  .hero__title {
+    display: flex;
+    flex-direction: column;
+    max-width: min(20ch, 100%); /* misura corta: è questo che lo fa pesare */
+    /* Corpo dedicato all'hero: sta fra --text-h1 e --text-display. Il display
+       pieno (132px) manderebbe queste tre frasi a 5-6 righe e sfonderebbe la
+       viewport — la misura e il numero di righe vincono sulla dimensione. */
+    font-size: clamp(2.5rem, 6.2vw, 6.75rem);
+    line-height: 0.92;
+    letter-spacing: -0.038em;
+    font-weight: 500;
+    text-wrap: initial; /* le righe sono decise a mano, non dal balancer */
+  }
+
+  .hero__title em {
+    font-style: normal;
+    color: var(--color-accent);
+  }
+
+  /* Entrata del titolo: SOLO transform, opacity sempre 1, nessun wrapper con
+     overflow. Le lettere sono dipinte al primo frame. */
+  .hero__line {
+    animation: hero-line 420ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--l) * 70ms);
+  }
+  @keyframes hero-line {
+    from {
+      transform: translate3d(0, 0.18em, 0);
+    }
+  }
+
+  .hero__lede {
+    max-width: min(44ch, 100%);
+    font-size: var(--text-lede);
+    color: var(--color-text-2);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .hero__note {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+    opacity: 0.65;
+  }
+
+  /* -- Affordance di scroll ---------------------------------------------- */
+  .hero__scroll {
+    display: none;
+    text-decoration: none;
+  }
+  @media (min-width: 75rem) {
+    .hero__scroll {
+      grid-area: stack;
+      align-self: end;
+      justify-self: end;
+      display: grid;
+      place-items: center;
+      gap: 0.5rem;
+      grid-template-areas: 'ring' 'label';
+      z-index: 2;
+    }
+  }
+
+  .hero__scroll-ring {
+    grid-area: ring;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: ring-spin 14s linear infinite;
+  }
+  @keyframes ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .hero__scroll-arrow {
+    grid-area: ring;
+    font-size: 0.75rem;
+    color: var(--color-text-2);
+    transition: transform 260ms var(--ease-snappy);
+  }
+  .hero__scroll:hover .hero__scroll-arrow {
+    transform: translateY(2px);
+  }
+
+  .hero__scroll-label {
+    grid-area: label;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+  }
+</style>
