@@ -9,8 +9,13 @@
  *
  * VOCABOLARIO:
  *   M12  [data-screen] + [data-occludes]  rientro dell'uscente nell'handoff
- *   M9   [data-plates] + [data-plate]     scambio dei piatti della stage §30
+ *   M16  [data-stack] + [data-stack-card] il mazzo di card che si accatasta, §30
+ *   M17  [data-reel] / [data-call]        ciò che accade DENTRO una card, §30
  *   M6   [data-drift]                     micro-deriva orizzontale in scrub
+ *
+ * M9 ([data-plates]/[data-plate], i "piatti" che si scambiavano uno alla volta
+ * in §30) NON ESISTE PIÙ: sostituito da M16, che tiene tutte le card in scena e
+ * le fa sovrapporre invece di alternarle. Nessun file lo usa più.
  *
  * ZERO `pin: true` in tutto il file, e non è un dettaglio stilistico: il pinning
  * inietta un `pin-spacer` nel DOM al refresh, cioè muta il layout mentre si
@@ -73,60 +78,301 @@ export function initStages(): void {
       });
     });
 
-    /* ---- Stage dei piatti (§30) ------------------------------------------
-       Un solo trigger. `onUpdate` calcola l'indice attivo e scrive SOLO quando
-       cambia: due scritture di classe in tutta la stage invece di una per
-       frame. La dissolvenza la fa il CSS con una durata propria, che è anche
-       ciò che la rende netta invece che molle. */
-    document.querySelectorAll<HTMLElement>('[data-plates]').forEach((stageEl) => {
-      const name = stageEl.dataset.plates;
-      const plates = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-plate]'));
-      // Con un piatto solo non c'è niente da scambiare: la sezione resta
-      // l'elenco statico che è già nel suo stato di default.
-      if (plates.length < 2) return;
+    /* ---- M16 — il mazzo di §30 -------------------------------------------
+       SOSTITUISCE M9 (i "piatti"). Prima le tre card erano alternative: una
+       visibile alla volta, dissolvenza CSS fra l'una e l'altra, e `onUpdate`
+       che commutava una classe solo al cambio di indice. Era un carosello —
+       niente si sovrapponeva a niente. Ora restano tutte in scena e salgono da
+       sotto accatastandosi, che è l'effetto richiesto.
+
+       UNA TIMELINE IN SCRUB, e qui lo scrub è obbligato, non una scelta di
+       costo. Con M9 si poteva commutare una classe e lasciare la dissolvenza al
+       CSS perché il cambio era DISCRETO (piatto 1, poi 2, poi 3). Una card che
+       scivola su un'altra è invece un movimento CONTINUO legato alla posizione
+       dello scroll: l'unico modo di lasciarlo al CSS sarebbe far scattare
+       transizioni a soglie, cioè trasformare uno scorrimento in tre scatti.
+
+       IL TRIGGER È IL GENITORE DELLO SCHERMO, non lo schermo stesso: lo schermo
+       è sticky, quindi la sua posizione misurata resta ferma in cima mentre si
+       scorre e come riferimento non direbbe nulla. Il genitore è l'elemento che
+       sta FERMO nel flusso. La corsa è il distanziatore dichiarato dal Handoff,
+       riletto a ogni refresh perché è in svh. Identico a M9 su questo punto.
+
+       LO STATO INIZIALE LO SCRIVE `gsap.set`, NON IL CSS: il parcheggio delle
+       card in attesa è un `transform`, e in CSS sarebbe una proprietà
+       `translate` che GSAP poi ricompilerebbe dentro la propria matrice,
+       applicandola due volte (divieto in CLAUDE.md). È anche il motivo per cui
+       le card partono a `opacity: 0` in CSS: `gsap.set` le accende nello stesso
+       istante in cui le posiziona, così non esiste un fotogramma con le tre
+       card sovrapposte a pila ferma. */
+    document.querySelectorAll<HTMLElement>('[data-stack]').forEach((stageEl) => {
+      const name = stageEl.dataset.stack;
+      const cards = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-stack-card]'));
+      // Con una card sola non c'è mazzo: la sezione resta l'elenco statico che
+      // è già nel suo stato di default.
+      if (cards.length < 2) return;
 
       const screen = document.querySelector<HTMLElement>(`[data-screen="${name}"]`);
       const travel = document.querySelector<HTMLElement>(`[data-travel="${name}"]`);
-      // Il genitore dello schermo: è l'elemento che sta FERMO nel flusso, quindi
-      // l'unico riferimento di trigger affidabile in una stage sticky.
       const trigger = screen?.parentElement ?? stageEl;
 
-      let current = -1;
-      const activate = (i: number): void => {
-        if (i === current) return;
-        current = i;
-        plates.forEach((p, j) => p.classList.toggle('is-active', j === i));
-      };
-      // Stato di partenza: senza questo i piatti resterebbero tutti a
-      // visibility:hidden finché il primo evento di scroll non arriva.
-      activate(0);
+      /* Quanto in basso si posa ogni card rispetto alla precedente, in % della
+         propria altezza. È ciò che lascia visibile la striscia superiore delle
+         card sepolte: senza, ognuna coprirebbe l'altra al pixel e il mazzo non
+         si vedrebbe. Il 4% di margine libero in CSS (`height: 96%`) è calcolato
+         su questo: STEP × (card - 1) = 4 con tre card. */
+      const STEP = 2;
+      /* Quanto rientra una card per OGNI card che le sale sopra. Cumulativo, non
+         assoluto: con tre card la prima finisce a 0.94, la seconda a 0.97. È il
+         DIVARIO fra le scale a far leggere una card come "più indietro" — un
+         valore unico per tutte darebbe strisce identiche, cioè zero profondità. */
+      const RECEDE = 0.03;
+      /* Dove aspettano il turno le card non ancora entrate, in % della PROPRIA
+         altezza. ⚠ 100 NON BASTA, ed è un errore facile: la card è più BASSA del
+         contenitore (i punti percentuali liberi servono agli scalini), quindi
+         tradurla del 100% della propria altezza non la porta fuori dal
+         contenitore — le restava un dito di card visibile in fondo. Misurato:
+         29px su uno stack di 725.
+         ⚠ ERA `108` INCHIODATO. Con tre card serve 100/0.96 ≈ 104.2 e 108
+         bastava, ma il margine finiva alla QUINTA card (altezza 92% → serve
+         108.7): un numero magico che si rompe in silenzio appena l'array dei
+         progetti cresce. Ora si misura la geometria reale — stessa filosofia
+         degli assert di verify-stage, che verificano l'invariante e non il
+         valore. Il +2 è il margine, l'unico numero rimasto. */
+      const holder = cards[0]?.parentElement ?? stageEl;
+      const cardH = cards[0]?.offsetHeight ?? 0;
+      const PARK = cardH > 0 ? (holder.clientHeight / cardH) * 100 + 2 : 108;
 
-      ScrollTrigger.create({
-        trigger,
-        start: 'top top',
-        // La corsa è l'altezza del distanziatore del Handoff, letta a ogni
-        // refresh: è espressa in svh, quindi cambia col ridimensionamento.
-        end: () => `+=${travel?.offsetHeight ?? window.innerHeight * 2}`,
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          activate(Math.min(plates.length - 1, Math.floor(self.progress * plates.length)));
+      gsap.set(cards, { transformOrigin: 'center top', opacity: 1 });
+      cards.forEach((c, i) => gsap.set(c, { yPercent: i === 0 ? 0 : PARK, scale: 1 }));
+
+      /* Gli elementi di M17 vivono DENTRO le card, ma il loro `will-change` e il
+         loro progresso li governa questa stessa corsa: raccolti qui per non
+         interrogare il DOM in un callback che gira a ogni frame. */
+      const reels = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-reel]'));
+      /* Il gancio del trascritto. Assegnato più in basso, quando la durata
+         totale della timeline è nota: la soglia è una FRAZIONE di quella durata
+         e non si può calcolare prima di aver costruito tutti i tween. */
+      let onProgress: ((progress: number) => void) | null = null;
+
+      const tl = gsap.timeline({
+        // `none` obbligatorio in scrub: un easing sopra una posizione già
+        // guidata dallo scroll fa sembrare l'elemento in ritardo sul dito.
+        defaults: { ease: 'none', duration: 1 },
+        scrollTrigger: {
+          trigger,
+          start: 'top top',
+          end: () => `+=${travel?.offsetHeight ?? window.innerHeight * 2}`,
+          scrub: true,
+          invalidateOnRefresh: true,
+          // `will-change` acceso solo per la durata della corsa: costante su tre
+          // strati a schermo pieno costerebbe memoria di compositing per tutta
+          // la vita della pagina, per guadagnare un frame una volta sola.
+          onToggle: (self) => {
+            [...cards, ...reels].forEach((c) => {
+              c.style.willChange = self.isActive ? 'transform' : '';
+            });
+          },
+          // Il trascritto di M17 si accende su una SOGLIA di progresso, non su un
+          // tween: `onUpdate` in scrub e `onRefresh` per il caso in cui la
+          // pagina nasca già oltre la soglia (ricarica a scroll ripristinato).
+          onUpdate: (self) => onProgress?.(self.progress),
+          onRefresh: (self) => onProgress?.(self.progress),
         },
       });
 
-      cleanups.push(() => plates.forEach((p) => p.classList.remove('is-active')));
+      /* I numeri sono FRAZIONI della corsa, non secondi: con lo scrub GSAP mappa
+         il progresso 0..1 sulla durata totale della timeline, quindi contano
+         solo le proporzioni fra loro.
+         LEAD è il respiro iniziale in cui la prima card sta sola in scena —
+         senza, la seconda inizierebbe a salire nell'istante esatto in cui lo
+         schermo si incolla, e la prima non si vedrebbe mai per intero.
+         ⚠ ERA 0.12, poi 0.2, poi 0.32: ogni volta non bastava (tre richiami
+         espliciti). Ora 0.45, insieme a `travel` 440svh in index.astro. I due
+         valori vanno alzati IN COPPIA: da solo un LEAD più alto sposta la
+         proporzione fra le fasi ma non i pixel reali di scroll, perché la corsa
+         totale è la stessa. In pixel, con viewport 900:
+             scoperto = LEAD × (travel_px − 1 schermo) / (0.89 + 0.11 × LEAD)
+         cioè 810px con 0.32/360svh e 1466px con 0.45/440svh — da 0.9 a 1.6
+         schermi di rotellina in cui la prima card sta sola in scena. */
+      const LEAD = 0.45;
+      const span = (1 - LEAD) / (cards.length - 1);
+      const dur = span * 0.78; // il resto è la pausa fra un arrivo e il successivo
+
+      // `slice(1).forEach` invece di un `for` con indice: sotto `strictest`
+      // (`noUncheckedIndexedAccess`) `cards[i]` è `HTMLElement | undefined`, e
+      // l'iterazione dà l'elemento già ristretto senza un `!` non necessario.
+      cards.slice(1).forEach((card, k) => {
+        const i = k + 1; // indice reale nel mazzo
+        const at = LEAD + k * span;
+        tl.to(card, { yPercent: i * STEP, duration: dur }, at);
+        // Tutte le card già arrivate rientrano di un altro scalino, nello
+        // stesso istante in cui questa comincia a salire.
+        cards.slice(0, i).forEach((below, j) => {
+          tl.to(below, { scale: 1 - (i - j) * RECEDE, duration: dur }, at);
+        });
+      });
+
+      /* ---- La coda ferma: uno schermo di scroll che non muove niente --------
+         Un tween vuoto in fondo alla timeline. Non anima nulla: OCCUPA TEMPO, e
+         con lo scrub il tempo è distanza di scroll. Il risultato è che dopo
+         l'arrivo dell'ultima card serve ancora uno schermo intero di rotellina
+         prima che la sezione si sblocchi, e in quello schermo il mazzo composto
+         sta fermo a farsi guardare. Prima l'ultima card si posava nell'istante
+         esatto in cui lo Statement iniziava a coprire: il mazzo finito non si
+         vedeva mai.
+
+         ⚠ LO SPAZIO PER QUESTA CODA NON LO CREA QUESTO TWEEN, lo crea il
+         distanziatore del Handoff (`travel={320}` in index.astro, era 220). Lo
+         sticky di `.ho__out` dura quanto quel distanziatore; qui si decide solo
+         COME la corsa disponibile viene spesa. Aggiungere il tween senza
+         allungare il distanziatore avrebbe compresso l'animazione nella stessa
+         distanza di prima, senza nessuna pausa; allungare `end` senza allungare
+         il distanziatore avrebbe fatto proseguire l'animazione oltre la fine
+         dello sticky, con le card ancora in movimento mentre venivano coperte.
+
+         La durata è PROPORZIONALE e misurata, non un numero a caso: si riserva
+         alla coda esattamente uno schermo della corsa reale letta dal DOM. Se
+         domani `travel` cambia, la proporzione si riadatta da sé — nessun valore
+         duplicato fra questo file e index.astro. */
+      const runPx = travel?.offsetHeight ?? window.innerHeight * 2;
+      const holdPx = window.innerHeight;
+      const animPx = Math.max(1, runPx - holdPx);
+      tl.to({}, { duration: tl.duration() * (holdPx / animPx) });
+
+      /* ---- M17 — LA VETRINA: ciò che accade dentro una card ----------------
+         La card è il contenitore, non il contenuto. Ogni card ha una FINESTRA:
+         il tratto di corsa in cui è quella in cima al mazzo. Dentro quella
+         finestra la sua vetrina "suona".
+
+         Le due vetrine usano meccanismi DIVERSI, e non è un'incoerenza:
+
+           reel di un sito → SCRUB. La posizione della pagina dentro lo schermo
+             è una posizione: legarla al dito è esatto, e tornando indietro la
+             pagina risale, che è quello che una pagina fa.
+           trascritto di una chiamata → UNA VOLTA SOLA, a tempo. Scrubbare una
+             conversazione significa che risalendo la pagina si DIS-DICE: le
+             parole rientrano, l'appuntamento si annulla. È inquietante e non
+             c'è modo di renderlo bello. Una conversazione è una sequenza, non
+             una posizione.
+
+         Costo: zero ScrollTrigger nuovi (i reel sono tween sulla timeline che
+         esiste già) e zero tween per il trascritto, che è tutto CSS. */
+      const total = tl.duration();
+
+      /* Quando la card `i` è a fuoco: da poco dopo il suo arrivo (il 70% della
+         salita — prima è ancora mezza fuori schermo e la sua vetrina non si
+         vedrebbe) a quando quella dopo l'ha coperta. L'ultima tiene la scena
+         fino in fondo, coda ferma compresa.
+
+         ⚠ LA PRIMA CARD CHIUDE A `LEAD`, NON A `LEAD + dur`, e questa è metà
+         della risposta al "non riesco a scorrere abbastanza il sito". Le altre
+         card continuano a scorrere il proprio reel anche MENTRE vengono coperte
+         (finestra fino a `+dur`), che per loro va bene: hanno una pausa scoperta
+         brevissima e senza quel sovrappiù il reel sarebbe troppo veloce. La
+         prima card invece ha tutto `LEAD` per sé, ed estendere la finestra oltre
+         l'inizio della copertura significava spalmare la corsa del reel su un
+         tratto in parte già occluso: misurato, il reel arrivava al 55% della
+         propria pagina nell'istante in cui la seconda card cominciava a salire,
+         quindi il fondo del sito del Network Day NON SI VEDEVA MAI. Chiudendo a
+         `LEAD` la pagina percorre il 100% di sé stessa mentre è ancora
+         completamente scoperta, che è la cosa che si stava chiedendo. */
+      const inFocus = (i: number): [number, number] => [
+        i === 0 ? 0 : LEAD + (i - 1) * span + dur * 0.7,
+        i === cards.length - 1 ? total : i === 0 ? LEAD : LEAD + i * span + dur,
+      ];
+
+      cards.forEach((card, i) => {
+        const [from, to] = inFocus(i);
+
+        card.querySelectorAll<HTMLElement>('[data-reel]').forEach((reel) => {
+          const window_ = reel.parentElement;
+          if (!window_) return;
+          /* La corsa la dà la GEOMETRIA REALE, non un valore dichiarato: il reel
+             è alto una percentuale dello schermo scritta in CSS, e leggerla qui
+             la duplicherebbe. Funzione + `invalidateOnRefresh` = si rimisura al
+             resize, e continuerà a funzionare quando i wireframe diventeranno
+             screenshot veri con proporzioni tutte diverse. */
+          tl.to(
+            reel,
+            {
+              y: () => -Math.max(0, reel.offsetHeight - window_.clientHeight),
+              duration: Math.max(0.01, to - from),
+            },
+            from
+          );
+        });
+      });
+
+      /* Il trascritto. La soglia è l'85% della salita della sua card: la prima
+         battuta parte mentre la card sta ancora arrivando, così alla fine della
+         salita la conversazione è già in corso invece di iniziare da ferma.
+         ⚠ NON si usa `data-activate` (M14): la sua soglia è `top 80%` della
+         SEZIONE, che qui scatta molto prima — la sezione entra in viewport un
+         intero schermo prima che questa card sia in cima al mazzo. */
+      const call = stageEl.querySelector<HTMLElement>('[data-call]');
+      if (call && total > 0) {
+        const owner = call.closest<HTMLElement>('[data-stack-card]');
+        const idx = owner ? cards.indexOf(owner) : cards.length - 1;
+        const callAt = (idx <= 0 ? 0 : LEAD + (idx - 1) * span + dur * 0.85) / total;
+
+        /* `seenBefore` distingue "ci sono arrivato scorrendo" da "ci sono nato
+           dentro". Nel secondo caso l'animazione è già stata persa, quindi si
+           salta allo stato finale: è `is-instant` di M14, stessa logica.
+           Le classi si AGGIUNGONO e non si toglieranno mai — è ciò che rende
+           innocuo il fatto che questo callback giri a ogni frame e anche
+           risalendo. */
+        let seenBefore = false;
+        onProgress = (progress) => {
+          if (call.classList.contains('is-in')) return;
+          if (progress < callAt) {
+            seenBefore = true;
+            return;
+          }
+          if (!seenBefore) call.classList.add('is-instant');
+          call.classList.add('is-in');
+        };
+        // Sincronizzazione immediata: se la pagina è nata già oltre la soglia,
+        // `onRefresh` potrebbe non arrivare mai (misurato su M14: un salto
+        // programmatico non emette né refresh né scrollEnd).
+        onProgress(tl.scrollTrigger?.progress ?? 0);
+      }
+
+      cleanups.push(() => {
+        [...cards, ...reels].forEach((c) => {
+          c.style.willChange = '';
+        });
+        gsap.set(cards, { clearProps: 'transform,transformOrigin,opacity' });
+        if (reels.length) gsap.set(reels, { clearProps: 'transform' });
+        call?.classList.remove('is-in', 'is-instant');
+      });
     });
 
-    /* ---- Micro-deriva orizzontale (§20) ---------------------------------
-       Il movimento più piccolo del sito: 2.5% verso sinistra lungo tutta la
-       sezione. Non deve essere notato, deve solo togliere l'impressione che il
-       blocco sia incollato alla pagina. Negativo di proposito: verso destra
-       creerebbe overflow orizzontale. */
+    /* ---- Deriva orizzontale in scrub (M6) -------------------------------
+       Nata come MICRO-deriva: 2.5% verso sinistra lungo tutta la sezione, da non
+       notare, solo per togliere l'impressione che un blocco sia incollato alla
+       pagina. Negativa di proposito: verso destra creerebbe overflow.
+
+       ⚠ L'AMPIEZZA ORA ARRIVA DAL MARKUP (`data-drift="-9"`), con -2.5 come
+       default. Serviva per la parola-fantasma del manifesto §04, che è un piano
+       di sfondo e deve derivare abbastanza da leggersi come parallasse: a 2.5%
+       il movimento c'era ma non produceva profondità. Un secondo vocabolario
+       sarebbe stato lo stesso meccanismo con un altro nome — e questo non aveva
+       comunque nessun utente nel markup (come M11, vedi CLAUDE.md), quindi
+       parametrizzarlo non ha potuto rompere niente.
+
+       Il valore è una PERCENTUALE della larghezza dell'elemento, non pixel: un
+       fantasma tipografico scala col viewport, e la sua deriva deve scalare con
+       lui o a 390px sarebbe uno strappo e a 2560 un fremito. */
     document.querySelectorAll<HTMLElement>('[data-drift]').forEach((el) => {
+      const raw = Number(el.dataset.drift);
+      const to = Number.isFinite(raw) && raw !== 0 ? raw : -2.5;
+
       gsap.fromTo(
         el,
         { xPercent: 0 },
         {
-          xPercent: -2.5,
+          xPercent: to,
           ease: 'none',
           scrollTrigger: {
             trigger: el,

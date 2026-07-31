@@ -81,7 +81,7 @@ const PROBE = `(() => {
   const q = (s) => document.querySelector(s);
   const st = window.ScrollTrigger || (window.gsap && window.gsap.core && null);
   const splitEl = q('[data-split="lines"]');
-  const h1lines = [...document.querySelectorAll('.hero__line')];
+  const h1lines = [...document.querySelectorAll('.hero__headline, .hero__lead, .hero__cta')];
   return {
     jsAnimClass: document.documentElement.classList.contains('js-anim'),
     animReady: document.documentElement.dataset.animReady === '1',
@@ -89,17 +89,73 @@ const PROBE = `(() => {
     lenisSmooth: document.documentElement.classList.contains('lenis-smooth'),
     splitLineDivs: splitEl ? splitEl.querySelectorAll('div').length : -1,
     splitAriaLabel: splitEl ? splitEl.hasAttribute('aria-label') : false,
-    splitTextContent: splitEl ? splitEl.textContent.trim().slice(0, 40) : null,
+    /* ⚠ ERA un confronto con la stringa "Prima di annoiarti" scritta qui dentro.
+       Quel testo è stato spostato nel sottotitolo di §01 (che non ha
+       data-split) durante la revisione della sezione, e da allora il controllo
+       era ROSSO senza che nulla fosse rotto: un assert inchiodato a una copy
+       invece che a un'invariante, cioè lo stesso difetto che verify-stage aveva
+       sull'hex del canvas. Un controllo sempre rosso insegna a ignorare l'esito
+       di tutto lo strumento.
+       L'invariante vera è indipendente dal testo: SplitText NON deve perdere né
+       duplicare caratteri. Si confronta quindi il testo dell'elemento con la
+       concatenazione delle righe che ha prodotto, a spazi normalizzati (fra una
+       riga e l'altra lo spazio non sopravvive, ed è normale).
+       NB: niente backtick in questo commento — sta DENTRO un template literal e
+       lo chiuderebbe in anticipo. Stessa nota che sta in verify-stage.mjs, e
+       stesso SyntaxError, preso due volte. */
+    splitTextLen: splitEl ? splitEl.textContent.replace(/\\s+/g, '').length : -1,
+    /* ⚠ SOLO I FIGLI DIRETTI. SplitText annida due livelli di div per riga (il
+       wrapper esterno e quello interno che permette il mascheramento), quindi
+       querySelectorAll('div') restituisce ogni riga DUE volte e la
+       concatenazione dava esattamente il doppio dei caratteri: 142 contro 71.
+       Il conteggio grezzo di splitLineDivs qui sopra resta com'era perché quel
+       controllo chiede solo "almeno due", e va bene anche contando i nidi. */
+    splitLinesLen: splitEl
+      ? [...splitEl.children].filter(n => n.tagName === 'DIV')
+          .map(d => d.textContent).join('').replace(/\\s+/g, '').length
+      : -1,
     heroLineOpacities: h1lines.map(el => getComputedStyle(el).opacity),
     heroTitleOpacity: q('.hero__title') ? getComputedStyle(q('.hero__title')).opacity : null,
     revealCount: document.querySelectorAll('[data-reveal]').length,
     revealOpacities: [...document.querySelectorAll('[data-reveal]')].map(el => getComputedStyle(el).opacity),
-    ruleScaleX: q('[data-rule]') ? getComputedStyle(q('[data-rule]')).transform : null,
+    /* ⚠ NIENTE BACKTICK IN QUESTO COMMENTO: sta dentro un template literal
+       (PROBE), quindi un backtick lo chiuderebbe e il file non parserebbe.
+
+       Sonda .wid__rule e NON [data-rule]. L'invariante da garantire è "dopo lo
+       scroll il filetto in cima alle clausole è disegnato", che non dipende da
+       QUALE meccanismo lo disegna: prima era M11 (data-rule), adesso è la
+       seconda battuta di M14 (.wid__clauses.is-on). Agganciato all'attributo,
+       questo controllo diventava null — cioè verde-o-rosso per la presenza di
+       un attributo invece che per lo stato del filetto — nel momento in cui il
+       meccanismo cambiava, pur essendo il filetto perfettamente disegnato.
+       Stessa regola dell'assert sul near-black in verify-stage.mjs: si misura
+       l'invariante, non l'implementazione. */
+    ruleScaleX: q('.wid__rule') ? getComputedStyle(q('.wid__rule')).transform : null,
+    /* IL MANIFESTO §04. Si sondano gli stati OSSERVABILI — la scala del filetto
+       e l'opacita' del timbro — non le classi che li producono: stessa regola di
+       ruleScaleX qui sopra, cosi' il controllo sopravvive a un cambio di
+       meccanismo invece di diventare null in silenzio.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    stRuleTransform: q('.st__text em')
+      ? getComputedStyle(q('.st__text em'), '::after').transform
+      : null,
+    stStampOpacity: q('.st__stamp') ? getComputedStyle(q('.st__stamp')).opacity : null,
+    stGhostOpacity: q('.st__ghost') ? getComputedStyle(q('.st__ghost')).opacity : null,
   };
 })()`;
 
 const results = [];
 const ok = (name, pass, detail) => results.push({ name, pass, detail });
+
+/**
+ * "Il filetto è steso per intero", indipendentemente da come ci è arrivato.
+ *
+ * Accetta sia `none` sia una matrice con scaleX 1: senza `html.js-anim` (JS
+ * spento, reduced-motion) il ::after non ha alcuna `transform` dichiarata, che è
+ * lo stato finale corretto — pretendere la matrice lo farebbe fallire proprio
+ * nei rami in cui il filetto DEVE essere già disegnato.
+ */
+const steso = (tf) => tf === 'none' || /^matrix\(1,\s*0,\s*0,/.test(tf || '');
 
 /* ---- 1. Movimento consentito ------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] }, sid);
@@ -137,8 +193,21 @@ ok(
 );
 ok('SplitText ha spezzato le righe', p.splitLineDivs >= 2, `${p.splitLineDivs} div`);
 ok('SplitText NON aggiunge aria-label (proibito su p/div)', p.splitAriaLabel === false);
-ok('testo dello statement integro', (p.splitTextContent || '').startsWith('Prima di annoiarti'));
+ok(
+  'SplitText non perde ne duplica caratteri',
+  p.splitTextLen > 0 && p.splitTextLen === p.splitLinesLen,
+  `${p.splitLinesLen} caratteri nelle righe / ${p.splitTextLen} nell'elemento`
+);
 ok('titolo hero SEMPRE opaco (regola LCP)', p.heroLineOpacities.every((o) => o === '1'), p.heroLineOpacities.join(','));
+
+// Il manifesto è molto sotto la piega: a pagina appena caricata NON deve essere
+// già acceso, altrimenti la sua animazione non esiste e il controllo che segue
+// (disegnato dopo lo scroll) sarebbe verde senza aver misurato niente.
+ok(
+  'manifesto §04: a riposo il filetto NON è disegnato',
+  /^matrix\(0,/.test(p.stRuleTransform || ''),
+  p.stRuleTransform
+);
 
 /**
  * Scorre con eventi wheel REALI passati da CDP.
@@ -171,6 +240,13 @@ ok(
   after.revealOpacities.join(',')
 );
 ok('filetto disegnato (scaleX 1)', /matrix\(1,/.test(after.ruleScaleX || ''), after.ruleScaleX);
+ok(
+  'manifesto §04: filetto, timbro e parola-fantasma accesi dopo lo scroll',
+  steso(after.stRuleTransform) &&
+    Number(after.stStampOpacity) > 0.9 &&
+    Number(after.stGhostOpacity) > 0.9,
+  `filetto ${after.stRuleTransform} · timbro ${after.stStampOpacity} · fantasma ${after.stGhostOpacity}`
+);
 
 /* Scenario del SALTO, su una pagina appena caricata (Lenis a riposo, altrimenti
    sovrascrive la posizione). Tasto Fine, link ancora, ripristino dello scroll al
@@ -188,6 +264,17 @@ ok(
   jumpedY > 1000 && jumped.revealOpacities.every((o) => Number(o) > 0.9),
   `scrollY ${jumpedY} · ${jumped.revealOpacities.join(',')}`
 );
+/* Stesso scenario, sul manifesto: `is-instant` deve azzerare durata E ritardo.
+   Il filetto ha 900ms di durata + 1150ms di ritardo e il timbro 700+1900: senza
+   l'azzeramento, dopo un salto resterebbero a metà per oltre due secondi — il
+   difetto già trovato via CDP su §01 e §02, qui verificato invece che sperato. */
+ok(
+  'manifesto §04: salto in fondo, i tre elementi già allo stato finale',
+  steso(jumped.stRuleTransform) &&
+    Number(jumped.stStampOpacity) > 0.9 &&
+    Number(jumped.stGhostOpacity) > 0.9,
+  `filetto ${jumped.stRuleTransform} · timbro ${jumped.stStampOpacity} · fantasma ${jumped.stGhostOpacity}`
+);
 
 /* ---- 2. Reduced motion -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sid);
@@ -199,6 +286,13 @@ ok('reduce: nessuna classe js-anim', r.jsAnimClass === false);
 ok('reduce: Lenis NON istanziato', r.lenisSmooth === false);
 ok('reduce: nessuno split', r.splitLineDivs === 0 || r.splitLineDivs === -1, `${r.splitLineDivs}`);
 ok('reduce: contenuto tutto visibile', r.revealOpacities.every((o) => Number(o) > 0.9), r.revealOpacities.join(','));
+ok(
+  'reduce: manifesto §04 già completo (filetto, timbro, fantasma)',
+  steso(r.stRuleTransform) &&
+    Number(r.stStampOpacity) > 0.9 &&
+    Number(r.stGhostOpacity) > 0.9,
+  `filetto ${r.stRuleTransform} · timbro ${r.stStampOpacity} · fantasma ${r.stGhostOpacity}`
+);
 
 /* ---- 3. JS disattivato -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] }, sid);
@@ -210,8 +304,19 @@ const noJs = await send('Runtime.evaluate', { expression: '1', returnByValue: tr
 await send('Emulation.setScriptExecutionDisabled', { value: false }, sid);
 const html = await (await fetch(URL_)).text();
 ok('senza JS: nessun data-reveal pre-nascosto in HTML', !/style="[^"]*opacity:\s*0/.test(html));
-ok('senza JS: il testo dello statement è nell\'HTML', html.includes('costruisco cose'));
-ok('senza JS: il titolo hero è nell\'HTML', html.includes('Hai un problema?') && html.includes('Lo risolvo'));
+/* ⚠ ERA `html.includes('non scrivo solo')`, che è una riga di WhatIDo (§01) e
+   NON lo statement: il controllo era verde da sempre per il motivo sbagliato —
+   avrebbe continuato a passare con la sezione statement cancellata dalla pagina.
+   Ora si misura ciò che dice di misurare: le due metà del manifesto (premessa
+   smorzata + conseguenza) e il timbro editoriale, tutti nell'HTML servito. */
+ok(
+  "senza JS: il manifesto §04 è tutto nell'HTML",
+  html.includes('Non sono il più esperto della stanza.') &&
+    html.includes('non smette di studiare') &&
+    html.includes('Statement 04'),
+  'premessa + accento + timbro'
+);
+ok('senza JS: il titolo hero è nell\'HTML', html.includes('Ciao.') && html.includes('Entra'));
 
 /* ---- esito -------------------------------------------------------------- */
 console.log('\n================ ESITO ================');

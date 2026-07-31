@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#0B0B0C"/>
+  <rect width="64" height="64" rx="12" fill="#12141A"/>
   <text x="50%" y="50%" dy="0.34em" text-anchor="middle"
         font-family="Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
         font-size="30" font-weight="500" letter-spacing="-1.2"
-        fill="#F5F5F3">VC</text>
-  <circle cx="52.48" cy="12.8" r="3.968" fill="#5B84FF"/>
+        fill="#EDEDEC">VC</text>
+  <circle cx="52.48" cy="12.8" r="3.968" fill="#9370F5"/>
 </svg>

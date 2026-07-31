@@ -18,6 +18,14 @@ export const TIMELINE: TimelineEntry[] = [
     org: 'ITIS Leonardo Da Vinci',
     detail:
       'Qui ho scritto la prima riga di codice che facesse qualcosa di utile. Il resto l’ho imparato da solo, la sera.',
+    /* ⚠ SPENTA SOLO NEL TEASER DELLA HOME, non qui: su `/chi-sono` c'è ancora,
+       intera. Con l'ingresso di JEParma il teaser è salito a quattro voci e a
+       1440×900 misurava 1031px contro gli 900 disponibili — 131px sopra
+       la viewport, che per una sezione sticky vuol dire una coda irraggiungibile
+       (vedi il vincolo in JourneyTeaser.astro). Fra le cinque voci questa è la
+       meno recente, quindi è quella che si spegne quando lo spazio non basta
+       per tutte. */
+    teaser: false,
   },
   {
     year: 2022,

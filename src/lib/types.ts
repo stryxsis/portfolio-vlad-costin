@@ -18,6 +18,17 @@ export interface TimelineEntry {
   detail: string;
   /** true = ancora in corso. */
   current?: boolean;
+  /**
+   * false = esclusa dal teaser della Home anche se rientrerebbe nel `limit`.
+   * Default true (inclusa). Serve a JourneyTeaser.astro, che deve stare in UNO
+   * schermo (vincolo geometrico dell'handoff M12, vedi la nota in quel file):
+   * quando una voce nuova non ci sta più tutte insieme, si spegne la meno
+   * recente invece di stringere il layout — misurato via CDP, non deciso a
+   * occhio (vedi il commento sulla voce spenta in timeline.ts). La pagina
+   * `/chi-sono` (Timeline senza `limit`) non legge questo campo: lì tutte le
+   * voci restano, sempre.
+   */
+  teaser?: boolean;
 }
 
 export interface SkillGroup {

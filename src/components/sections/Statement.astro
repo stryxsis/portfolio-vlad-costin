@@ -31,59 +31,142 @@ interface Props {
 const { statement, tone = 'paper', id } = Astro.props;
 
 /**
- * Spezza il testo nei frammenti da accentare.
+ * Spezza il testo nei tre registri del manifesto.
  *
  * L'alternativa — scrivere l'HTML con gli <em> già dentro la stringa in
  * statements.ts — è stata scartata: metterebbe markup in un file di dati e
  * costringerebbe a `set:html`, cioè a rinunciare all'escaping su un testo che si
- * riscrive spesso. Qui la stringa resta testo puro e l'accento è una lista di
+ * riscrive spesso. Qui la stringa resta testo puro e le marcature sono liste di
  * sottostringhe da cercarci dentro.
+ *
+ * I tre registri, in ordine di voce:
+ *   `quiet`   la premessa, detta piano (grigio caldo, corpo minore)
+ *   `loud`    la conseguenza: è il default, cioè tutto ciò che non è marcato
+ *   `accent`  dentro `loud`, le parole che ricevono anche il filetto cinetico
  */
-function splitOnAccents(text: string, accents: string[]): { text: string; accent: boolean }[] {
-  // Dalla più lunga: se un accento è contenuto in un altro, va marcato prima
-  // quello lungo, altrimenti il corto lo spezzerebbe a metà.
-  const targets = [...accents].sort((a, b) => b.length - a.length).filter(Boolean);
-  let parts: { text: string; accent: boolean }[] = [{ text, accent: false }];
-
-  for (const target of targets) {
-    parts = parts.flatMap((part) => {
-      if (part.accent) return [part];
-      const i = part.text.indexOf(target);
-      if (i === -1) return [part];
-      return [
-        { text: part.text.slice(0, i), accent: false },
-        { text: target, accent: true },
-        { text: part.text.slice(i + target.length), accent: false },
-      ];
-    });
-  }
-  return parts.filter((p) => p.text.length > 0);
+type Tier = 'quiet' | 'loud' | 'accent';
+interface Part {
+  text: string;
+  tier: Tier;
 }
 
-const parts = splitOnAccents(statement.text, [...statement.accent]);
+/**
+ * Ritaglia `target` dai soli frammenti ancora `loud` e lo marca `tier`.
+ *
+ * ⚠ Scende SOLO nei frammenti `loud`, e ne dipende l'ordine delle chiamate:
+ * ritagliando prima `quiet` la premessa diventa intoccabile, quindi un accento
+ * non può più spezzarla a metà nemmeno se il testo lo contiene due volte.
+ */
+function cut(parts: Part[], target: string, tier: Tier): Part[] {
+  if (!target) return parts;
+  return parts.flatMap((part) => {
+    if (part.tier !== 'loud') return [part];
+    const i = part.text.indexOf(target);
+    if (i === -1) return [part];
+    return [
+      { text: part.text.slice(0, i), tier: 'loud' as Tier },
+      { text: target, tier },
+      { text: part.text.slice(i + target.length), tier: 'loud' as Tier },
+    ];
+  });
+}
 
-/* Guardia di sviluppo: un accento che non compare nel testo è un errore di
+// Dalla più lunga: se un accento è contenuto in un altro, va marcato prima
+// quello lungo, altrimenti il corto lo spezzerebbe a metà.
+const accents = [...statement.accent].filter(Boolean).sort((a, b) => b.length - a.length);
+
+let parts: Part[] = [{ text: statement.text, tier: 'loud' }];
+parts = cut(parts, statement.quiet ?? '', 'quiet');
+for (const target of accents) parts = cut(parts, target, 'accent');
+parts = parts.filter((p) => p.text.length > 0);
+
+/* Guardia di sviluppo: una marcatura che non compare nel testo è un errore di
    battitura che passerebbe inosservato — lo statement si vedrebbe senza
-   accento, cioè quasi identico. Meglio rumoroso, e solo in dev per non far
-   fallire una build di produzione per una virgola. */
+   accento o senza premessa smorzata, cioè quasi identico. Meglio rumoroso, e
+   solo in dev per non far fallire una build di produzione per una virgola. */
 if (import.meta.env.DEV) {
-  const missing = statement.accent.filter((a) => !statement.text.includes(a));
+  const missing = [...statement.accent, statement.quiet ?? ''].filter(
+    (a) => a && !statement.text.includes(a)
+  );
   if (missing.length > 0) {
     console.warn(
-      `[Statement] accento non trovato nel testo: ${missing.map((m) => `"${m}"`).join(', ')}`
+      `[Statement] marcatura non trovata nel testo: ${missing.map((m) => `"${m}"`).join(', ')}`
     );
   }
 }
 ---
 
+{
+  /* `data-activate` (M14) sul WRAP, non sull'h2: l'h2 porta già `data-split`, e
+     i due non vanno mai sullo stesso elemento (vedi reveal.ts). Da qui le classi
+     `is-in`/`is-instant` governano in CSS sia il filetto sotto l'accento sia
+     l'ingresso del timbro — nessun tween in più, e nessun `data-reveal` da
+     nessuna parte qui dentro, che con `data-activate` sarebbe il divieto già
+     costato due volte. */
+}
 <section class:list={['st', `st--${tone}`]} id={id}>
-  <div class="st__wrap">
+  <div class="st__wrap" data-activate>
+    {
+      /* LA PAROLA-FANTASMA (M6). Piano di sfondo: corpo gigantesco, contrasto
+         quasi nullo, `aria-hidden` perché ripete una parola che il testo accanto
+         già dice — annunciarla due volte sarebbe rumore, e non porta contenuto
+         proprio.
+         `data-drift` la fa derivare in scrub: sotto i 900px o con
+         `prefers-reduced-motion` stage.ts non crea la stage e il fantasma resta
+         fermo dov'è, che è uno stato finito e non un'animazione interrotta. */
+    }
+    {statement.ghost && (
+      <span class="st__ghost" data-drift="-5" aria-hidden="true">
+        {statement.ghost}
+      </span>
+    )}
     <p class="st__label">{statement.label}</p>
     {/* M2 word-mask: è il reveal parola per parola messo dove non costa nulla —
         sotto la piega, quindi mai candidato LCP. */}
     <h2 class="st__text" data-split="words">
-      {parts.map((p) => (p.accent ? <em>{p.text}</em> : p.text))}
+      {
+        parts.map((p) =>
+          p.tier === 'accent' ? (
+            <em>{p.text}</em>
+          ) : p.tier === 'quiet' ? (
+            <span class="st__quiet">{p.text}</span>
+          ) : (
+            p.text
+          )
+        )
+      }
     </h2>
+
+    {
+      /* IL TIMBRO EDITORIALE. Parentesi e punto medio sono `aria-hidden`, le
+         parole no: è lo stesso trattamento dei separatori nelle card di
+         FeaturedProjects. Un timbro tutto nascosto agli screen reader sarebbe
+         più comodo ma butterebbe anche l'informazione ("Manifesto", il numero
+         dello statement); un timbro tutto esposto farebbe leggere "parentesi
+         quadra punto medio". */
+    }
+    {
+      statement.stamp && statement.stamp.length > 0 && (
+        <p class="st__stamp">
+          <span class="st__stamp-mark" aria-hidden="true">
+            [
+          </span>
+          {statement.stamp.map((entry, i) => (
+            <>
+              {i > 0 && (
+                <span class="st__stamp-mark" aria-hidden="true">
+                  ·
+                </span>
+              )}
+              <span>{entry}</span>
+            </>
+          ))}
+          <span class="st__stamp-mark" aria-hidden="true">
+            ]
+          </span>
+        </p>
+      )
+    }
   </div>
 </section>
 
@@ -99,13 +182,119 @@ if (import.meta.env.DEV) {
        arrivava a 1489px e lo statement finiva a cavallo di due schermate. */
     padding-block: clamp(3rem, 8vh, 6rem);
     min-height: 100svh;
+    /* ⚠ `clip` e non `hidden`: la parola-fantasma sborda di proposito dal bordo
+       destro e va ritagliata, ma `hidden` creerebbe un contenitore di
+       scorrimento — e un contenitore di scorrimento su un antenato romperebbe
+       qualunque `position: sticky` interno (oggi non ce n'è, l'incollaggio M12 è
+       su `.ho__out`, ma la regola vale per default). `clip` ritaglia senza
+       diventare scrollabile. */
+    overflow: clip;
   }
 
+  /* `position: relative` è il contenitore del fantasma: così `top: 50%` si
+     risolve sul BLOCCO DI TESTO e non sull'intera sezione alta 100svh — il
+     fantasma è centrato su ciò che accompagna, non sul vuoto sopra e sotto. */
   .st__wrap {
+    position: relative;
     max-width: 90rem;
     margin-inline: auto;
     padding-inline: var(--spacing-gutter);
     width: 100%;
+  }
+
+  /* -- La parola-fantasma: il piano di sfondo -----------------------------
+     Corpo gigantesco, contrasto quasi nullo, e la stessa parola su cui poggia
+     l'accento del testo: il fondo RIPETE la parola importante invece di
+     aggiungerne una decorativa. È ciò che rende l'effetto non gratuito.
+
+     `--color-paper-hairline` (#dad2c2) e NON una tinta d'accento: l'accento in
+     questa sezione è già speso due volte (il testo dominante e il filetto), e
+     una terza presenza viola sull'unico momento di luce della Home lo
+     svaluterebbe — oltre a intorbidire l'avorio. Il fantasma è il tono del
+     paper stesso, appena più profondo: texture, non colore nuovo.
+
+     ⚠ CENTRATO CON `margin-top` NEGATIVO, MAI CON `translate`. GSAP anima questo
+     elemento (`xPercent` di M6), e le proprietà CSS indipendenti
+     `translate`/`scale`/`rotate` su un elemento animato da GSAP vengono lette e
+     ricompilate dentro la sua matrice, applicandosi DUE volte — il divieto in
+     CLAUDE.md, costato una griglia finita mezza pagina a sinistra. Con
+     `line-height: 1` un `margin-top: -0.5em` centra esattamente. */
+  .st__ghost {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    margin-top: -0.5em;
+    /* ⚠ ANCORATO A DESTRA E SBORDANTE, non a filo del testo. Prima stesura:
+       `left: var(--spacing-gutter)`, cioè allineato al testo. Misurato e
+       screenshottato: la parola partiva sotto le PRIME parole della premessa —
+       che è il testo più fragile della sezione (grigio caldo, non accento) — e
+       quella zona diventava confusa, mentre i ~360px vuoti a destra restavano
+       vuoti. Ancorata a destra la massa del fantasma sta dove non c'era niente,
+       e sborda oltre il bordo (lo ritaglia `overflow: clip` su `.st`): un
+       frammento di parola più grande della pagina legge come piano di sfondo,
+       una parola intera e contenuta legge come un titolo sbagliato. */
+    right: -8%;
+    /* ⚠ 14vw, ERA 17vw. A 17vw il fantasma era alto 245px in un blocco di testo
+       da 346px: non c'era modo di NON sovrapporlo sia alla premessa sia al
+       timbro. Il timbro è mono da 12px, dove il pavimento di contrasto è 4.5:1 e
+       non 3:1, quindi quella sovrapposizione era l'unica davvero inaccettabile.
+       A 14vw è alto 202px e sta tutto nella finestra fra la premessa e il timbro:
+       resta dietro alle due righe dominanti (accento pieno, alto contrasto, dove
+       la sovrapposizione non toglie nulla) e libera il timbro. */
+    font-size: clamp(4.5rem, 14vw, 13rem);
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+  /* ⚠ MISCELATO VERSO IL PAPER, non `--color-paper-hairline` pieno. L'hairline
+     puro è 1.24:1 sull'avorio — un valore che su un filetto da 1px è invisibile
+     ma su un glifo da 200px è tutt'altro che discreto: l'area conta quanto il
+     rapporto. Al 70% il fantasma scende a ~1.16:1, e soprattutto la premessa che
+     gli passa sopra resta a ~4.4:1 invece dei 3.58:1 misurati prima (testo
+     grande, quindi il pavimento è 3:1 e passava comunque — ma passare per un pelo
+     e stare comodi non sono la stessa cosa).
+     Nessuna tinta d'accento: in questa sezione l'accento è già speso due volte
+     (testo dominante e filetto), e una terza presenza viola sull'unico momento di
+     luce della Home lo svaluterebbe. Il fantasma è il tono del paper stesso,
+     appena più profondo: texture, non un colore nuovo. */
+  .st--paper .st__ghost {
+    color: color-mix(in oklab, var(--color-paper-hairline) 70%, var(--color-paper));
+  }
+  .st--canvas .st__ghost {
+    color: color-mix(in oklab, var(--color-hairline) 70%, var(--color-canvas));
+  }
+
+  /* Entra PRESTO (300ms), non ultimo: è il fondo su cui le parole atterrano,
+     quindi deve essere già lì quando M2 le fa salire. La coreografia completa
+     della sezione è fantasma (300ms) → parole (M2, 0→1155ms) → filetto (1150ms)
+     → timbro (1900ms). */
+  :global(html.js-anim) .st__ghost {
+    opacity: 0;
+    transition: opacity 1200ms var(--ease-out-expo) 300ms;
+  }
+  :global(html.js-anim) .st__wrap.is-in .st__ghost {
+    opacity: 1;
+  }
+  :global(html.js-anim) .st__wrap.is-instant .st__ghost {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  /* Il testo sta SOPRA il fantasma. Serve un z-index esplicito e non basta
+     l'ordine nel DOM: il fantasma è `position: absolute`, quindi dipinge nel
+     livello dei discendenti posizionati, che sta sopra il contenuto in flusso
+     dei fratelli non posizionati — senza questo, coprirebbe lo statement.
+     `z-index: -1` sul fantasma NON è l'alternativa: lo mandarebbe dietro anche
+     al fondo paper di `.ho__in`, cioè lo farebbe sparire. */
+  .st__label,
+  .st__text,
+  .st__stamp {
+    position: relative;
+    z-index: 1;
   }
 
   .st__label {
@@ -133,25 +322,175 @@ if (import.meta.env.DEV) {
      Con 20ch a 84px sono quattro righe da ~310px, che stanno in uno schermo con
      più di metà dei pixel vuoti. Se un giorno lo statement si accorcia sotto i
      ~45 caratteri, `--text-mega` torna praticabile. */
+  /* L'h2 È LA VOCE DOMINANTE, non un corpo neutro con dentro due parole
+     accentate: il colore d'accento e il peso 600 stanno sulla BASE, e la
+     premessa (`.st__quiet`) è l'unica cosa che si tira indietro. Il verso è
+     quello: un manifesto dice la conseguenza forte e la premessa piano, non il
+     contrario. Era `font-weight: 500` senza colore, cioè le due metà pesavano
+     uguale e l'accento era solo su tre parole. */
   .st__text {
     margin-top: clamp(2rem, 4vw, 3rem);
     max-width: 20ch;
     font-size: clamp(2rem, 5.2vw, 5.25rem); /* 32 → 84px */
     line-height: 0.92;
     letter-spacing: -0.035em;
-    font-weight: 500;
+    font-weight: 600;
     text-wrap: balance;
   }
-
-  .st__text em {
-    font-style: normal;
-  }
-  /* Sul paper l'accento standard (5.80:1 su canvas) diventa illeggibile: qui
-     serve --accent-deep, che è 4.56:1 SUL PAPER. */
-  .st--paper .st__text em {
+  /* Sul paper l'accento standard (5.16:1 su canvas) diventa illeggibile: qui
+     serve --accent-deep, che è 5.47:1 SUL PAPER. */
+  .st--paper .st__text {
     color: var(--color-accent-deep);
   }
-  .st--canvas .st__text em {
+  .st--canvas .st__text {
     color: var(--color-accent);
+  }
+
+  /* -- La premessa, detta piano -------------------------------------------
+     `display: block` è deliberato: manda la conseguenza a riga nuova invece di
+     lasciare il passaggio piano→forte a cadere a metà riga, dove si legge come
+     un incidente di impaginazione e non come una scelta. Con la misura a 20ch le
+     due frasi occupano due righe ciascuna.
+
+     `letter-spacing` MENO negativo del titolo (-0.02 contro -0.035): la crenatura
+     stretta serve al corpo grande, sulla premessa a 0.62em stringerebbe le
+     lettere fino a impastarle. Non è simmetria mancata, è la stessa regola
+     ottica per cui i due corpi non possono avere lo stesso tracking. */
+  .st__quiet {
+    display: block;
+    margin-bottom: 0.3em;
+    font-size: 0.62em;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .st--paper .st__quiet {
+    color: var(--color-paper-text-2); /* 6.07:1 sul paper */
+  }
+  /* ⚠ `--color-text-2`, non `text-3`: su canvas il text-3 di :root è 4.19:1,
+     sotto AA (difetto noto, documentato in CLAUDE.md). Qui non lo si eredita. */
+  .st--canvas .st__quiet {
+    color: var(--color-text-2);
+  }
+
+  /* -- Il filetto cinetico sotto l'accento --------------------------------
+     Stesso dispositivo del filetto sotto "per loro" in §30 (`.fp__h em::after`),
+     riusato invece di reinventato: un `::after` in posizione assoluta su un
+     `<em>` reso `inline-block`.
+
+     ⚠ `display: inline-block` NON È DECORATIVO, tiene l'accento su UNA RIGA — ed
+     è ciò che rende disegnabile il filetto. Prima stesura: un
+     `background-image` + `box-decoration-break: clone`, scelto proprio per
+     sopravvivere al ritorno a capo delle quattro parole. Misurato via CDP: con
+     `line-height: 0.92` i due frammenti di riga si SOVRAPPONGONO — l'area di
+     contenuto di Geist misura ~1.107em contro una riga da 0.92em, quindi il
+     bordo inferiore del primo frammento cade 14px DENTRO il secondo, e il
+     filetto della prima riga finiva a tagliare le lettere della seconda. Con un
+     solo frammento il problema non esiste: `bottom` è relativo a una scatola
+     sola, sotto l'ultima discendente e sopra il nulla.
+
+     Un inline-block non si spezza mai a metà, si sposta INTERO alla riga dopo:
+     la composizione che ne esce è premessa / "Sono quello che" / l'accento
+     sottolineato, cioè tre righe con l'accento tutto suo. Stessa tecnica di
+     `.wid__title em` e `.fp__h em`.
+
+     ⚠ E un `::after`, NON un `<span>` figlio: `data-split="words"` (M2) spacca e
+     ricostruisce il DOM dell'h2, e un nodo reale agganciato al caricamento non
+     sopravvive allo split asincrono di SplitText (costato il filetto di §30, che
+     restava a `scaleX(0)` per sempre). Un `::after` è generato SULL'elemento, e
+     l'`<em>` SplitText lo sposta senza distruggerlo. */
+  .st__text em {
+    position: relative;
+    display: inline-block;
+    font-style: normal;
+  }
+
+  .st__text em::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.02em;
+    height: 2px;
+    border-radius: 1px;
+    background-color: currentColor; /* è per definizione l'accento delle parole
+                                       che sottolinea: un solo posto per il colore */
+    transform-origin: left;
+  }
+
+  /* Si disegna DOPO che le parole sono salite, non insieme: M2 ha 14 parole a
+     0.035s di stagger + 0.7s di durata, quindi l'ultima si posa a ~1155ms dalla
+     soglia. 1150ms è lo stesso ritardo del filetto di §30, tarato sullo stesso
+     conto — se un giorno lo statement si allunga di molto, questo numero va
+     rifatto con quello.
+     Senza JS il filetto è già steso: lo stato d'attesa esiste solo sotto
+     `html.js-anim`, come ogni altro pre-hide del sito. */
+  :global(html.js-anim) .st__text em::after {
+    transform: scaleX(0);
+    transition: transform 900ms var(--ease-out-expo) 1150ms;
+  }
+  :global(html.js-anim) .st__wrap.is-in .st__text em::after {
+    transform: scaleX(1);
+  }
+  /* Salto in un colpo (tasto Fine, ripristino dello scroll al reload): stato
+     finale netto, durata E ritardo azzerati — un disegno di cui nessuno ha visto
+     l'inizio non deve impiegare tempo a finire. */
+  :global(html.js-anim) .st__wrap.is-instant .st__text em::after {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  /* -- Il timbro editoriale ----------------------------------------------
+     Chiude la composizione in basso facendo coppia con la label mono in alto:
+     stesso font, stesso corpo micro, e sono i due soli elementi mono della
+     sezione. È quella simmetria a far leggere lo statement come una PAGINA
+     invece che come una frase sospesa in mezzo al vuoto.
+
+     ⚠ NESSUNA `opacità morbida` SULLE PAROLE, per quanto sia l'istinto giusto
+     per un timbro. Questo è testo mono da 11-12px, dove il pavimento è 4.5:1 e
+     non 3:1: `--color-paper-text-2` a opacità 0.72 misura 3.24:1 sul paper,
+     cioè sotto AA. La morbidezza sta quindi dove non costa niente — parentesi e
+     punto medio, che sono `aria-hidden` e non portano informazione — mentre le
+     parole restano a 6.07:1 piene. */
+  .st__stamp {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75em;
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .st--paper .st__stamp {
+    color: var(--color-paper-text-2);
+  }
+  .st--canvas .st__stamp {
+    color: var(--color-text-2); /* stessa nota AA di `.st__quiet` */
+  }
+  .st__stamp-mark {
+    opacity: 0.5;
+  }
+
+  /* Entra ULTIMO, dopo il filetto (1150 + 900 = 2050ms): l'ordine di lettura è
+     premessa → conseguenza → filetto → timbro, e il timbro è la firma in fondo,
+     non un elemento della frase. `translate` e non `transform` perché GSAP non
+     tocca mai questo elemento e la convenzione del sito è restare liberi da quel
+     conflitto per default (vedi il divieto in CLAUDE.md). */
+  :global(html.js-anim) .st__stamp {
+    opacity: 0;
+    translate: 0 8px;
+    transition:
+      opacity 700ms var(--ease-out-expo) 1900ms,
+      translate 700ms var(--ease-out-expo) 1900ms;
+  }
+  :global(html.js-anim) .st__wrap.is-in .st__stamp {
+    opacity: 1;
+    translate: 0 0;
+  }
+  :global(html.js-anim) .st__wrap.is-instant .st__stamp {
+    transition-duration: 0s;
+    transition-delay: 0s;
   }
 </style>

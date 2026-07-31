@@ -11,7 +11,41 @@
  *   M2  data-split="words"  reveal mascherato parola per parola (statement corti)
  *   M4  data-reveal         rise-in generico
  *   M11 data-rule           filetto orizzontale che si disegna (once)
+ *                           ⚠ NESSUN UTENTE al momento: l'unico era il filetto
+ *                           di §01, passato a M14 perché lì deve far parte
+ *                           dell'accensione e non precederla. Il codice resta
+ *                           perché il vocabolario è valido e riusabile, ma non
+ *                           aspettarsi effetti modificandolo finché nessuno lo
+ *                           marca.
  *   M11b data-rail          filetto verticale della timeline (scrub)
+ *   M14 data-activate       reveal ONE-SHOT via classi `is-in`/`is-on`/
+ *                           `is-instant` (nessun tween qui: il CSS del
+ *                           componente anima, questo modulo commuta soltanto).
+ *                           Generico e riusabile su qualunque elemento — oggi
+ *                           marca `.wid__clauses` (le due battute complete),
+ *                           `.wid__title` (solo `is-in`, per lo squiggle) e
+ *                           `.sp__logos` (solo `is-in`, ingresso riga +
+ *                           accensione loghi su touch).
+ *
+ * ⚠ `data-activate` NON VA MAI COMBINATO CON `data-reveal` SULLO STESSO
+ * ELEMENTO. Costato un bug reale, due volte: se condividono la soglia
+ * d'ingresso (entrambi partono a `clamp(top 88%)`), il fade generico di M4
+ * — che parte da opacità zero — copre l'istante in cui l'effetto di
+ * `data-activate` succede, rendendolo invisibile o indistinguibile dal solito
+ * ingresso di ogni altra sezione. Se un elemento marcato `data-activate` ha
+ * bisogno anche di un ingresso "arriva da sotto e sfuma", quell'ingresso va
+ * scritto come CSS ancorato a `.is-in` (vedi `.sp__logos` in
+ * SocialProof.astro), non delegato a `data-reveal`.
+ *
+ * ⚠ E MAI GATARE UN'ANIMAZIONE SU `.is-active`. Quella classe (vedi
+ * `initSectionState` più sotto) è lo stato "sto guardando questa sezione
+ * ADESSO": la commuta un IntersectionObserver, ON quando la banda centrale la
+ * contiene e OFF quando la si lascia — per design, perché serve a evidenziare
+ * la sezione corrente nell'indice (`SectionIndex.astro`), che DEVE
+ * risincronizzarsi ogni volta. Qualunque reveal agganciato a `.is-active`
+ * invece si disfa e si ripete a ogni passaggio: è il difetto che ha reso
+ * necessario `data-activate` (le sue classi si aggiungono e non si tolgono
+ * mai).
  *
  * Tutto vive dentro gsap.matchMedia(): nel ramo `prefers-reduced-motion: reduce`
  * non viene creato NESSUNO ScrollTrigger e il contenuto è semplicemente visibile.
@@ -38,6 +72,7 @@ export function initReveal(): void {
   /* ---- Ramo movimento consentito ---------------------------------------- */
   mm.add('(prefers-reduced-motion: no-preference)', () => {
     const splits: SplitText[] = [];
+    const cleanupsM14: Array<() => void> = [];
 
     // M1 — reveal riga per riga.
     // `mask: 'lines'` avvolge ogni riga in un contenitore con overflow clippato,
@@ -98,6 +133,34 @@ export function initReveal(): void {
               stagger: 0.035,
               ease: 'expo.out',
               scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true, fastScrollEnd: true },
+            });
+          },
+        })
+      );
+    });
+
+    /* M15 — split STRUTTURALE per carattere, e NIENT'ALTRO.
+       A differenza di M1/M2 qui SplitText non attacca nessun tween: produce solo
+       i wrapper, uno <span class="sp__letter"> per lettera. L'accensione la fa il
+       CSS del componente, gated su `data-activate`/`is-in` dell'antenato — stessa
+       filosofia di M14, riusata invece di duplicata.
+
+       ⚠ `--i` È UN INDICE GLOBALE, NON LOCALE ALLA PAROLA. SplitText spacca ogni
+       elemento separatamente, quindi senza coordinamento la cascata ripartirebbe
+       da zero ad ogni parola e il riflesso si vedrebbe attraversare il titolo
+       tre volte invece di una. `data-i-offset` — calcolato a mano sul testo
+       statico, che non cambia — dice da dove continuare il conteggio. */
+    document.querySelectorAll<HTMLElement>('[data-split="chars"]').forEach((el) => {
+      const offset = Number(el.dataset.iOffset ?? 0);
+      splits.push(
+        SplitText.create(el, {
+          type: 'chars',
+          autoSplit: true,
+          aria: 'none', // vedi la nota su aria-prohibited-attr sopra
+          charsClass: 'sp__letter',
+          onSplit(self) {
+            self.chars.forEach((c, i) => {
+              (c as HTMLElement).style.setProperty('--i', String(offset + i));
             });
           },
         })
@@ -236,9 +299,153 @@ export function initReveal(): void {
       });
     });
 
+    /* M14 — L'ACCENSIONE, in due battute.
+       Questo modulo NON anima nulla: commuta due classi e lascia le transizioni
+       al CSS del componente. È deliberato — la cascata fra le tre righe è fatta
+       con `transition-delay` su `nth-child`, quindi non costa un tween per
+       elemento, e i valori di "spento" restano leggibili accanto a quelli di
+       "acceso" nel foglio di stile invece di essere sepolti in un oggetto JS.
+
+       ⚠ PERCHÉ DUE SOGLIE E NON UN `delay` DI UN SECONDO.
+       La richiesta iniziale era: entra, aspetta ~1s, poi si accende. Un timer
+       fisso ha due difetti opposti e nessuno dei due è recuperabile. Con tre
+       righe in cascata l'ultima finirebbe ~2,4s dopo l'ingresso, e chi scorre a
+       velocità normale attraversa questo blocco in meno di due: sarebbe già
+       oltre. Chi invece si ferma a leggere non ha nessun bisogno di aspettare.
+       Qui l'attesa la produce la DISTANZA DI SCROLL fra le due soglie.
+
+       ⚠ 80% → 40%, NON 80% → 65%. La prima versione usava 65%, cioè ~200px a
+       900px di viewport — una distanza che un singolo respiro di rotellina o
+       un flick di trackpad attraversa in una frazione di secondo, quindi le
+       due battute arrivavano quasi insieme e la pausa non si sentiva mai. A
+       40% la distanza sale a ~430px: serve un gesto di scroll reale per
+       attraversarla, non un tick. Chi va piano ha la pausa, chi scorre in
+       fretta comunque non resta indietro perché la seconda battuta non
+       dipende dal tempo, dipende da dove si trova lo sguardo.
+
+       ⚠ E PERCHÉ "SPENTO" NON È MAI INVISIBILE NÉ SFOCATO A LUNGO.
+       `is-in` (arrivo, 80%) porta la riga a fuoco e la lascia NITIDA e
+       leggibile, solo cromaticamente inerte. `is-on` (accensione, 40%) fa
+       arrivare l'accento. Tenere il testo a `opacity: 0` — o sotto un blur —
+       per tutta la pausa violerebbe l'invariante che tiene in piedi
+       `sweepPassed` qui sotto: quando lo scroll è fermo, niente che sia in
+       vista può essere ancora illeggibile. Con questa divisione la pausa non
+       trattiene informazione, trattiene solo colore.
+
+       ⚠ SUL PERCHÉ IL PRIMO TENTATIVO NON SI VEDEVA AFFATTO, non solo si
+       vedeva poco: il contenitore portava ANCHE `data-reveal`, quindi M4 lo
+       faceva entrare con il suo fade + risalita generico — lo stesso di ogni
+       altra sezione — proprio alla soglia `is-in`. Quel fade copriva l'intero
+       effetto: il blocco appariva già "fatto" con il solito ingresso standard,
+       e ciò che succedeva sotto (righe a fuoco, poi accensione) non aveva mai
+       la possibilità di leggersi come qualcosa di diverso. `data-activate` ha
+       la sua rete di sicurezza completa qui sotto (`is-instant` + i due
+       ascoltatori): non deve MAI portare anche `data-reveal`, o il fade
+       generico torna a nascondere tutto da capo. */
+    const activatable = Array.from(document.querySelectorAll<HTMLElement>('[data-activate]'));
+
+    if (activatable.length > 0) {
+      /* Controllo di STATO, non di evento, per gli stessi scenari di
+         `sweepPassed`: salto d'ancora, tasto Fine, ripristino della posizione
+         al reload. Se il blocco è già oltre una soglia, la classe va messa
+         comunque — non ci sarà nessun ingresso futuro da osservare.
+         `is-instant` azzera durate e ritardi quando il blocco è già USCITO
+         sopra la viewport: un'accensione che nessuno ha visto iniziare non è
+         un'animazione, è solo un ritardo (stessa regola del ramo `onLeave`). */
+      const settle = (): void => {
+        for (const el of activatable) {
+          const r = el.getBoundingClientRect();
+          if (r.bottom < 0) el.classList.add('is-instant', 'is-in', 'is-on');
+          if (r.top < window.innerHeight * 0.8) el.classList.add('is-in');
+          if (r.top < window.innerHeight * 0.4) el.classList.add('is-on');
+        }
+      };
+
+      /* I trigger coprono il caso vivo (il blocco che entra mentre si scorre),
+         che `settle` da solo non prenderebbe: `scrollEnd` scatta quando lo
+         scroll si FERMA, e aspettare quello vorrebbe dire vedere il blocco
+         acceso solo dopo essersi fermati. Nessun `once`: la classe è additiva e
+         idempotente, quindi ri-applicarla non costa nulla ed è più robusto che
+         far reclamare il trigger a ScrollTrigger (vedi il commento su `once` in
+         M4 qui sopra).
+
+         ⚠ `onLeave` NON È RIDONDANTE CON `settle`, ed è il caso che questa
+         funzione ha sbagliato alla prima scrittura. Il ragionamento sbagliato
+         era: "il salto lo prende `settle` su scrollEnd". Verificato via CDP, no:
+         dopo un salto programmatico di posizione — che è ciò che fanno un link
+         ancora, il tasto Fine e il ripristino dello scroll al reload — quello
+         scroll litiga con l'interpolazione di Lenis e `scrollEnd` non arriva,
+         quindi `settle` non gira e il blocco resta spento E SFOCATO per sempre.
+         Con `JUMP=bottom` le righe erano ancora a `scale 0.96` e `blur(5px)`,
+         cioè contenuto illeggibile in modo permanente: lo stesso difetto che il
+         batch di M4 copre con la sua terza callback. Servono tutte e tre. */
+      for (const el of activatable) {
+        const turnOn = (cls: string) => () => el.classList.add(cls);
+        /* Il blocco è stato attraversato in un colpo: stato finale SENZA
+           animazione. `is-instant` azzera durate e ritardi — un'accensione di
+           cui nessuno ha visto l'inizio non è un'animazione, è solo un ritardo.
+           Non viene rimossa tornando su: M4 non ripete i suoi reveal (li
+           contabilizza in una WeakSet), e questo si comporta allo stesso modo. */
+        const skipToEnd = (): void => {
+          el.classList.add('is-instant', 'is-in', 'is-on');
+        };
+        ScrollTrigger.create({
+          trigger: el,
+          start: 'clamp(top 80%)',
+          onEnter: turnOn('is-in'),
+          onEnterBack: turnOn('is-in'),
+          onLeave: skipToEnd,
+        });
+        ScrollTrigger.create({
+          trigger: el,
+          start: 'clamp(top 40%)',
+          onEnter: turnOn('is-on'),
+          onEnterBack: turnOn('is-on'),
+          onLeave: skipToEnd,
+        });
+      }
+
+      /* ⚠ E QUI SERVE UN ASCOLTATORE DI `scroll` VERO, non gli eventi di
+         ScrollTrigger, e la ragione è misurata — non prudenza.
+         Con un salto al FONDO ASSOLUTO del documento (`window.scrollTo(0,
+         scrollHeight)`, cioè tasto Fine o ripristino della posizione al reload
+         in fondo) non arriva NIENTE: né `refresh`, né `scrollEnd`, né `onLeave`
+         dei trigger qui sopra. Verificato via CDP: a scrollY 8701 il blocco
+         restava a `scale 0.96` e `blur(5px)` indefinitamente, e bastava un
+         nudge di rotellina da 40px perché `onLeave` scattasse e risolvesse
+         tutto — cioè la logica era giusta e la SORGENTE degli eventi sbagliata.
+         Motivo: quello scroll è programmatico e clampato al massimo, quindi
+         Lenis non lo interpola e l'update interno di ScrollTrigger non gira.
+         L'evento `scroll` del DOM invece è garantito dalle specifiche per
+         qualunque `scrollTo`, ed è per questo che la rete finale si aggancia
+         lì.
+
+         Il costo è una `getBoundingClientRect` per blocco marcato (sulla Home
+         ce n'è esattamente uno) per evento, e SI STACCA DA SOLO appena tutto è
+         acceso — dopodiché non resta nessun ascoltatore attivo. Stesso schema
+         di auto-rimozione di `sweepPassed`. */
+      const settleOnScroll = (): void => {
+        settle();
+        if (activatable.every((el) => el.classList.contains('is-on'))) {
+          window.removeEventListener('scroll', settleOnScroll);
+        }
+      };
+
+      ScrollTrigger.addEventListener('refresh', settle);
+      window.addEventListener('scroll', settleOnScroll, { passive: true });
+      settle();
+
+      cleanupsM14.push(() => {
+        ScrollTrigger.removeEventListener('refresh', settle);
+        window.removeEventListener('scroll', settleOnScroll);
+      });
+    }
+
     return () => {
       ScrollTrigger.removeEventListener('refresh', sweepPassed);
       ScrollTrigger.removeEventListener('scrollEnd', sweepPassed);
+      cleanupsM14.forEach((fn) => fn());
+      cleanupsM14.length = 0;
       splits.forEach((s) => s.revert());
       splits.length = 0;
     };
@@ -266,7 +473,7 @@ export function initReveal(): void {
  */
 export function initSectionState(): () => void {
   const sections = document.querySelectorAll<HTMLElement>('[data-section]');
-  if (sections.length === 0 || !('IntersectionObserver' in window)) return () => {};
+  if (sections.length === 0 || !('IntersectionObserver' in window)) return () => { };
 
   const io = new IntersectionObserver(
     (entries) => {

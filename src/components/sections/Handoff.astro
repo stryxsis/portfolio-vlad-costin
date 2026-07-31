@@ -59,7 +59,9 @@ const { name, tone, travel } = Astro.props;
 const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent' } as const;
 ---
 
-<div class="ho">
+<div class="ho" data-handoff={name}>
+  <div class="ho__backdrop" aria-hidden="true"></div>
+
   <div class="ho__out" data-screen={name}>
     <slot name="out" />
   </div>
@@ -87,6 +89,32 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
      nessun antenato di una stage. */
   .ho {
     position: relative;
+  }
+
+  /* ⚠ QUESTO layer non è decorativo: durante il rientro M12 (stage.ts) lo
+     schermo uscente si scala a 0.96 dal centro, il che RIVELA un margine
+     attorno a lui — margine che è fuori dal box di `.ho__out`, quindi mostra
+     ciò che sta dietro. Prima c'era il fondo di `.ho` stesso (`--color-canvas`,
+     tinto di blu-ardesia), ricalibrato a mano con un hex diverso per ogni
+     handoff che contenesse una foto scura — un fix fragile che si sarebbe
+     rotto a ogni cambio di foto (ed è successo). Un vero nero pieno, fisso e
+     indipendente dal tono della sezione entrante, combacia con qualunque
+     fotografia scura senza dover essere ricalibrato: qui il nero non è un
+     colore del sito, è "la stanza" del piano visivo — sempre dietro,
+     indipendente da cosa passa davanti.
+
+     ⚠ `z-index: -1`, non `0`: uno z-index positivo o zero renderebbe questo
+     layer un elemento POSIZIONATO che si impila SOPRA `.ho__out`/`.ho__in`
+     quando questi sono `position: static` (senza JS, vedi sotto) — le regole
+     di stacking del CSS dipingono qualunque discendente posizionato sopra
+     qualunque discendente in flusso non posizionato, indipendentemente
+     dall'ordine nel DOM. Negativo, invece, dipinge PRIMA del contenuto in
+     flusso: dietro in entrambi i casi, con o senza JS. */
+  .ho__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: #000;
   }
 
   .ho__in {

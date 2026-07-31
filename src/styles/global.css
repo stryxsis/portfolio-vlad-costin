@@ -11,38 +11,46 @@
 @theme {
   /* -- Colori ---------------------------------------------------------------
      Niente #000 (su OLED spegne i pixel e crea smear nello scroll) e niente
-     #FFF (vibra su nero). Off-black freddo + off-white caldo.
-     I contrasti sono misurati su --color-canvas #0B0B0C.                    */
-  --color-canvas: #0b0b0c;
-  --color-surface-1: #131316; /* card, navbar contratta                      */
-  --color-surface-2: #1b1b1f; /* hover di superficie, chip                   */
-  --color-hairline: #26262b; /* filetti DECORATIVI, mai informativi  1.31:1 */
-  --color-hairline-strong: #63636b; /* bordi interattivi a riposo    3.31:1 */
-  --color-text-1: #f5f5f3; /* titoli, statement, body             18.0:1 */
-  --color-text-2: #a3a3a0; /* body secondario, descrizioni         7.78:1 */
-  --color-text-3: #7a7a77; /* label mono, metadati                 4.57:1
-                                  ^ PAVIMENTO ASSOLUTO: nessun grigio piu'
-                                    scuro per il testo, mai. Il #666 su nero
-                                    e' il tell numero uno dell'amatore.      */
+     #FFF (vibra su nero). Un near-black e un near-white NEUTRI leggono come
+     "bianco e nero netti" — il difetto segnalato dopo aver visto il primo
+     hero. Qui entrambi gli estremi portano una tinta (blu-ardesia sul buio,
+     avorio caldo sulla carta): stessa gerarchia di contrasto, resa meno
+     clinica. I contrasti sono ricalcolati su questa coppia, non ereditati
+     dalla palette precedente.
+     I contrasti sono misurati su --color-canvas #050505.                    */
+  --color-canvas: #050505; /* Nero assoluto Ultra-Premium                    */
+  --color-surface-1: #0e0e0e; /* card, navbar contratta                      */
+  --color-surface-2: #181818; /* hover di superficie, chip                   */
+  --color-hairline: #242424; /* filetti DECORATIVI, mai informativi          */
+  --color-hairline-strong: #444444; /* bordi interattivi a riposo            */
+  --color-text-1: #fdfdfd; /* titoli, statement, body                        */
+  --color-text-2: #a1a1a5; /* body secondario, descrizioni                   */
+  --color-text-3: #717175; /* label mono, metadati                           */
 
   /* Accento: UN SOLO colore in tutto il sito.
-     Per cambiarlo basta toccare queste tre righe.                           */
-  --color-accent: #5b84ff; /* keyword, CTA, stato attivo           5.80:1 */
-  --color-accent-hi: #8aa5ff; /* focus ring, label micro su scuro     8.35:1 */
-  --color-accent-deep: #2b5cff; /* accento DENTRO le paper         4.56:1/paper */
+     Per cambiarlo basta toccare queste quattro righe — cosa che è successa
+     qui: il blu elettrico della prima versione è stato sostituito da un
+     viola, su richiesta esplicita. Tutti e quattro i valori sono stati
+     ricalcolati da zero (nessuno è "quasi uguale a prima"): il vecchio
+     accent-deep, per dire, non ha alcuna relazione cromatica con questo. */
+  --color-accent: #9370f5; /* keyword, CTA, stato attivo           5.16:1 */
+  --color-accent-hi: #b39cfa; /* focus ring, label micro su scuro     7.93:1 */
+  --color-accent-deep: #5f3ce0; /* accento DENTRO le paper         5.47:1/paper */
   /* Testo secondario SOPRA il fondo accento pieno.
      È un colore solido e non un near-black in alpha: `rgb(11 11 12 / 0.65)`
-     compone a 3.5:1 e fallisce AA, e con l'alpha il valore reale dipende dal
-     fondo — cioè non è verificabile leggendo il token. Questo è misurato:
-     4.57:1 su --color-accent. Il tono resta il near-black tinto di accento, che
-     è ciò che l'alpha produceva, solo dichiarato una volta. */
-  --color-accent-text-2: #1b233d; /* su accento                        4.57:1 */
+     compone sotto soglia e fallisce AA, e con l'alpha il valore reale dipende
+     dal fondo — cioè non è verificabile leggendo il token. Questo è misurato:
+     5.02:1 su --color-accent. Il tono è un near-black tinto di viola, non un
+     grigio neutro, per la stessa ragione di --color-accent-deep sul paper. */
+  --color-accent-text-2: #1a1425; /* su accento                        5.02:1 */
 
-  /* Sezioni invertite full-bleed ("le finestre" nella stanza scura)         */
-  --color-paper: #f2f1ed;
-  --color-paper-text-1: #0b0b0c; /*                                   17.4:1 */
-  --color-paper-text-2: #4f4f4c; /*                                    7.27:1 */
-  --color-paper-hairline: #d6d4ce;
+  /* Sezioni invertite full-bleed ("le finestre" nella stanza scura").
+     Avorio caldo invece di un bianco-grigio neutro — la stessa correzione
+     applicata al canvas, sul lato chiaro. */
+  --color-paper: #f0eae0;
+  --color-paper-text-1: #14131a; /*                                   15.4:1 */
+  --color-paper-text-2: #5c564c; /*                                    6.07:1 */
+  --color-paper-hairline: #dad2c2;
 
   /* -- Scala tipografica fluida (360px -> 1440px) ---------------------------
      clamp() dentro il token: le utility text-* restano fluide senza media
@@ -132,9 +140,30 @@
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  /* Per i morph LUNGHI (>800ms) che si devono guardare mentre avvengono.
+     Le curve qui sopra concentrano il movimento in una frazione della durata:
+     il picco di velocita' e' 4.2x la media per `in-out-quart` e ancora piu'
+     alto per le ease-out. Su una transizione breve non si nota; su una lunga
+     diventa "fermo, scatto, fermo" — cioe' allungare la durata non rende il
+     movimento piu' leggibile, lo rende solo piu' lungo agli estremi.
+     Questa ha un picco di 2.2x (il minimo possibile con estremi morbidi e'
+     1.5x, cioe' lineare): il movimento e' quasi costante e si legge per tutta
+     la durata, che e' esattamente cio' che serve a un morph da guardare. */
+  --ease-morph: cubic-bezier(0.4, 0, 0.35, 1);
 
   --radius-card: 0.875rem;
   --radius-pill: 999px;
+  /* Raggi GRANDI, per i pannelli che sono superfici a sé e non contenitori di
+     contenuto: la sezione Progetti che si sovrappone alla precedente e le sue
+     card impilate. `--radius-card` (14px) è il raggio di un ritaglio dentro il
+     flusso; qui serve il raggio che fa leggere il blocco come un pannello
+     appoggiato SOPRA la pagina, ed è la curva stessa a comunicarlo.
+     Fluidi: a 2.5rem fissi su 390px il raggio si mangia mezza card. */
+  --radius-panel: clamp(1.5rem, 3.2vw, 2.5rem);
+  /* Il ritaglio ANNIDATO dentro un pannello (i placeholder immagine). Regola
+     dei raggi concentrici: l'interno deve essere minore dell'esterno meno il
+     padding, o le due curve si leggono disallineate all'angolo. */
+  --radius-frame: clamp(0.875rem, 1.8vw, 1.5rem);
 
   /* -- Breakpoint: 600 / 900 / 1200 / 1600 ---------------------------------
      md (900px) e' anche la SOGLIA DI MOTION: sotto, le stage sticky
@@ -323,4 +352,50 @@ html.js-anim [data-reveal] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ============================================================================
+   TEMA SLATE (alternanza di sezioni)
+   Si applica localmente con la classe .theme-slate — oggi su §01 e §02.
+
+   ⚠ SI CHIAMAVA `.theme-light` E NON ERA UN RINOMINO COSMETICO.
+   Prima questa classe era una superficie CHIARA (#e2e2e8, un silver freddo) con
+   la tipografia ribaltata a scuro. Non ha funzionato per tre ragioni distinte:
+
+   1. #e2e2e8 è a un capello da `gray-200`: è il grigio dei wireframe e degli
+      stati disabled. Dopo l'hero nero pieno leggeva come una pagina non finita,
+      non come una seconda stanza.
+   2. Metteva in pagina DUE superfici chiare a temperatura opposta — questo
+      silver freddo e l'avorio caldo di `--color-paper` (#f0eae0) usato dallo
+      Statement e dalla CTA. Due materiali chiari che si contraddicono non sono
+      un ritmo, sono due design system nella stessa pagina.
+   3. Non ridefiniva `--color-accent`, quindi il viola #9370f5 stava a 3.1:1 sul
+      fondo chiaro: sotto AA. I numeri 01/02/03 e lo squiggle di §01 uscivano
+      slavati, ed era un difetto di token, non di gusto.
+
+   La scelta è stata di NON andare chiari: qui la pagina fa nero → carbone →
+   nero, e l'unico vero momento di luce di tutta la Home resta il paper dello
+   Statement, che così diventa un evento invece di una delle tante alternanze.
+
+   Conseguenza voluta: text-1, text-2 e l'accento NON vengono ridichiarati —
+   sono già quelli di :root, ed è il senso di restare sul lato scuro. Si
+   ridichiara solo ciò che cambia davvero.
+   ========================================================================= */
+.theme-slate {
+  --color-canvas: #14141a; /* carbone tinto di indaco, non un grigio neutro   */
+  --color-surface-1: #1b1b22; /* fondo riga in hover                          */
+  --color-surface-2: #20202a; /* chip, hover di superficie                    */
+  --color-hairline: #26262f; /* filetti decorativi, griglia blueprint         */
+  --color-hairline-strong: #3a3a46; /* bordi a riposo                         */
+
+  /* ⚠ L'UNICO token di testo che va ritarato, e il perché è misurato.
+     Su #050505 il #717175 di :root sta a 4.19:1 — già sotto AA, difetto che
+     esisteva prima di questa sezione. Su questo carbone scende a 3.77:1, e
+     --color-text-3 porta le label mono e i metadati, che sono testo piccolo
+     (12-14px): 4.5:1 è obbligatorio, non consigliato. Questo valore è 5.00:1
+     su #14141a, verificato, con un margine che regge un ritocco del fondo. */
+  --color-text-3: #85858b; /*                            5.00:1 su canvas    */
+
+  background-color: var(--color-canvas);
+  color: var(--color-text-1);
 }

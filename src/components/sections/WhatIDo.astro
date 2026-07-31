@@ -2,62 +2,149 @@
 /**
  * §10 COSA FACCIO
  *
+ * SECONDA REVISIONE. Prima versione: statement lungo un `--text-h1` su 22ch
+ * (misura tarata per una battuta di due righe) e tre clausole a una parola
+ * ciascuna in tre colonne uguali. Il testo reale è un lede di ~40 parole più
+ * tre clausole a due frasi: su 22ch a `--text-h1` sarebbero state 10+ righe di
+ * caratteri giganti, e le tre colonne strette avrebbero reso i corpi testo
+ * strettissimi e altissimi. Qui lo statement scende a `--text-h3` su 46ch
+ * (un lede prominente, non un titolo), e le clausole diventano righe — numero
+ * mono a sinistra, titolo+corpo a destra, separate da un filetto — perché un
+ * corpo di due frasi vuole una colonna larga, non una stretta.
+ *
+ * ⚠ L'ALTEZZA: questa sezione è il lato "in" del primo handoff M12 (vedi
+ * Handoff.astro), quindi il suo contenitore (`.ho__in`) ha SEMPRE
+ * `min-height: 104svh` — è il vincolo geometrico che fa funzionare
+ * l'occlusione dell'hero, non è negoziabile qui. Ma prima questo padding
+ * combinato con `--spacing-section` (fino a 10rem per lato) spingeva la
+ * sezione BEN oltre quel minimo, con parecchio spazio vuoto che non serviva a
+ * nulla. Qui `.wid` centra il proprio contenuto dentro un `min-height: 100svh`
+ * proprio (lo stesso schema di Statement.astro, che vive nello stesso
+ * problema): l'altezza resta quella richiesta dal layout, non cresce oltre per
+ * un padding generoso che nessuno guarda.
+ *
  * Nessuna lista a pallini in tutto il sito: dove serve enumerare si usa il
  * dispositivo numerico mono (01 / 02 / 03) con filetto.
- *
- * Il filetto orizzontale sotto le clausole è deliberatamente un elemento che
- * CUCE: nel milestone 7 il suo scaleX si completerà quando entra la §20, così
- * il lettore vede una linea che si allunga da una sezione all'altra.
  */
 import SectionIndex from '../primitives/SectionIndex.astro';
 
 const CLAUSES = [
   {
     n: '01',
-    title: 'Capisco il problema',
-    body: 'Prima di aprire l’editor faccio domande. Tante.',
+    title: 'Capisco il problema prima di toccare la tastiera',
+    body: 'Non parto a scrivere codice a caso. Voglio capire esattamente cosa blocca il tuo lavoro o la tua azienda, per colpire il bersaglio giusto.',
   },
   {
     n: '02',
-    title: 'Lo progetto',
-    body: 'Struttura, tipografia, gerarchia. Il codice viene dopo.',
+    title: 'Sviluppo pensando al domani',
+    body: "Scrivo codice scalabile e pulito. Questo significa che se tra un anno la tua idea esplode di visite, il sistema regge l'urto e non dobbiamo rifare tutto da zero.",
   },
   {
     n: '03',
-    title: 'Lo spedisco',
-    body: 'Veloce, accessibile, misurato. Online.',
+    title: 'Non ti abbandono dopo la consegna',
+    body: 'Non ti lancio il software finito per poi sparire. Mi assicuro che tu (o il tuo team) siate autonomi e capiate esattamente come usare il vostro nuovo strumento.',
   },
 ] as const;
 ---
 
-<section class="wid" data-section id="cosa-faccio">
+<section class="wid theme-slate" data-section id="cosa-faccio">
   <div class="wid__grid">
     <div class="wid__idx">
-      <SectionIndex n="10" label="Cosa faccio" />
+      <SectionIndex n="01" label="Cosa faccio" />
     </div>
 
     <div class="wid__body">
-      {/*
+      {
+        /*
         <h2> e non <p>: lo statement È il titolo della sezione. Oltre a essere
         la semantica corretta, tiene valida la regola "un solo h1, nessun
         livello saltato" su cui si appoggiano sia gli screen reader sia
         l'estrazione dei motori di risposta.
-      */}
-      <h2 class="wid__statement" data-split="lines">
-        Prima di annoiarti con i dettagli, il succo è questo: costruisco cose <em>veloci</em>,
-        chiare, e che la gente <em>finisce di leggere</em>.
-      </h2>
 
-      <div class="wid__clauses" data-reveal-group>
-        <div class="wid__rule" data-rule></div>
+        L'unico frammento accentato è racchiuso in <em>: non è un colore a
+        caso, è la stessa "chip" piena (fondo accento, testo near-black) usata
+        sulla CTA finale — qui in miniatura, dentro la frase, per fermare
+        l'occhio esattamente sul beneficio concreto invece che sulla frase
+        intera. `box-decoration-break: clone` è lì apposta: se la frase va a
+        capo la chip si spezza in due pezzi coerenti invece di restare
+        ancorata solo alla prima riga.
+      */
+      }
+      <div class="wid__header">
+        {
+          /*
+          ⚠ `data-activate` QUI ACCANTO A `data-split`, e non è un refuso:
+          sono due sistemi indipendenti sullo stesso elemento. `data-split`
+          spacca il testo in righe per SplitText (M1); `data-activate` legge
+          solo la posizione del titolo per pilotare il disegno dello squiggle
+          sotto "tempo, soldi e mal di testa" — nessuno dei due tocca il
+          `transform` che userebbe l'altro, quindi coesistono senza conflitto.
+
+          Prima quello squiggle era gated su `[data-section].is-active`, lo
+          stato "sto guardando questa sezione ORA" che reveal.ts commuta con
+          un IntersectionObserver — ON quando la banda centrale la contiene,
+          OFF quando la si lascia. Un disegno legato a quello stato si
+          ridisegna e si ri-nasconde a ogni passaggio: risalendo la pagina lo
+          squiggle svaniva, e riscendendo si ridisegnava da capo, ogni volta.
+          `is-in` invece si accende una volta sola e resta (vedi il commento
+          nel CSS sotto): il disegno succede, e basta.
+        */
+        }
+        <h2 class="wid__title" data-split="lines" data-activate>
+          Costruisco strumenti digitali che ti fanno risparmiare <br /><em
+            >tempo, soldi e mal di testa</em
+          >.
+        </h2>
+        <p class="wid__subtitle">
+          Prima di annoiarti con i dettagli, ecco il succo: non scrivo solo righe di codice. Come?
+          In questi tre modi:
+        </p>
+      </div>
+
+      {
+        /*
+        M14 — L'ACCENSIONE. Il blocco si comporta come uno strumento che si
+        alimenta: arriva a fuoco ma inerte, poi la "corrente" lo accende.
+        Il meccanismo è in reveal.ts (due classi, `is-in` e `is-on`); qui c'è
+        solo il vocabolario e i valori di spento/acceso nel CSS sotto.
+
+        ⚠ NIENTE `data-reveal` QUI, ED È UNA CORREZIONE, NON UNA DIMENTICANZA.
+        La prima versione lo aveva, per agganciare il contenitore alla rete di
+        sicurezza di M4 (`sweepPassed`). Verificato a schermo: era un errore.
+        M4 fa entrare ogni `[data-reveal]` con un fade + risalita dal basso —
+        lo stesso identico ingresso di OGNI altra sezione del sito — e quel
+        fade partiva alla STESSA soglia della prima battuta di M14 (`is-in`,
+        che all'epoca era anch'essa `top 88%`). Il risultato non erano due effetti che si sommano: era il
+        solito fade-in del sito che ARRIVAVA ATTACCATO SOPRA l'effetto vero,
+        lo coloriva già visibile mentre il fuoco/blur sotto era ancora in
+        corso, e lo rendeva indistinguibile da qualunque altra sezione — “sembra
+        uguale a prima” era la lettura corretta di quello che succedeva.
+
+        M14 non ha bisogno della rete di M4: ha la propria, completa, dentro
+        reveal.ts — `is-instant` per chi salta oltre, un ascoltatore su
+        `refresh` e uno su `scroll` (non gli eventi di ScrollTrigger, che un
+        salto al fondo pagina non genera) per chi si ritrova già oltre senza
+        aver visto l'ingresso. Marcare qui anche `data-reveal` non aggiungeva
+        sicurezza: aggiungeva un secondo ingresso che nascondeva il primo.
+
+        Resta invece il motivo per cui `data-activate` sta sul CONTENITORE e
+        non sulle righe: le righe usano le proprietà CSS indipendenti `scale`
+        e `translate`, e se in futuro qualcosa le animasse anche via GSAP
+        (che le rilegge e le ricompila dentro la propria matrice), il valore
+        finirebbe applicato due volte — vedi il divieto in CLAUDE.md, costato
+        una griglia finita mezza pagina a sinistra.
+      */
+      }
+      <div class="wid__clauses" data-activate>
+        <div class="wid__rule"></div>
         {
           CLAUSES.map((c) => (
-            <div class="wid__clause" data-reveal>
-              <p class="wid__clause-head">
-                <span class="wid__clause-n">{c.n}</span>
-                {c.title}
-              </p>
-              <p class="wid__clause-body">{c.body}</p>
+            <div class="wid__clause">
+              <p class="wid__clause-n">{c.n}</p>
+              <div class="wid__clause-text">
+                <p class="wid__clause-title">{c.title}</p>
+                <p class="wid__clause-body">{c.body}</p>
+              </div>
             </div>
           ))
         }
@@ -67,8 +154,14 @@ const CLAUSES = [
 </section>
 
 <style>
+  /* Centra il contenuto dentro l'altezza minima imposta da Handoff.astro
+     (`.ho__in { min-height: 104svh }`) invece di raggiungerla — e spesso
+     superarla — a suon di padding. Stesso schema di Statement.astro. */
   .wid {
-    padding-block: var(--spacing-section);
+    position: relative;
+    display: grid;
+    align-content: center;
+    padding-block: clamp(3rem, 8vh, 6rem);
   }
 
   .wid__grid {
@@ -78,49 +171,135 @@ const CLAUSES = [
     padding-inline: var(--spacing-gutter);
     gap: 2rem;
   }
+
+  .wid__idx {
+    padding-top: clamp(1rem, 4vh, 1.5rem);
+  }
   @media (min-width: 56.25rem) {
     .wid__grid {
       grid-template-columns: repeat(12, 1fr);
       gap: 0 clamp(1rem, 1.5vw, 2rem);
     }
     .wid__idx {
-      grid-column: 11 / span 2;
-      grid-row: 1;
-      justify-self: end;
+      position: absolute;
+      top: clamp(3rem, 8vh, 6rem); /* Stesso valore del padding-top della sezione */
+      right: var(--spacing-gutter);
+      padding-top: 0;
+      z-index: 2;
     }
     .wid__body {
-      grid-column: 2 / span 8;
+      grid-column: 1 / -1;
       grid-row: 1;
     }
   }
 
-  .wid__statement {
-    max-width: 22ch; /* misura corta: legge come dichiarazione, non paragrafo */
-    font-size: var(--text-h1);
-    line-height: 0.98;
-    letter-spacing: -0.032em;
-    font-weight: 500;
+  /* Non più `--text-h1`/22ch (tarato per una battuta di due righe): il testo
+     reale è un lede di paragrafo, non un titolo. `--text-h3` su 46ch legge
+     come una frase prominente invece che come un muro di caratteri giganti
+     spezzato in dieci righe. */
+  .wid__header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 100%;
   }
-  .wid__statement em {
-    font-style: normal;
-    color: var(--color-accent);
+
+  .wid__title {
+    font-size: clamp(2.5rem, 5.2vw, 4.75rem); /* stile hero__headline */
+    line-height: 1.05;
+    letter-spacing: -0.032em; /* stile hero__headline */
+    font-weight: 500; /* stile hero__headline */
+    color: var(--color-text-1);
+    text-wrap: balance; /* stile hero__headline */
+  }
+  .wid__title em {
+    position: relative;
+    display: inline-block; /* Fondamentale: fa sì che il padding allarghi il bounding box reale */
+    padding: 0 0.1em 0.2em 0.1em; /* 0.1em laterale per far sbordare la linea senza farla tagliare, 0.2em sotto per abbassarla */
+    margin: 0 -0.1em; /* Bilancia il padding laterale per non sfasare il testo */
+    
+    font-family: var(--font-serif, 'Playfair Display', 'Georgia', serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.55em;
+    vertical-align: baseline;
+    color: var(--color-text-1);
+    border-radius: 0;
+    background-color: transparent;
+    white-space: nowrap;
+  }
+
+  .wid__title em::after {
+    content: '';
+    position: absolute;
+    left: 0; /* Deve stare a 0, l'overflow laterale è gestito dal padding del parent! */
+    bottom: 0; /* Stesso qui, si appoggia al fondo del padding, non sfora fuori dal box */
+    width: 100%;
+    height: 0.7em;
+    background-color: var(--color-accent);
+    
+    /* ViewBox e Path perfettamente calcolati per non toccare MAI i bordi (raggio 2px dello stroke incluso) */
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M2,20 Q50,4 98,20' fill='none' stroke='black' stroke-width='4' vector-effect='non-scaling-stroke' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M2,20 Q50,4 98,20' fill='none' stroke='black' stroke-width='4' vector-effect='non-scaling-stroke' stroke-linecap='round'/%3E%3C/svg%3E");
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    /* Visibile di default: senza JS, con JS in errore o a movimento ridotto
+       non esiste nessuno stato "da disegnare", lo squiggle è già lì — stessa
+       regola di ogni altro pre-hide del sito. */
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* Disegno animato svelando da sinistra a destra, SOLO quando JS gira.
+     ⚠ `.wid__title.is-in`, NON PIÙ `[data-section].is-active`. `is-active` è
+     lo stato "sto guardando questa sezione adesso" — si accende e si spegne
+     ad ogni passaggio (IntersectionObserver, vedi reveal.ts). Uno squiggle
+     legato a quello stato si disegna e si RI-nasconde ogni volta che si esce
+     e si rientra nella sezione: risalendo la pagina spariva, riscendendo si
+     ridisegnava, all'infinito — la stessa famiglia di difetto risolta per
+     `.wid__clauses` con M14. `is-in` invece (motore di `data-activate`, vedi
+     reveal.ts) è additiva e mai rimossa: il disegno succede una volta e
+     resta. */
+  :global(html.js-anim) .wid__title em::after {
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 2.5s cubic-bezier(0.25, 1, 0.35, 1) 0.8s;
+  }
+  :global(html.js-anim) .wid__title.is-in em::after {
+    clip-path: inset(0 0 0 0);
+  }
+  /* ⚠ Trovato via CDP, non a occhio: senza questa regola un salto oltre la
+     sezione (`is-instant`) aggiungeva comunque `is-in` — quindi il clip-path
+     finale era quello giusto — ma la transizione da 2,5s + 0,8s di ritardo
+     restava attiva, e lo squiggle si vedeva a metà disegno per oltre 3
+     secondi prima di completarsi. Stessa regola di `.wid__clauses.is-instant`:
+     un disegno di cui nessuno ha visto l'inizio non è un'animazione, è solo
+     un ritardo. */
+  :global(html.js-anim) .wid__title.is-instant em::after {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  .wid__subtitle {
+    font-size: var(--text-lede);
+    line-height: 1.4;
+    color: var(--color-text-3); /* Un grigio più scarico e raffinato */
+    max-width: 50ch; /* Piccolo limite per eleganza di lettura */
   }
 
   .wid__clauses {
     position: relative;
-    display: grid;
-    gap: 2rem;
-    margin-top: clamp(4rem, 8vw, 8rem);
-    padding-top: 2rem;
-  }
-  @media (min-width: 37.5rem) {
-    .wid__clauses {
-      grid-template-columns: repeat(3, 1fr);
-      gap: clamp(1.5rem, 3vw, 3rem);
-    }
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    padding-top: 1.75rem;
   }
 
-  /* Il filetto che cuce le sezioni. */
+  /* Il filetto che cuce le sezioni: la prima linea del circuito.
+     ⚠ NON PIÙ `data-rule` (M11). Quel vocabolario disegna il filetto
+     all'INGRESSO della sezione, il che qui lo faceva arrivare prima
+     dell'accensione — cioè come decorazione che precede l'effetto invece che
+     come sua prima battuta. Guidato da `.is-on` come i separatori, l'ordine
+     torna giusto: prima il blocco arriva inerte, poi la corrente scende. */
   .wid__rule {
     position: absolute;
     top: 0;
@@ -128,42 +307,181 @@ const CLAUSES = [
     width: 100%;
     height: 1px;
     background-color: var(--color-hairline-strong);
-    transform: scaleX(1);
     transform-origin: left;
   }
-  /* Con JS attivo parte a zero e si disegna allo scroll (milestone 4). */
-  :global(html.js-anim) .wid__rule {
-    transform: scaleX(0);
+
+  /* -- Le clausole: righe, non colonne -------------------------------------
+     Un corpo di due frasi in tre colonne strette (la versione precedente)
+     sarebbe una torre di parole a capo ogni tre-quattro caratteri. Qui è una
+     riga per clausola — numero mono a sinistra, titolo+corpo a destra in una
+     colonna larga. */
+  .wid__clause {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    padding-block: 1.75rem;
   }
 
-  /* Separatori verticali fra le clausole: filetto, non bordo di card. */
+  /* Il separatore è un ::before e non un `border-top` per una ragione
+     strutturale, non estetica: un border non è animabile in `scaleX`, e questi
+     filetti devono DISEGNARSI in cascata durante l'accensione. */
+  .wid__clause + .wid__clause::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: var(--color-hairline);
+    transform-origin: left;
+  }
+
   @media (min-width: 37.5rem) {
-    .wid__clause + .wid__clause {
-      padding-left: clamp(1.5rem, 3vw, 3rem);
-      border-left: 1px solid var(--color-hairline);
-      margin-left: calc(clamp(1.5rem, 3vw, 3rem) * -1);
+    .wid__clause {
+      grid-template-columns: 3rem 1fr;
+      gap: 0 1.5rem;
+      align-items: baseline;
     }
   }
 
-  .wid__clause-head {
-    display: flex;
-    align-items: baseline;
-    gap: 0.75em;
+  .wid__clause-n {
     font-family: var(--font-mono);
     font-size: var(--text-label);
     font-weight: 500;
     letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--color-text-1);
-  }
-
-  .wid__clause-n {
     color: var(--color-accent);
   }
 
+  /* =======================================================================
+     M14 — SPENTO / ACCESO
+     Tutto gated su `html.js-anim`: senza JS, con JS in errore o con movimento
+     ridotto non esiste nessuno stato "spento" — il blocco è già acceso, che è
+     anche il suo stato di design corretto. Nessun valore va duplicato per
+     ottenerlo: lo stato finale è quello scritto nelle regole qui sopra.
+
+     ⚠ Le righe usano le proprietà CSS INDIPENDENTI `scale`/`translate` invece
+     di `transform`. Qui è sicuro perché niente in questo blocco tocca
+     `transform` via GSAP — il contenitore non porta `data-reveal` (vedi la
+     nota nel markup sul perché portarlo entrambi ha rotto l'effetto) e le
+     righe non sono marcate per nessun'altra animazione. Se un giorno una
+     riga venisse marcata per un tween GSAP, questi due valori andrebbero
+     applicati due volte e la cascata si spaccherebbe. */
+
+  /* BATTUTA 1 — l'arrivo (`is-in`, soglia 80%).
+     La riga si mette a fuoco e ATTERRA NITIDA: da qui in poi è perfettamente
+     leggibile, solo cromaticamente inerte. Il blur vive esclusivamente dentro
+     questa transizione, mai come stato di attesa — testo di lettura sfocato
+     mentre l'utente lo guarda è illeggibilità, non atmosfera. */
+  :global(html.js-anim) .wid__clauses .wid__clause {
+    scale: 0.94;
+    translate: 0 18px;
+    transition:
+      scale 700ms var(--ease-out-expo),
+      translate 700ms var(--ease-out-expo),
+      filter 520ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .wid__clauses.is-in .wid__clause {
+    scale: 1;
+    translate: 0 0;
+  }
+
+  /* Il blur solo da 900px in su: è l'unica proprietà del lotto che costa un
+     paint per frame invece di stare sul compositor, e sotto quella soglia il
+     sito spegne comunque tutta la coreografia più pesante. Scale e translate
+     restano su ogni viewport. */
+  @media (min-width: 56.25rem) {
+    :global(html.js-anim) .wid__clauses .wid__clause {
+      filter: blur(7px);
+    }
+    :global(html.js-anim) .wid__clauses.is-in .wid__clause {
+      filter: blur(0);
+    }
+  }
+
+  /* La cascata. `nth-child` parte da 2 perché il primo figlio è `.wid__rule`. */
+  :global(html.js-anim) .wid__clauses .wid__clause:nth-child(3) {
+    transition-delay: 110ms;
+  }
+  :global(html.js-anim) .wid__clauses .wid__clause:nth-child(4) {
+    transition-delay: 220ms;
+  }
+
+  /* BATTUTA 2 — l'accensione (`is-on`, soglia 40%).
+     I filetti si disegnano da sinistra, in sequenza: è questo che fa leggere il
+     blocco come un circuito che si alimenta invece di tre righe indipendenti. */
+  :global(html.js-anim) .wid__clauses .wid__rule,
+  :global(html.js-anim) .wid__clauses .wid__clause + .wid__clause::before {
+    transform: scaleX(0);
+    transition: transform 620ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__rule,
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause + .wid__clause::before {
+    transform: scaleX(1);
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause:nth-child(3)::before {
+    transition-delay: 150ms;
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause:nth-child(4)::before {
+    transition-delay: 300ms;
+  }
+
+  /* L'overshoot LED. Una `transition` non può sovrascattare — interpola solo
+     da A a B — quindi serve una keyframe: il numero passa dal grigio inerte a
+     un accento PIÙ LUMINOSO del suo valore finale, e poi si assesta. È
+     esattamente il comportamento di un LED che si accende, ed è il dettaglio
+     che fa leggere il cambio di colore come "si è attivato" invece che come
+     "ha cambiato colore".
+     `both` tiene lo stato finale, che comunque coincide con la regola base di
+     `.wid__clause-n`: se l'animazione non parte, il colore è già giusto. */
+  @keyframes wid-led {
+    0% {
+      color: var(--color-text-3);
+    }
+    55% {
+      color: var(--color-accent-hi);
+    }
+    100% {
+      color: var(--color-accent);
+    }
+  }
+  :global(html.js-anim) .wid__clauses:not(.is-on) .wid__clause-n {
+    color: var(--color-text-3);
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause-n {
+    animation: wid-led 660ms var(--ease-out-expo) both;
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause:nth-child(3) .wid__clause-n {
+    animation-delay: 150ms;
+  }
+  :global(html.js-anim) .wid__clauses.is-on .wid__clause:nth-child(4) .wid__clause-n {
+    animation-delay: 300ms;
+  }
+
+  /* Il blocco era già uscito sopra la viewport quando lo si è raggiunto (salto
+     d'ancora, tasto Fine, reload a metà pagina): stato finale immediato.
+     Un'accensione di cui nessuno ha visto l'inizio non è un'animazione, è solo
+     un ritardo — stessa regola del ramo `onLeave` di M4. */
+  :global(html.js-anim) .wid__clauses.is-instant .wid__clause,
+  :global(html.js-anim) .wid__clauses.is-instant .wid__rule,
+  :global(html.js-anim) .wid__clauses.is-instant .wid__clause::before {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+  :global(html.js-anim) .wid__clauses.is-instant .wid__clause-n {
+    animation-duration: 0s;
+    animation-delay: 0s;
+  }
+
+  .wid__clause-title {
+    font-size: var(--text-lede);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    color: var(--color-text-1);
+  }
+
   .wid__clause-body {
-    margin-top: 0.75rem;
-    max-width: 30ch;
+    margin-top: 0.6rem;
     font-size: var(--text-sm);
     color: var(--color-text-2);
   }

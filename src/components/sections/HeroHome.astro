@@ -2,191 +2,232 @@
 /**
  * HERO DELLA HOME — §00
  *
- * Composizione centrata a colonna unica: kicker → ritratto → titolo gigante
- * (due parole/frasi corte, non tre frasi come nella prima versione) → lede →
- * azioni. Sostituisce la versione a due colonne: qui il peso visivo sta nella
- * misura del titolo e nella centralità della foto, non nell'asimmetria.
+ * DODICESIMA REVISIONE. Foto reale (src/assets/brand/hero4-clean.png), stesso
+ * set fotografico delle altre (hero3-clean.png, hero5-clean.png) — fondo
+ * NERO PURO e soggetto centrato nel fotogramma — quindi lo stesso
+ * `object-position: 50% 40%` centra correttamente sia nel cover a piena
+ * viewport (desktop) sia nel ritaglio stretto della fascia `aspect-ratio: 4/5`
+ * (mobile), senza dover ricalibrare nulla. Nessun
+ * pannello di leggibilità: il fondo nero non ne ha bisogno, il testo chiaro
+ * del sito legge da solo. Indice in alto a destra (la convenzione del resto
+ * del sito); a destra, dove la foto lascia solo fondo vuoto, un rail
+ * verticale coi primi linguaggi dell'inventario reale (`src/data/skills.ts`).
  *
- * ⚠ LA REGOLA PIÙ IMPORTANTE DEL SITO, e vale solo qui:
- * il titolo <h1> e il ritratto NON animano mai `opacity`. Chrome esclude dai
- * candidati LCP gli elementi a opacità zero (o che lo sono stati fino a un
- * istante prima): fare fade-in del titolo trasforma un LCP da ~0.4s in oltre
- * 1s. L'ingresso di ENTRAMBI usa solo `transform` e `filter: blur()` — un
- * filtro non esclude dal calcolo LCP (a differenza di opacity), quindi
- * l'elemento è dipinto (sia pure sfocato) al primo frame utile e il tempo di
- * LCP non si sposta. Questo è anche ciò che rende possibile l'effetto
- * "sfocato che va a fuoco" richiesto senza pagarlo in performance.
- * Corollario generale: l'elemento più grande sopra la piega non si maschera
- * né si nasconde mai, si può solo sfocare.
+ * GERARCHIA titolo/corpo (vedi `.hero__title` più sotto): "Ciao. Sono Vlad" è
+ * il titolo vero, la spiegazione sotto è corpo di lettura secondario,
+ * "Entra." chiude con una giostra verticale di sinonimi (vedi `.hero__cta`)
+ * invece di restare una singola parola statica.
  *
- * L'INGRESSO È CSS PURO (nessun GSAP, nessun `data-reveal`, nessuna dipendenza
- * da `js-anim`): sono `@keyframes` a durata finita che partono al paint. Senza
- * JS la sequenza gira lo stesso e si assesta da sola dopo ~1.4s — nessuno stato
- * in cui il contenuto resta invisibile in attesa di uno script che potrebbe non
- * arrivare mai. Con `prefers-reduced-motion: reduce` la regola globale in
- * `global.css` porta ogni durata a 0.01ms: la sequenza si risolve all'istante.
+ * ⚠ LA REGOLA LCP, invariata: il ritratto copre l'intera viewport, quindi è
+ * il candidato LCP per definizione e non anima mai `opacity` (solo
+ * `transform` + `filter: blur()`). Lo stesso vale per tutto il titolo, non
+ * solo per la battuta più grande.
  *
- * Sequenza (i ritardi cascano DOPO l'inizio della foto, non dopo la sua fine —
- * è così che si legge "prima la foto, poi il resto", pur essendo tutto dipinto
- * dal frame zero):
- *   0ms     foto:    scale(0.92)->1, blur(24px)->0
- *   120ms   kicker:  opacity 0->1, blur(10px)->0
- *   360ms+  titolo:  blur(20px)->0, transform (mai opacity)
- *   620ms   lede:    opacity + blur
- *   780ms   azioni:  opacity + blur
- *   920ms   nota:    opacity + blur
- *   1050ms  scroll:  opacity + blur
+ * ⚠ IL MOBILE resta una fascia `aspect-ratio: 4/5` (non piena altezza): un
+ * cover a tutta viewport su un rapporto verticale tipico ritaglierebbe la
+ * larghezza sotto quella della testa stessa. L'immagine ha lo stesso rapporto
+ * (~1.79:1) delle precedenti, quindi vale la stessa soglia.
+ *
+ * Il fondo nero di questa foto combacia col layer `.ho__backdrop` che
+ * Handoff.astro mette dietro OGNI schermo uscente (vedi lì): non serve più
+ * un colore hard-coded qui per chiudere lo stacco del rimpicciolimento M12.
  */
 import { Picture } from 'astro:assets';
-import portrait from '../../assets/brand/vlad-portrait.webp';
+import portrait from '../../assets/brand/hero4-clean.png';
 import Button from '../primitives/Button.astro';
 import SectionIndex from '../primitives/SectionIndex.astro';
+import { SKILLS } from '../../data/skills';
+
+/* Rail decorativo a destra, dove la foto lascia solo fondo vuoto: i primi 5
+   linguaggi dell'inventario reale (src/data/skills.ts), non un elenco scritto
+   a mano — così non può divergere dalla fonte quando quella cambia. */
+const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
 ---
 
 <section class="hero" data-section id="inizio">
+  <div class="hero__media">
+    <Picture
+      src={portrait}
+      alt="Ritratto di Vlad Costin"
+      widths={[720, 1080, 1600, 2200, 2752]}
+      sizes="100vw"
+      formats={['avif', 'webp']}
+      loading="eager"
+      decoding="sync"
+      fetchpriority="high"
+      class="hero__img"
+    />
+  </div>
+
   <div class="hero__idx">
     <SectionIndex n="00" label="Inizio" />
   </div>
 
-  <div class="hero__inner">
-   <div class="hero__stack">
-    <p class="hero__kicker">Vlad Costin — Sviluppatore · Parma</p>
-
-    <div class="hero__figure">
-      <span class="hero__glow" aria-hidden="true"></span>
-      {/*
-        <Picture> e non <Image>: emette <source> AVIF + WebP con fallback JPEG.
-        loading/fetchpriority/decoding espliciti perché questa immagine concorre
-        a essere l'LCP. `object-fit: cover` con `aspect-ratio` fisso QUI è
-        deliberato — al contrario del vecchio ritratto, questo file è un
-        paesaggio 2600x1458 con enormi margini bianchi intorno al soggetto: senza
-        ritaglio la foto centrata mostrerebbe soprattutto vuoto. L'aspect-ratio
-        in CSS sovrascrive quello intrinseco per il calcolo del layout, quindi
-        lo spazio resta riservato prima del download: CLS 0 comunque.
-      */}
-      <Picture
-        src={portrait}
-        alt="Ritratto di Vlad Costin"
-        widths={[480, 720, 960]}
-        sizes="(min-width: 56.25rem) 22rem, 62vw"
-        formats={['avif', 'webp']}
-        loading="eager"
-        decoding="sync"
-        fetchpriority="high"
-        class="hero__img"
-      />
-    </div>
+  <div class="hero__content">
+    <p class="hero__kicker">Sviluppatore Full Stack</p>
 
     <h1 class="hero__title opt-round">
-      <span class="hero__line" style="--l:0">Hai un problema?</span>
-      <span class="hero__line" style="--l:1">Lo risolvo <em>io</em>.</span>
+      <span class="hero__headline">Ciao. Sono Vlad</span>
+      <span class="hero__lead">
+        Probabilmente sei qui perché hai un problema da risolvere o un'idea da
+        realizzare. Io faccio esattamente questo: scrivo il codice necessario
+        per trasformare la tua idea in un prodotto digitale reale.
+      </span>
+      {/* Giostra verticale: le parole sono decorative (si susseguono da sole),
+          l'unica che deve arrivare a chi legge con uno screen reader è la
+          prima — per questo il carosello è `aria-hidden` e una copia statica
+          "Entra." nascosta solo visivamente lo sostituisce nel nome
+          accessibile dell'<h1>. */}
+      <span class="hero__cta">
+        <span class="hero__cta-track" aria-hidden="true">
+          <span class="hero__cta-word">Entra.</span>
+          <span class="hero__cta-word">Scopri.</span>
+          <span class="hero__cta-word">Esplora.</span>
+          <span class="hero__cta-word">Comincia.</span>
+          <span class="hero__cta-word">Inizia.</span>
+          <span class="hero__cta-word">Immergiti.</span>
+          <span class="hero__cta-word">Avventurati.</span>
+          <span class="hero__cta-word">Naviga.</span>
+          <span class="hero__cta-word">Viaggia.</span>
+          <span class="hero__cta-word">Approfondisci.</span>
+          <span class="hero__cta-word">Entra.</span>
+        </span>
+        <span class="hero__cta-sr">Entra.</span>
+      </span>
     </h1>
-
-    <p class="hero__lede">
-      Studente di Ingegneria Informatica a Parma, sviluppatore nel frattempo.
-    </p>
 
     <div class="hero__actions">
       <Button href="/portfolio" variant="outline">Guarda i lavori</Button>
       <Button href="/chi-sono" variant="outline">Chi sono</Button>
       <Button href="/contatti" variant="outline">Scrivimi</Button>
     </div>
-
-    <p class="hero__note">[placeholder — sostituire con la foto reale]</p>
-
-    {/*
-      ⚠ NEL FLUSSO, non più assoluto. La prima versione lo ancorava al bordo
-      inferiore di `.hero` indipendentemente dallo stack: a un'altezza dove lo
-      stack riempie ESATTAMENTE il floor disponibile (il caso comune di questo
-      hero — verificato da 640 a 900px, vedi la nota su `.hero__inner`), due
-      sistemi di posizionamento indipendenti finiscono per sovrapporsi, e
-      l'ammontare della sovrapposizione cambia con l'altezza in modo non
-      lineare (misurato: 12px di margine a 900px, -52px — cioè sovrapposti —
-      a 640px). Nel flusso, come ultimo figlio dello stack, la sua altezza
-      È PARTE del budget invece di combattere contro di esso: un solo sistema,
-      non due che devono essere tenuti d'accordo a mano.
-    */}
-    {/* Anello e freccia sono FRATELLI, non uno dentro l'altro: l'anello ruota
-        (il bordo che gira), e se la freccia fosse sua figlia ruoterebbe con
-        lui invece di restare ferma puntata in basso. Si sovrappongono nella
-        stessa cella via `display:grid` sul contenitore. */}
-    <a href="#cosa-faccio" class="hero__scroll" aria-label="Scorri alla sezione successiva">
-      <span class="hero__scroll-ring" aria-hidden="true"></span>
-      <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
-    </a>
-   </div>
   </div>
+
+  {/* Rail dello stack: riempie il vuoto a destra dove la foto non lascia
+      nient'altro. Decorativo (l'inventario vero, con semantica propria, è in
+      SkillsGrid) quindi fuori dall'albero di accessibilità. */}
+  <p class="hero__rail" aria-hidden="true">{stackTags}</p>
+
+  {/* Anello e freccia sono FRATELLI, non uno dentro l'altro: l'anello ruota
+      (il bordo che gira), e se la freccia fosse sua figlia ruoterebbe con
+      lui invece di restare ferma puntata in basso. */}
+  <a href="#cosa-faccio" class="hero__scroll" aria-label="Scorri alla sezione successiva">
+    <span class="hero__scroll-ring" aria-hidden="true"></span>
+    <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
+  </a>
 </section>
 
 <style>
-  /* ⚠ NAV-H VA CONSUMATO UNA SOLA VOLTA.
-     `.hero` applica il padding-top di `var(--nav-h)`; l'altezza-schermo la
-     riserva SOLO `.hero__inner`, come `calc(100svh - var(--nav-h))`. Averli
-     sommati entrambi su questo stesso elemento (bug della prima versione)
-     produceva un'altezza totale di 100svh + il padding intero, che sul primo
-     handoff M12 (hero -> §10) supera la viewport quando lo schermo è sticky —
-     violazione misurata dal vincolo di verify-stage.mjs. */
   .hero {
     position: relative;
-    padding-top: var(--nav-h);
-    padding-inline: var(--spacing-gutter);
-  }
-
-  /* ⚠ `top` su un figlio assoluto si misura dal bordo ESTERNO di `.hero`,
-     ignorando il padding-top che `.hero` applica a se stesso: un `top: 0` qui
-     metterebbe l'indice esattamente sopra la navbar invece che sotto,
-     sovrapponendoli (misurato: su mobile la spariva del tutto dietro "MENU").
-     Va ripetuto lo stesso offset del padding-top della sezione. */
-  .hero__idx {
-    position: absolute;
-    top: calc(var(--nav-h) + 1rem);
-    left: var(--spacing-gutter);
-    z-index: 2;
+    /* Nero puro, non il canvas tinto del sito: combacia col fondo reale
+       della foto (vedi nota di testa al file) ed è visibile solo per un
+       istante, mentre l'immagine carica o nel letterboxing dell'aspect-ratio
+       mobile — non più un hack calibrato a mano per lo stacco M12, che ora
+       lo risolve `.ho__backdrop` in Handoff.astro per ogni handoff. */
+    background-color: #000;
   }
   @media (min-width: 56.25rem) {
-    .hero__idx {
-      left: auto;
-      right: var(--spacing-gutter);
+    /* Esattamente uno schermo: è anche lo schermo USCENTE del primo handoff
+       M12 (hero -> §10), che deve restare ≤ viewport (verify-stage.mjs). */
+    .hero {
+      height: 100svh;
+      overflow: clip;
     }
   }
 
-  /* `.hero__inner` è il blocco alto uno schermo (nav-h già tolto sopra), ed è
-     l'elemento che il vincolo M12 misura come schermo sticky uscente: DEVE
-     restare ≤ viewport. Per questo il padding verticale qui è deliberatamente
-     stretto (misurato su altezze reali fino a 700px, non solo 900px). */
-  /* Verificato con misure reali (non a occhio) che il contenuto combacia
-     ESATTAMENTE con la viewport da 900px fino a 640px di altezza — il minimo
-     ragionevole per un desktop ≥900px di larghezza (soglia della sticky). Sotto
-     i 640px (una combinazione rarissima: larghissimo E bassissimo) resta un
-     margine di sforamento di qualche decina di pixel: inseguirlo oltre questo
-     punto vorrebbe dire stringere ulteriormente elementi già al loro minimo
-     leggibile, per un caso che in pratica non si presenta. */
-  .hero__inner {
-    display: grid;
-    place-items: center;
-    min-height: calc(100svh - var(--nav-h));
-    padding-block: clamp(0.5rem, 3vh, 2rem);
+  /* -- Il ritratto ----------------------------------------------------------
+     Mobile: fascia in flusso, piena larghezza, rapporto fisso (vedi nota di
+     testa al file). Desktop: riempie l'intera sezione, dietro il testo. */
+  .hero__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: clip;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__media {
+      position: absolute;
+      inset: 0;
+      aspect-ratio: auto;
+      z-index: 0;
+    }
   }
 
-  /* Colonna unica, centrata su entrambi gli assi: è il cambio strutturale
-     principale rispetto alla versione a due colonne. */
-  /* ⚠ 60rem e non 38rem (il vecchio valore, dimensionato per la lede).
-     `.hero__title` ha un proprio `max-width: 18ch`, ma essendo figlio di un
-     flex column non può mai superare la larghezza DEL GENITORE: con lo stack a
-     38rem (608px), "Hai un problema?" a font grande aveva bisogno di più spazio
-     di quanto il genitore concedesse e andava a capo DENTRO la propria riga —
-     measured: il titolo raddoppiava di altezza (251px invece di ~140px) proprio
-     nella fascia di font-size dove serviva più margine orizzontale, non meno.
-     La lede resta stretta per conto suo (il suo `max-width: 38ch` non cambia),
-     quindi allargare lo stack non la allunga: ogni figlio si centra secondo la
-     propria misura, non secondo quella del contenitore. */
-  .hero__stack {
+  /* Il <picture> emesso da <Picture> è un box a sé con altezza `auto`: senza
+     un'altezza esplicita qui, `height: 100%` sull'<img> dentro non ha nulla
+     da cui risolversi (dipendenza circolare) e ricade sull'aspect-ratio
+     intrinseco, rendendo il ritratto più corto della sezione. */
+  .hero__media :global(picture) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Il soggetto è centrato nel fotogramma (vedi nota di testa al file):
+       centrare anche il ritaglio è la scelta corretta, su mobile come su
+       desktop, invece di un valore calibrato a mano su dove cade il volto. */
+    object-position: 50% 40%;
+  }
+
+  @keyframes hero-in-photo {
+    from {
+      transform: scale(1.04);
+      filter: blur(28px);
+    }
+  }
+  .hero__img {
+    animation: hero-in-photo 900ms var(--ease-out-expo) both;
+  }
+
+  /* -- Indice di sezione ---------------------------------------------------
+     In flusso su mobile (fra la foto e il testo); ancorato in alto a destra
+     su desktop — la stessa convenzione del resto del sito (FeaturedProjects,
+     JourneyTeaser). Legge senza aiuto: il fondo è scuro quasi ovunque nel
+     fotogramma, non solo sotto la colonna di testo. */
+  .hero__idx {
+    padding-inline: var(--spacing-gutter);
+    padding-top: clamp(1rem, 4vh, 1.5rem);
+    animation: hero-in-fade 600ms var(--ease-out-expo) 120ms both;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__idx {
+      position: absolute;
+      top: calc(var(--nav-h) + 1.25rem);
+      right: var(--spacing-gutter);
+      left: auto;
+      z-index: 2;
+      padding: 0;
+    }
+  }
+
+  /* -- Colonna di testo ---------------------------------------------------
+     Mobile: in flusso sotto la foto, sul canvas. Desktop: overlay assoluto
+     nella metà sinistra (il profilo guarda a sinistra: lo sguardo introduce
+     il testo invece di ignorarlo), centrato verticalmente. */
+  .hero__content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: clamp(0.5rem, 1.6vh, 1.1rem);
-    max-width: min(60rem, 94vw);
-    text-align: center;
+    align-items: flex-start;
+    gap: clamp(0.875rem, 2.2vh, 1.35rem);
+    padding-inline: var(--spacing-gutter);
+    padding-block: clamp(2rem, 6vh, 3rem);
+    max-width: 40rem;
+    text-align: left;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__content {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      justify-content: center;
+      max-width: min(36rem, 48vw);
+      padding-block: calc(var(--nav-h) + clamp(2rem, 6vh, 3.5rem)) clamp(2rem, 6vh, 3.5rem);
+    }
   }
 
   .hero__kicker {
@@ -195,155 +236,221 @@ import SectionIndex from '../primitives/SectionIndex.astro';
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-text-3);
-    animation: hero-in-fade 650ms var(--ease-out-expo) 120ms both;
+    animation: hero-in-fade 650ms var(--ease-out-expo) 220ms both;
   }
 
-  /* -- Ritratto -------------------------------------------------------------
-     Medaglione centrato, non più layer d'angolo: `aspect-ratio` fisso al
-     posto della proporzione intrinseca, `object-fit: cover` ritaglia il
-     paesaggio largo attorno al soggetto. */
-  .hero__figure {
-    position: relative;
-    margin-block: 0.25rem;
-    /* Singolo vincolo: SOLO l'altezza è dichiarata; la larghezza deriva
-       dall'aspect-ratio. Il secondo min() è la rete di sicurezza sull'altra
-       dimensione (vedi la nota storica su ".hero__img" più sotto) — senza,
-       su una viewport stretta ma alta l'altezza in vh potrebbe produrre una
-       larghezza derivata che sfonda il documento. */
-    /* Il minimo è basso apposta (non 21rem come nella prima versione): deve
-       poter cedere spazio su una viewport bassa, altrimenti diventa lui stesso
-       la causa di uno sforamento. */
-    height: min(clamp(7rem, 23vh, 22rem), 100vw);
-    aspect-ratio: 4 / 5;
-    animation: hero-in-photo 820ms var(--ease-out-expo) both;
-  }
-  @media (min-width: 56.25rem) {
-    .hero__figure {
-      height: clamp(9rem, 28vh, 24rem);
-    }
-  }
-
-  /* Alone ambientale dietro il ritratto: un gradiente puro, non un file — non
-     essendo una risorsa di rete non entra mai nel calcolo LCP. Riprende il
-     bagliore già cotto nella foto invece di lasciarla cadere su un vuoto nero
-     netto. */
-  .hero__glow {
-    position: absolute;
-    inset: -18%;
-    z-index: -1;
-    background: radial-gradient(
-      circle at 50% 42%,
-      color-mix(in oklab, var(--color-text-1) 10%, transparent) 0%,
-      color-mix(in oklab, var(--color-accent) 6%, transparent) 45%,
-      transparent 75%
-    );
-  }
-
-  .hero__img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* Il soggetto occupa il centro-sinistra del fotogramma originale, con la
-       testa nel terzo superiore: questo punto d'ancoraggio tiene viso e collo
-       dentro il ritaglio invece del vuoto bianco che li circonda. */
-    object-position: 46% 32%;
-    /* LA DISSOLVENZA. Mask statico, un solo raster, mai animato: animare un
-       mask o un blur per frame costerebbe una ri-rasterizzazione continua.
-       Un solo gradiente radiale (non due in mask-composite: intersect, il cui
-       supporto è incoerente fra proprietà standard e alias -webkit-). */
-    mask-image: radial-gradient(
-      ellipse 70% 74% at 50% 42%,
-      #000 58%,
-      rgb(0 0 0 / 0.6) 78%,
-      transparent 96%
-    );
-    -webkit-mask-image: radial-gradient(
-      ellipse 70% 74% at 50% 42%,
-      #000 58%,
-      rgb(0 0 0 / 0.6) 78%,
-      transparent 96%
-    );
-  }
-
-  @keyframes hero-in-photo {
-    from {
-      transform: scale(0.92);
-      filter: blur(24px);
-    }
-  }
-
-  /* -- Titolo -----------------------------------------------------------
-     Due righe corte, non tre frasi: è la misura che permette alla dimensione
-     di crescere davvero. `text-wrap: balance` è sicuro qui (a differenza delle
-     sezioni con SplitText) perché non c'è nessuno split da rifare dopo. */
+  /* -- Titolo ----------------------------------------------------------------
+     SETTIMA REVISIONE. Torna una vera gerarchia titolo/corpo — la voce unica
+     della revisione precedente non convinceva. "Ciao. Sono Vlad" è la
+     battuta grande (il titolo vero e proprio); la spiegazione sotto è corpo
+     di lettura, chiaramente secondario; "Entra." chiude con la propria
+     luce (vedi sotto). */
   .hero__title {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.05em;
-    /* 18ch e non 15: "Hai un problema?" sono 16 caratteri, e a certe
-       combinazioni intermedie di font-size (dipende da entrambi vw e vh, vedi
-       sotto) un tetto troppo stretto la faceva andare a capo DENTRO la propria
-       riga — measured: il blocco raddoppiava di altezza (251px invece di
-       ~140px) esattamente nell'intervallo dove serviva più margine. */
-    max-width: min(92vw, 18ch);
-    /* `min(7.4vw, 11vh)` e non solo `vw`: su una viewport larga ma BASSA
-       (finestra ridotta, laptop con poca altezza) un titolo dimensionato solo
-       sulla larghezza non si restringe mai, ed è lui il maggiore responsabile
-       dello sforamento oltre lo schermo misurato da `verify-stage.mjs` (il
-       primo handoff M12 richiede che l'hero, sticky in uscita, non superi la
-       viewport). Il minore dei due vince: entrambe le dimensioni tengono la
-       misura sotto controllo. */
-    font-size: clamp(2.25rem, min(7.4vw, 11vh), 5.25rem);
-    line-height: 0.98;
-    letter-spacing: -0.035em;
+    gap: 0.6em;
+  }
+
+  .hero__headline {
+    max-width: 14ch;
+    font-size: clamp(2.5rem, 5.2vw, 4.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.032em;
     font-weight: 500;
+    color: var(--color-text-1);
     text-wrap: balance;
-  }
-
-  .hero__title em {
-    font-style: normal;
-    color: var(--color-accent);
-  }
-
-  /* Entrata del titolo: SOLO transform e filter, mai opacity (vedi la nota di
-     testa al file — è la regola non negoziabile dell'hero). */
-  .hero__line {
-    animation: hero-in-title 900ms var(--ease-out-expo) both;
-    animation-delay: calc(360ms + var(--l) * 100ms);
+    /* SOLO transform e filter, mai opacity (regola LCP). */
+    animation: hero-in-title 950ms var(--ease-out-expo) 380ms both;
   }
   @keyframes hero-in-title {
     from {
       transform: translate3d(0, 0.2em, 0);
-      filter: blur(20px);
+      filter: blur(18px);
     }
   }
 
-  .hero__lede {
-    max-width: 38ch;
-    font-size: var(--text-base);
+  .hero__lead {
+    display: block;
+    max-width: 36ch;
+    font-size: clamp(1.0625rem, 1.55vw, 1.3125rem);
+    line-height: 1.55;
+    letter-spacing: -0.006em;
+    font-weight: 400;
     color: var(--color-text-2);
-    animation: hero-in-fade 700ms var(--ease-out-expo) 620ms both;
+    text-wrap: pretty;
+    animation: hero-in-title 900ms var(--ease-out-expo) 620ms both;
+  }
+
+  /* -- "Entra." → giostra di sinonimi --------------------------------------
+     Tecnica presa da un loader a parole verticali (uiverse.io-style) e adattata:
+     lì l'animazione era duplicata IDENTICA su ogni parola, sfruttando il fatto
+     che tutte stessero già impilate in flusso (`height:100%` di un genitore
+     flex) — N animazioni per un solo movimento. Qui invece una sola animazione
+     sposta `.hero__cta-track` (il genitore di tutte le parole): più leggero, e
+     più leggibile perché lo spostamento è un solo numero, non uno stesso
+     duplicato N volte. Per questo le percentuali di traslazione sono in `em`
+     (multipli dell'altezza di riga) e non in `%` come nell'originale: `%` su
+     `.hero__cta-track` si sarebbe risolto contro l'altezza dell'INTERO
+     stack (11 parole, l'ultima è "Entra." ripetuta per chiudere il loop),
+     non di una singola parola.
+
+     Il pattern overshoot→assestamento (es. -1.224em a metà transizione, che
+     torna a -1.2em esatto poco dopo) è preso di peso dall'originale: è quel
+     mezzo passo in più a dare la sensazione di una rotella che scatta e si
+     assesta, invece di uno scroll lineare meccanico. */
+  .hero__cta {
+    position: relative;
+    display: inline-block;
+    width: fit-content;
+    overflow: hidden;
+    height: 1.2em;
+    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+    /* Sfuma il bordo superiore/inferiore della finestra invece di tagliarla di
+       netto: durante la transizione la parola in uscita e quella in entrata
+       sono per un istante spaccate a metà finestra, e lo sfumato le dissolve
+       invece di un taglio netto a metà lettera. Una MASCHERA di opacità, non
+       un rettangolo colorato sovrapposto (il tentativo precedente): qui sotto
+       c'è una foto, non un fondo piatto — un colore anche vicinissimo al nero
+       reale disegnava comunque un rettangolo visibile appena la foto non era
+       ESATTAMENTE quel nero in quel punto. La maschera invece fa sfumare
+       l'elemento stesso verso trasparente, quindi si vede sempre e solo la
+       foto vera dietro, qualunque essa sia. */
+    mask-image: linear-gradient(to bottom, transparent, black 32%, black 68%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 32%, black 68%, transparent);
+    /* Ingresso one-shot: transform (traslazione) + filter, MAI opacity (regola
+       LCP) — sull'elemento ESTERNO, mentre il loop infinito vive sul figlio
+       `.hero__cta-track`. Sono due elementi distinti proprio perché entrambi
+       toccano `transform`: sullo stesso nodo confliggerebbero. */
+    animation: hero-in-title 900ms var(--ease-out-expo) 880ms both;
+  }
+
+  .hero__cta-word {
+    display: block;
+    height: 1.2em;
+    color: var(--color-accent);
+  }
+
+  /* 10 parole (11 con la ripetizione finale di "Entra."), quindi 10
+     transizioni: 12.5s totali (5s × 10/4) mantengono lo stesso ritmo per
+     parola di quando erano solo 4 — più parole, stesso passo, non più veloce. */
+  .hero__cta-track {
+    display: block;
+    animation: hero-cta-cycle 12.5s ease 2200ms infinite;
+  }
+
+  @keyframes hero-cta-cycle {
+    4% {
+      transform: translateY(-1.224em);
+    }
+    10% {
+      transform: translateY(-1.2em);
+    }
+    14% {
+      transform: translateY(-2.424em);
+    }
+    20% {
+      transform: translateY(-2.4em);
+    }
+    24% {
+      transform: translateY(-3.624em);
+    }
+    30% {
+      transform: translateY(-3.6em);
+    }
+    34% {
+      transform: translateY(-4.824em);
+    }
+    40% {
+      transform: translateY(-4.8em);
+    }
+    44% {
+      transform: translateY(-6.024em);
+    }
+    50% {
+      transform: translateY(-6em);
+    }
+    54% {
+      transform: translateY(-7.224em);
+    }
+    60% {
+      transform: translateY(-7.2em);
+    }
+    64% {
+      transform: translateY(-8.424em);
+    }
+    70% {
+      transform: translateY(-8.4em);
+    }
+    74% {
+      transform: translateY(-9.624em);
+    }
+    80% {
+      transform: translateY(-9.6em);
+    }
+    84% {
+      transform: translateY(-10.824em);
+    }
+    90% {
+      transform: translateY(-10.8em);
+    }
+    94% {
+      transform: translateY(-12.024em);
+    }
+    100% {
+      transform: translateY(-12em);
+    }
+  }
+
+  /* Visivamente nascosto ma presente per lo screen reader: il carosello sopra
+     è `aria-hidden`, quindi il nome accessibile dell'<h1> altrimenti perderebbe
+     la battuta finale della frase. */
+  .hero__cta-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 0.75rem;
-    animation: hero-in-fade 650ms var(--ease-out-expo) 780ms both;
+    animation: hero-in-fade 650ms var(--ease-out-expo) 1000ms both;
   }
 
-  /* NESSUNA `opacity` sul colore. --color-text-3 è il pavimento assoluto del
-     contrasto (4.57:1): un'opacità sopra lo scavalca in silenzio. L'ingresso
-     anima invece `opacity` dell'ELEMENTO (0->1), che è cosa diversa. */
-  .hero__note {
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-text-3);
-    animation: hero-in-fade 600ms var(--ease-out-expo) 920ms both;
+  /* -- Rail dello stack -----------------------------------------------------
+     Solo desktop: riempie il vuoto a destra, dove la foto non ha altro. Testo
+     verticale via `writing-mode` (non `transform: rotate`, che richiederebbe
+     ricentrare a mano il box ruotato) — la colonna è larga quanto una riga di
+     testo per costruzione, non per un calcolo di trasformazione. */
+  .hero__rail {
+    display: none;
+  }
+  @media (min-width: 56.25rem) {
+    .hero__rail {
+      display: block;
+      position: absolute;
+      top: 50%;
+      right: clamp(1.5rem, 3.5vw, 3rem);
+      transform: translateY(-50%);
+      z-index: 2;
+      margin: 0;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-family: var(--font-mono);
+      font-size: var(--text-micro);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-text-3);
+      animation: hero-in-fade 650ms var(--ease-out-expo) 1000ms both;
+    }
   }
 
   /* Generica per gli elementi non-LCP: questi possono permettersi opacity
@@ -357,11 +464,8 @@ import SectionIndex from '../primitives/SectionIndex.astro';
   }
 
   /* -- Affordance di scroll ------------------------------------------------
-     Nel FLUSSO (non più absolute+bottom): vedi la nota nel markup sopra sul
-     perché. Piccola apposta — un anello con la freccia, senza etichetta
-     "Scorri" separata (l'aria-label la copre per chi usa uno screen reader):
-     è l'ultimo elemento del budget verticale dello stack, quindi più è
-     compatto meno stringe tutto il resto. */
+     Solo desktop: sul mobile la fascia foto + testo impilato non lascia lo
+     spazio per un'affordance separata senza stringere il resto. */
   .hero__scroll {
     display: none;
     text-decoration: none;
@@ -371,7 +475,11 @@ import SectionIndex from '../primitives/SectionIndex.astro';
       display: grid;
       grid-template-areas: 'ring';
       place-items: center;
-      margin-top: 0.25rem;
+      position: absolute;
+      left: 50%;
+      bottom: clamp(1.25rem, 3.5vh, 2rem);
+      transform: translateX(-50%);
+      z-index: 2;
       animation: hero-in-fade 600ms var(--ease-out-expo) 1050ms both;
     }
   }

@@ -2,36 +2,87 @@
 /**
  * §30 IN EVIDENZA — la stage sticky. La sezione più costosa della pagina.
  *
- * Tre "piatti" sovrapposti nella stessa grid-area, uno visibile alla volta. Il
- * cambio è guidato da UN SOLO ScrollTrigger.
+ * Tre card a tutta sezione nella stessa cella. Lo schermo resta INCOLLATO per
+ * tutta la corsa (il distanziatore dichiarato dal Handoff) e in quel tempo le
+ * card salgono da sotto e si sovrappongono a quella che le precede, componendo
+ * un mazzo. Chi scorre non vede la pagina muoversi: vede le carte accatastarsi.
  *
- * M13 — L'OCCLUSIONE Z, la firma visiva del sito: titolo e cover vivono nella
- * stessa cella di griglia, la cover ha `z-index: 1` e copre le ultime lettere
- * del titolo. La sovrapposizione è FISSA IN CSS (colonne 6-12 sopra un titolo
- * che occupa 1-7), mai calcolata in JS: un `getBoundingClientRect()` per
- * decidere di quanto sovrapporre significherebbe misurare durante lo scroll, che
- * è il modo più affidabile di introdurre jank.
+ * LAYOUT DELLA CARD — asimmetrico 40/60.
+ * Colonna di testo a sinistra (40%): numero, categoria, titolo, un paragrafo
+ * corto e la call to action, distribuiti con `align-content: space-between` così
+ * il numero resta ancorato in alto e la pill in basso — è quella distanza
+ * verticale a far leggere la card come una pagina editoriale invece che come un
+ * blocco di testo centrato. La vetrina a destra (60%).
  *
- * PERCHÉ IL CAMBIO NON È IN SCRUB.
- * Il piano prevedeva una timeline in scrub con i piatti che si scambiano a
- * p=0.30/0.62. L'implementazione usa invece `onUpdate` che calcola l'indice
- * attivo e scrive SOLO quando cambia, lasciando la dissolvenza a una transizione
- * CSS. Due vantaggi misurabili: zero scritture di stile per frame (due in tutta
- * la stage invece di ~600), e una dissolvenza a durata propria invece che
- * incollata alla velocità del dito — un cross-fade in scrub è mollo, perché se
- * l'utente si ferma a metà resta mezzo dissolto.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * M17 — LA VETRINA. Il lato destro non è una fotografia: è una REGISTRAZIONE
+ * che lo scroll riproduce.
  *
- * PRECAUZIONI DI PERFORMANCE (questa sezione le richiede tutte):
- * - cover con larghezza/altezza intrinseche da ImageMetadata → nessun reflow
- * - nessuna misura dentro onUpdate
- * - `visibility` e non solo `opacity` sui piatti inattivi: un piatto a opacità 0
- *   resterebbe cliccabile e nell'albero di accessibilità, e i suoi link
- *   entrerebbero nell'ordine di tabulazione
- * - sotto 900px o senza JS: piatti in flusso normale, tutti visibili
+ *   card `kind: 'site'`  →  la registrazione è UNA PAGINA CHE SCORRE
+ *   card `kind: 'call'`  →  la registrazione è UNA TELEFONATA CHE AVVIENE
+ *
+ * Stesso ingresso (il progresso dello scroll dentro la finestra della card),
+ * stessa grammatica, due medium diversi. È questo che tiene insieme card che
+ * altrimenti sarebbero tre esercizi scollegati.
+ *
+ * LA MISURA CHE DECIDE LA COMPOSIZIONE. `.fp__shot` misurata sul build vale
+ * 555×592 a 1024, 785×694 a 1440, 786×850 a 1920: la larghezza si FERMA a
+ * ~786px (il wrap è capped a 90rem) mentre l'altezza cresce col viewport. La
+ * finestra è quindi quadrata o VERTICALE, mai larga — e un MacBook affiancato a
+ * un iPhone vuole un box orizzontale. Per questo il duo è impilato e
+ * sovrapposto (laptop sopra, telefono davanti che sporge sotto) e non
+ * affiancato: non è un compromesso, è l'unica composizione che quella finestra
+ * accetta senza rimpicciolire lo schermo del laptop sotto la leggibilità.
+ *
+ * I DEVICE SONO DISEGNATI IN CSS, non immagini. Un MacBook è un rettangolo
+ * arrotondato col bordo inferiore spesso più una base; un iPhone è un
+ * rettangolo molto arrotondato con la pillola. Sei elementi, zero byte, e
+ * prendono i token del tema (`--color-hairline-strong` per il filo
+ * dell'alluminio, `--radius-frame` per il raggio dello schermo — token che
+ * finora non aveva nessun utente). E RIDUTTIVI, non fotorealistici: un render
+ * lucido con riflessi su `#050505` si vede che è incollato sopra, e invecchia.
+ * Un device con un filetto da 1px appartiene allo stesso linguaggio dei filetti
+ * `01/02/03` e dello squiggle di §01.
+ *
+ * ⚠ CONTENUTO PLACEHOLDER, MA NON PIÙ REMOTO. `SHOWCASE` è inventato per
+ * valutare il DESIGN: la collection `progetti` (`featuredProjects()` in
+ * lib/collections.ts) è deliberatamente ignorata finché i progetti veri non
+ * esistono. Rispetto alla versione precedente però NON ci sono più immagini:
+ * le tre foto Unsplash sono sparite insieme al problema che portavano (un
+ * `<img>` remoto senza avif/webp né srcset, e una connessione a un terzo
+ * dominio in mezzo alla Home). I reel sono WIREFRAME DISEGNATI — vedi `REEL`
+ * qui sotto: quando arrivano gli screenshot veri si sostituisce `.fp__reel` con
+ * un `<Picture>` e il resto del meccanismo non si tocca.
+ *
+ * ⚠ ZERO `pin: true`, come in tutto il sito: l'incollaggio è `position: sticky`
+ * su `.ho__out` (vedi Handoff.astro) e ScrollTrigger LEGGE soltanto il
+ * progresso. Nessun pin-spacer, nessuna mutazione di layout durante lo scroll.
+ *
+ * ⚠ LA SEZIONE NON DEVE SUPERARE LA VIEWPORT. Un elemento sticky più alto dello
+ * schermo incolla il proprio bordo SUPERIORE, e la parte che sfora resta
+ * irraggiungibile per sempre mentre è incollato. Per questo nel ramo stage
+ * l'altezza è `100svh` FISSA (non `min-height`) e la card prende una frazione di
+ * quell'altezza invece di dettarla. `verify-stage.mjs` lo controlla sempre.
+ *
+ * Sotto 900px o senza JS: card in flusso normale, tutte visibili e intere, con
+ * i reel fermi in cima e il trascritto già completo. Nessuno stato incompleto.
  */
 import { Picture } from 'astro:assets';
 import SectionIndex from '../primitives/SectionIndex.astro';
-import { featuredProjects } from '../../lib/collections';
+import Button from '../primitives/Button.astro';
+
+/* ---- I reel VERI ---------------------------------------------------------
+   Screenshot lunghi catturati via CDP dal sito online, non mockup. Le
+   proporzioni non sono casuali: sono state catturate a 2,6 schermate desktop e
+   3,4 mobile, che è esattamente il valore di `height` che il CSS del reel
+   dichiarava già per i wireframe. Messi a `width: 100%` dentro lo schermo del
+   device, producono da soli l'altezza giusta — nessun numero magico, e stage.ts
+   misura la corsa a runtime, quindi un reel con proporzioni diverse funziona
+   senza toccare nulla.
+   ⚠ Il sito ha un'intro di ~20s che blocca lo scroll: catturarlo subito dà una
+   pagina bianca col preloader. Chi rifà la cattura deve aspettarla. */
+import reelNetworkDayDesktop from '../../assets/progetti/network-day-desktop.png';
+import reelNetworkDayMobile from '../../assets/progetti/network-day-mobile.png';
 
 interface Props {
   /** Nome dello schermo nel Handoff che la contiene (vedi Handoff.astro). */
@@ -39,51 +90,365 @@ interface Props {
 }
 const { name } = Astro.props;
 
-const projects = await featuredProjects(3);
-const total = String(projects.length).padStart(2, '0');
+/* ---- I tre progetti (placeholder) ---------------------------------------
+   `kind` non è una categoria editoriale, è QUALE VETRINA montare: due siti con
+   il duo di device, un agente vocale senza nessun device. */
+/* Tipizzato invece di `as const`: le voci non hanno più tutte la stessa forma
+   (solo la prima ha un reel vero e un URL), e sotto `strictest` leggere `p.url`
+   su un'unione in cui un membro non ce l'ha è un errore di compilazione. Un
+   tipo esplicito con i campi opzionali dice anche a chi aggiunge un progetto
+   quali sono i pezzi facoltativi. */
+interface Showcase {
+  /** Non è una categoria editoriale: è QUALE VETRINA montare. */
+  kind: 'site' | 'call';
+  category: string;
+  client: string;
+  year: number;
+  title: string;
+  blurb: string;
+  /** Se presente, la pill diventa un link vero. */
+  url?: string;
+  /** Se assente, la vetrina monta il wireframe disegnato. */
+  reel?: { desktop: ImageMetadata; mobile: ImageMetadata };
+  reelAlt?: string;
+}
+
+const SHOWCASE: Showcase[] = [
+  {
+    kind: 'site',
+    category: 'Sito evento',
+    client: 'JEParma',
+    year: 2026,
+    title: 'Il Network Day, prima che cominci',
+    blurb:
+      'Un evento si gioca nelle settimane che lo precedono, non il giorno stesso. Countdown, tema, partner e guida pratica su una pagina sola, con una grafica curata e animazioni legate allo scroll che accompagnano la lettura invece di limitarsi a mostrarla — un percorso da scegliere al posto del solito modulo da compilare.',
+    /* Progetto REALE e online, quindi la pill diventa un link vero: vedi la nota
+       sull'accessibilità nel markup. Le altre due voci restano segnaposto. */
+    url: 'https://network-day-2026-jeparma.netlify.app/',
+    reel: { desktop: reelNetworkDayDesktop, mobile: reelNetworkDayMobile },
+    reelAlt:
+      'Il sito del Network Day 2026 di JEParma: la schermata di apertura con il countdown e la sezione che presenta il tema Schilderwald',
+  },
+  {
+    kind: 'site',
+    category: 'Gestionale',
+    client: 'Filiera Nord',
+    year: 2025,
+    title: 'Tracciabilità che risponde in quattro secondi',
+    blurb:
+      'Sei stabilimenti, undici fornitori, e un lotto da ricostruire a mano a ogni controllo. Un identificativo su ogni pallet ha trasformato due giorni di archivio in una ricerca sola.',
+  },
+  {
+    kind: 'call',
+    category: 'Agente vocale AI',
+    client: 'Studio Ferrari',
+    year: 2026,
+    title: 'Risponde al telefono e prende l’appuntamento',
+    blurb:
+      'Lo studio perdeva chiamate ogni volta che la segreteria era occupata. Ora risponde un agente vocale: capisce la richiesta, propone gli orari liberi, fissa l’appuntamento e manda il promemoria.',
+  },
+];
+
+/* ---- Il reel: il wireframe di una pagina, alto ~2,6 schermate -------------
+   ⚠ RITAGLIATO A ~2,6 SCHERMATE, NON ALLA PAGINA INTERA, e vale anche per gli
+   screenshot veri che lo sostituiranno: una home da 9000px scalata a 600px di
+   larghezza diventa un reel da 4000px, e attraversarlo nella finestra di una
+   card è una sfocatura, non uno scorrimento. Due schermate e mezza si leggono
+   come "sto scorrendo una pagina".
+
+   `h` è la percentuale dell'altezza del reel, `w` della sua larghezza utile.
+   `t` è il trattamento: le colonne (`cols2`/`cols3`) sono un gradiente
+   ripetuto, non elementi figli — zero DOM in più per fare una griglia finta. */
+const REEL = [
+  { t: 'bar', h: 3.4, w: 100 }, // navbar
+  { t: 'hero', h: 22, w: 100 },
+  { t: 'line', h: 2.6, w: 44 }, // titolo di sezione
+  { t: 'line', h: 1.3, w: 66 },
+  { t: 'line', h: 1.3, w: 57 },
+  { t: 'cols3', h: 13, w: 100 },
+  { t: 'shot', h: 17, w: 100 },
+  { t: 'line', h: 2.6, w: 36 },
+  { t: 'cols2', h: 11.5, w: 100 },
+  { t: 'accent', h: 9, w: 100 }, // l'unico blocco tinto: il reel non è monotono
+  { t: 'bar', h: 6.5, w: 100 }, // footer
+] as const;
+
+/* ---- La forma d'onda della chiamata -------------------------------------
+   Ampiezze DETERMINISTICHE: `Math.random()` qui cambierebbe l'output a ogni
+   build, sporcando i diff di un sito statico per niente.
+   ⚠ Si RIEMPIE da sinistra a destra insieme al trascritto, non oscilla in
+   loop: un visualizzatore audio che rimbalza è il cliché più economico del
+   settore, e sarebbe anche un'animazione infinita (vietate, tranne il carosello
+   della hero). Riempiendosi legge "registrazione di una chiamata". */
+const WAVE = Array.from(
+  { length: 44 },
+  (_, i) => Math.round((0.26 + 0.64 * Math.abs(Math.sin(i * 1.31) * Math.cos(i * 0.47 + 0.9))) * 100) / 100
+);
+
+/* ---- Il trascritto ------------------------------------------------------
+   Verbale, non bolle di chat: bolle stile iMessage direbbero "chatbot", che è
+   il prodotto sbagliato. Etichetta mono + filetto + la frase è lo stesso
+   dispositivo che il sito usa già al posto degli elenchi puntati (vietati). */
+const TURNS = [
+  { who: 'Cliente', text: 'Buongiorno, avrei bisogno di un appuntamento per un controllo.' },
+  { who: 'Agente', text: 'Volentieri. Ho giovedì 14 alle 15:30, oppure venerdì mattina alle 9.' },
+  { who: 'Cliente', text: 'Giovedì pomeriggio va bene.' },
+  { who: 'Agente', text: 'Fissato. Le arriva ora un promemoria via SMS.' },
+] as const;
 ---
 
-<section class="fp" data-section data-plates={name} id="in-evidenza">
+<section class="fp" data-section data-stack={name} id="in-evidenza">
   <div class="fp__wrap">
     <div class="fp__head">
-      <SectionIndex n="30" label="In evidenza" />
+      <SectionIndex n="03" label="In evidenza" />
     </div>
 
-    <h2 class="fp__h">Tre lavori, per esteso.</h2>
+    {/* `data-activate` (M14) sul CONTENITORE, non sul titolo: serve per far
+       disegnare il filetto d'accento sotto "per loro" dopo che le righe del
+       titolo sono salite. Non può stare sull'h2, che ha già `data-split` — e
+       nemmeno `data-reveal`, che è su un figlio (vedi il divieto di combinarli
+       in reveal.ts). */}
+    <div class="fp__intro" data-activate>
+      {/* `data-split="lines"` (M1): stesso reveal mascherato riga per riga di
+         ogni altro titolo di sezione (§01, §04...). Prima non aveva NESSUNA
+         animazione d'ingresso — appariva insieme al resto del flusso.
 
-    <div class="fp__plates">
+         L'accento è su "per loro": è la frase che lega insieme le tre card
+         (ognuna nomina un cliente vero), quindi è quella a marcare il colore,
+         non un aggettivo generico. Il filetto sotto è un `::after` sull'`<em>`,
+         NON un `<span>` figlio — vedi la nota nel CSS sul perché un elemento
+         reale lì dentro non sopravvive a `data-split="lines"`. */}
+      <h2 class="fp__h" data-split="lines">
+        Dai un’occhiata a quello che ho costruito <em>per loro</em>.
+      </h2>
+    </div>
+
+    {/* FRATELLO di `.fp__intro`, non figlio: da 900px in su questo bottone vive
+       in una PROPRIA colonna della griglia a 12 (8-10), accanto al titolo e non
+       sotto. Se restasse dentro `.fp__intro` non potrebbe essere posizionato
+       sulla griglia del wrap — un elemento si colloca solo nella griglia del
+       proprio genitore.
+
+       L'UNICO link interno di questa sezione: a differenza dei pill dentro le
+       card, la pagina /portfolio esiste davvero.
+       `data-reveal` (M4) sul contenitore e non sul bottone: è il fade + risalita
+       generico di ogni altro elemento del sito. ⚠ NON `data-activate`, che è su
+       `.fp__intro`: i due non vanno mai sullo stesso elemento (vedi reveal.ts),
+       e qui sono infatti su due elementi diversi. */}
+    <div class="fp__cta-row" data-reveal>
+      <Button href="/portfolio" variant="filled" tone="dark">
+        Vedi tutti i progetti
+        <svg class="fp__cta-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path
+            d="M3 11L11 3M11 3H5M11 3V9"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </Button>
+    </div>
+
+    {/* `--fp-cards` serve al CSS per calcolare l'altezza della card lasciando
+       spazio agli scalini del mazzo: prima era `height: 96%` inchiodato, cioè
+       giusto solo con TRE card. Vedi la nota su `.fp__card` nel ramo stage. */}
+    <div class="fp__stack" style={`--fp-cards: ${SHOWCASE.length}`}>
       {
-        projects.map((p, i) => (
-          <article class="fp__plate" data-plate>
-            <p class="fp__n">
-              {String(i + 1).padStart(2, '0')} <span aria-hidden="true">/</span> {total}
-            </p>
+        SHOWCASE.map((p, i) => (
+          <article class="fp__card" data-stack-card data-kind={p.kind} style={`--i: ${i}`}>
+            <div class="fp__copy">
+              <p class="fp__n">{String(i + 1).padStart(2, '0')}</p>
 
-            {/* Stretched-link: un solo <a> reale, tutto il piatto cliccabile. */}
-            <h3 class="fp__title">
-              <a class="fp__link" href={`/portfolio/${p.id}`}>
-                {p.data.title}
-              </a>
-            </h3>
+              <div class="fp__text">
+                <p class="fp__cat">
+                  {p.category} <span aria-hidden="true">·</span> {p.client}{' '}
+                  <span aria-hidden="true">·</span> {p.year}
+                </p>
+                <h3 class="fp__name">{p.title}</h3>
+                <p class="fp__blurb">{p.blurb}</p>
+              </div>
 
-            {/* `lazy` su tutti e tre: la stage è sempre sotto la piega, quindi
-                nessuna di queste cover concorre all'LCP. Un `eager` qui
-                ruberebbe banda al ritratto dell'hero, che invece ci concorre. */}
-            <div class="fp__cover clip-frame">
-              <Picture
-                src={p.data.cover}
-                alt={p.data.coverAlt}
-                widths={[600, 900, 1300]}
-                sizes="(min-width: 56.25rem) 58vw, 92vw"
-                formats={['avif', 'webp']}
-                loading="lazy"
-                decoding="async"
-                class="fp__img"
-              />
+              {/* ⚠ UNO <span>, NON UN <button>. Era `<Button variant="outline">`,
+                 cioè un <button> senza `href` perché questi progetti non hanno
+                 ancora una pagina: un controllo che non fa niente E che è
+                 raggiungibile col tab. Nel mazzo le card in attesa stanno
+                 parcheggiate fuori dallo schermo, quindi tabulando il focus
+                 finiva su un bottone invisibile (WCAG 2.4.3 / 2.4.7). Uno
+                 <span> non è focalizzabile: il difetto sparisce e il disegno
+                 resta identico. Quando i case study esistono torna
+                 `<Button href={...}>` — e allora servirà `inert` sulle card
+                 non in cima, perché il problema del focus invisibile
+                 ricomparirà con un link vero. */}
+              <p class="fp__actions">
+                {
+                  p.url ? (
+                    /* Progetto online: link VERO, esterno.
+                       ⚠ Sull'accessibilità, che è il motivo per cui gli altri
+                       due restano <span>: nel mazzo le card non ancora entrate
+                       stanno parcheggiate FUORI dallo schermo, quindi un
+                       controllo focalizzabile lì dentro darebbe focus a
+                       qualcosa di invisibile (WCAG 2.4.3 / 2.4.7). Questa
+                       però è la card di indice 0, che `gsap.set` tiene a
+                       `yPercent: 0` per tutta la corsa: non è MAI parcheggiata
+                       — viene solo coperta e rimpicciolita. Il link è quindi
+                       sempre a schermo, e il difetto non si applica. Il giorno
+                       in cui anche le card 2 e 3 avranno un URL servirà
+                       `inert` sulle non-prime. */
+                    <a
+                      class="fp__cta fp__cta--link"
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Apri il sito
+                      <svg
+                        class="fp__cta-out"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M2.5 9.5L9.5 2.5M9.5 2.5H4.5M9.5 2.5V7.5"
+                          stroke="currentColor"
+                          stroke-width="1.3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </a>
+                  ) : (
+                    /* Nessuna pagina ancora: uno <span> non è focalizzabile,
+                       quindi il disegno resta e il controllo morto no. */
+                    <span class="fp__cta">Guarda il progetto</span>
+                  )
+                }
+              </p>
             </div>
 
-            <p class="fp__sub">{p.data.subtitle}</p>
-            <p class="fp__meta">{p.data.year} · {p.data.role}</p>
+            <div class="fp__shot">
+              {/* `.fp__fit` esiste per il container query: limita la vetrina in
+                 base all'ALTEZZA disponibile, non solo alla larghezza. Senza,
+                 su un viewport basso (1440×720) il telefono veniva tagliato dal
+                 bordo inferiore della card. */}
+              <div class="fp__fit">
+                {p.kind === 'site' ? (
+                  <div class:list={['fp__devices', i === 1 && 'fp__devices--mirror']}>
+                    <div class="fp__mac">
+                      <div class="fp__mac-lid">
+                        <div class="fp__mac-screen">
+                          <span class="fp__cam" aria-hidden="true" />
+                          {p.reel ? (
+                            /* ⚠ `alt=""` sul reel DESKTOP e testo vero su quello
+                               mobile: sono la stessa pagina fotografata due
+                               volte, e annunciarla due volte è rumore. Il
+                               mobile porta l'alt perché sotto i 900px è l'unico
+                               dei due che resta a schermo. */
+                            <div class="fp__reel fp__reel--shot" data-reel>
+                              <Picture
+                                src={p.reel.desktop}
+                                alt=""
+                                widths={[720, 1150]}
+                                sizes="620px"
+                                formats={['avif', 'webp']}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </div>
+                          ) : (
+                            <div class="fp__reel" data-reel>
+                              {REEL.map((b) => (
+                                <span class="fp__blk" data-t={b.t} style={`--h: ${b.h}%; --w: ${b.w}%`} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div class="fp__mac-base" aria-hidden="true" />
+                    </div>
+
+                    <div class="fp__phone">
+                      <div class="fp__phone-screen">
+                        <span class="fp__island" aria-hidden="true" />
+                        {/* Stesso reel, layout mobile: le griglie a colonne
+                           diventano blocchi pieni (in mobile si impilano). È
+                           quel dettaglio a far leggere i due device come LO
+                           STESSO sito e non come due schermi accesi. */}
+                        {p.reel ? (
+                          <div class="fp__reel fp__reel--m fp__reel--shot" data-reel>
+                            <Picture
+                              src={p.reel.mobile}
+                              alt={p.reelAlt ?? ''}
+                              widths={[430]}
+                              sizes="210px"
+                              formats={['avif', 'webp']}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                        ) : (
+                          <div class="fp__reel fp__reel--m" data-reel>
+                            {REEL.map((b) => (
+                              <span class="fp__blk" data-t={b.t} style={`--h: ${b.h}%; --w: ${b.w}%`} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* La sola card SENZA device, e l'assenza è il contenuto: un
+                     agente vocale non ha schermo, il suo valore è che funziona
+                     senza che nessuno guardi niente. Un mockup di dashboard
+                     racconterebbe un gestionale di appuntamenti — la cosa
+                     banale — invece del prodotto. */
+                  <div class="fp__call" data-call>
+                    <div class="fp__call-head">
+                      <span class="fp__call-dot" aria-hidden="true" />
+                      <span class="fp__call-state">
+                        <span class="fp__call-s fp__call-s--live" aria-hidden="true">In corso</span>
+                        <span class="fp__call-s fp__call-s--done">Conclusa · 00:34</span>
+                      </span>
+                      <span class="fp__call-num">+39 ··· ··· 4471</span>
+                    </div>
+
+                    <div class="fp__wave" aria-hidden="true">
+                      {WAVE.map((a, w) => (
+                        <span class="fp__bar" style={`--a: ${a}; --w: ${w}`} />
+                      ))}
+                    </div>
+
+                    {/* <ol> perché uno scambio È una sequenza ordinata, e uno
+                       screen reader ne trae vantaggio. Non viola il divieto
+                       degli elenchi puntati: quello è VISIVO (`list-style:
+                       none` qui sotto), e il dispositivo a schermo è etichetta
+                       mono + filetto, esattamente come `01/02/03`. */}
+                    <ol class="fp__turns">
+                      {TURNS.map((t, k) => (
+                        <li class="fp__turn" data-who={t.who} style={`--k: ${k}`}>
+                          <p class="fp__who">{t.who}</p>
+                          <p class="fp__said">{t.text}</p>
+                        </li>
+                      ))}
+                    </ol>
+
+                    {/* L'esito: l'unico "pop" della sezione, una volta sola, e
+                       resta lui a schermo per tutta la coda ferma. */}
+                    <div class="fp__slot">
+                      <p class="fp__slot-when">Gio 14 · 15:30</p>
+                      <p class="fp__slot-what">Controllo · Studio Ferrari</p>
+                      <span class="fp__slot-ok" aria-hidden="true">✓</span>
+                    </div>
+
+                    {/* La frase per cui il progetto esiste sta nella GRAFICA,
+                       non nel paragrafo accanto. */}
+                    <p class="fp__call-foot">Nessun intervento umano</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </article>
         ))
       }
@@ -92,13 +457,10 @@ const total = String(projects.length).padStart(2, '0');
 </section>
 
 <style>
-  /* ⚠ DEVE STARE IN UNO SCHERMO, e il padding è la prima cosa da tenere corta.
-     Un elemento sticky più alto della viewport incolla il proprio bordo
-     SUPERIORE, e la parte che sfora resta irraggiungibile finché è incollato:
-     con `--spacing-section` la sezione arrivava a 949px su una viewport di 900,
-     cioè 49px di sezione che nessuno poteva mai vedere. Qui erano padding vuoto,
-     ma è un difetto latente — il giorno in cui il contenuto cresce, sparisce
-     contenuto vero. `verify-stage.mjs` lo controlla a ogni esecuzione. */
+  /* Fondo: nessuna classe di tema, quindi CANVAS (#050505, nero assoluto)
+     ereditato dal body. È deliberato: §30 è una delle tre superfici canvas della
+     Home (vedi la tabella in CLAUDE.md), e il nero è ciò che fa staccare le
+     card, che sono `--color-surface-1`. */
   .fp {
     display: grid;
     grid-template-columns: minmax(0, 1fr); /* vedi la nota in CTASection */
@@ -114,13 +476,131 @@ const total = String(projects.length).padStart(2, '0');
     padding-inline: var(--spacing-gutter);
   }
 
+  /* ⚠ ERA `var(--text-h3)` (22→32px) in `--color-text-2` e `font-weight: 400`,
+     cioè più PICCOLO dei titoli delle card che sta introducendo
+     (`.fp__name`, 24→36px) e più spento del testo che le riempie. Una gerarchia
+     invertita: è quello — non il font né la copy — a far leggere il titolo come
+     di serie B rispetto al resto del sito. Ora è allineato agli altri titoli di
+     sezione (`.wid__title` 40→76px, `.st__text` 32→84px): scala fluida grande,
+     `text-1` pieno, peso 500, tracking negativo. Resta un filo sotto WhatIDo
+     perché questa sezione deve lasciare spazio al mazzo nella stessa
+     schermata. */
   .fp__h {
-    margin-top: 1.5rem;
-    max-width: 22ch;
-    font-size: var(--text-h3);
-    color: var(--color-text-2);
-    font-weight: 400;
+    max-width: 24ch;
+    font-size: clamp(2rem, 4.2vw, 3.75rem);
+    line-height: 1.03;
+    letter-spacing: -0.032em;
+    font-weight: 500;
+    color: var(--color-text-1);
+    text-wrap: balance;
   }
+
+  /* L'accento sulla frase che nomina il destinatario dei lavori, non un
+     aggettivo a caso — stesso principio di `<em>` in Statement.astro e
+     WhatIDo.astro: colore pieno, MAI un gradiente o un peso diverso, perché
+     nel sito l'accento è un evento raro e va spesso solo su testo importante.
+     `display: inline-block` è ciò che tiene "per loro" insieme come un unico
+     blocco quando il titolo va a capo — non serve `white-space: nowrap`,
+     un inline-block non si spezza mai a metà, si sposta tutto alla riga dopo
+     (stessa tecnica di `.wid__title em` in WhatIDo). */
+  .fp__h em {
+    position: relative;
+    display: inline-block;
+    font-style: normal;
+    color: var(--color-accent);
+  }
+
+  /* ⚠ IL FILETTO È UN `::after`, NON UN `<span>` FIGLIO — e questo è un
+     correzione, non la prima idea. La prima stesura aveva un vero
+     `<span data-rule>` dentro l'`<em>`, pensato per disegnarsi con M11 (lo
+     stesso vocabolario dello squiggle originale di WhatIDo). Misurato via CDP:
+     restava a `scaleX(0)` per sempre, anche a titolo scrollato in piena vista
+     da secondi. Causa — `data-split="lines"` (M1) SPACCA E RICOSTRUISCE il DOM
+     dell'h2 per creare le righe mascherate: il nodo reale che M11 aveva
+     agganciato al caricamento smette di esistere in quella forma dopo lo split
+     asincrono di SplitText, e il suo ScrollTrigger resta legato a un
+     riferimento ormai fuori dall'albero — `onEnter` non scatta mai.
+     Un `::after` non ha questo problema perché non è un nodo del DOM leggero
+     che SplitText possa spostare o ricreare: è generato dal renderer
+     sull'elemento `<em>`, che invece SPLITTEXT PRESERVA (lo sposta dentro la
+     riga, non lo distrugge) — esattamente il motivo per cui lo squiggle di
+     WhatIDo, che usa la stessa identica combinazione, funziona.
+     Nessun draw-in separato, quindi: il filetto arriva GIÀ steso, ma dentro la
+     stessa maschera che rivela il resto della riga — si vede comparire insieme
+     al testo, non prima e non dopo. */
+  .fp__h em::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.04em;
+    height: 0.055em; /* scala col titolo invece di restare 2px a ogni misura */
+    border-radius: 1px;
+    background-color: var(--color-accent);
+    transform-origin: left;
+  }
+
+  /* -- Il filetto si DISEGNA, dopo che le righe sono salite ----------------
+     Stato di riposo solo sotto `html.js-anim`: senza JS il filetto è già steso
+     per intero, come ogni altro pre-hide del sito.
+
+     ⚠ SI USA `is-in` + UN RITARDO, NON `is-on`. M14 ha due battute e
+     normalmente la pausa fra loro è DISTANZA DI SCROLL (soglie 80% e 40% della
+     viewport), non tempo — vedi il commento in reveal.ts. Qui quel trucco non
+     può funzionare: §30 è una sezione STICKY, quindi mentre la si attraversa
+     questo titolo resta fermo in cima alla viewport e le due soglie vengono
+     superate praticamente nello stesso istante. In una sezione incollata
+     l'unica pausa disponibile è un `transition-delay`, e il ritardo è tarato
+     sulla durata di M1 (0.9s + stagger delle righe) perché il filetto arrivi
+     come conseguenza del titolo, non insieme a lui. */
+  :global(html.js-anim) .fp__h em::after {
+    transform: scaleX(0);
+    transition: transform 900ms var(--ease-out-expo) 1150ms;
+  }
+  :global(html.js-anim) .fp__intro.is-in .fp__h em::after {
+    transform: scaleX(1);
+  }
+  /* Salto in un colpo: stato finale netto, durata E ritardo azzerati — un
+     disegno di cui nessuno ha visto l'inizio non deve impiegare tempo a
+     finire. Stessa regola dello squiggle di §01 e del riflesso di §02. */
+  :global(html.js-anim) .fp__intro.is-instant .fp__h em::after {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  .fp__intro {
+    margin-top: 1.5rem;
+  }
+
+  .fp__cta-row {
+    /* `inline-flex`, non `flex`: deve restringersi al contenuto del bottone,
+       non prendere la riga intera — altrimenti l'area di hover dell'icona (vedi
+       sotto) si estenderebbe a vuoto oltre il bordo destro del bottone. */
+    display: inline-flex;
+    margin-top: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  /* La label non va MAI a capo dentro la pillola: un bottone con la freccia su
+     una seconda riga è il difetto che si vedeva a 3 colonne di griglia. */
+  .fp__cta-row :global(.btn) {
+    white-space: nowrap;
+  }
+
+  .fp__cta-arrow {
+    flex: 0 0 auto;
+    transition: transform 320ms var(--ease-out-expo);
+  }
+
+  /* Un dettaglio in più oltre al riempimento che il bottone ha già di suo: la
+     freccia scivola verso la destinazione. `@media (hover: hover)` per
+     coerenza con `.fp__card:hover .fp__img` in questo stesso file — Button.astro
+     non si guarda, ma qui il resto del componente lo fa sempre. */
+  @media (hover: hover) {
+    .fp__cta-row:hover .fp__cta-arrow {
+      transform: translate3d(2px, -2px, 0);
+    }
+  }
+
   @media (min-width: 56.25rem) {
     .fp__wrap {
       display: grid;
@@ -132,175 +612,942 @@ const total = String(projects.length).padStart(2, '0');
       grid-row: 1;
       justify-self: end;
     }
-    .fp__h {
-      grid-column: 2 / span 6;
+    /* ⚠ COLONNA 1, ERA 2. Il resto del sito indenta i titoli di una colonna
+       (`grid-column: 2 / span N` in JourneyTeaser, SkillsGrid, Testimonials) ma
+       in quelle sezioni il CONTENUTO sotto è indentato con loro. Qui il mazzo
+       prende tutte e 12 le colonne — è l'elemento più largo della pagina, e per
+       una vetrina è giusto così — quindi un titolo a colonna 2 produceva un
+       disallineamento di ~110px fra il bordo sinistro dell'h2 e quello delle
+       card, che non esiste da nessun'altra parte nel sito. */
+    /* ⚠ IL BOTTONE ESCE DAL FLUSSO VERTICALE DEL TITOLO e va nella STESSA riga
+       di griglia, allineato in basso. Impilato sotto costava ~90px di altezza a
+       una sezione che deve stare in UNO schermo insieme al mazzo: era la ragione
+       per cui il testo delle card tracimava sui viewport bassi, e per cui il
+       vincolo del duo di device andava stretto due volte. Di fianco costa ZERO
+       altezza, e `align-self: end` lo appoggia sull'ultima riga di base del
+       titolo — che è anche la composizione più editoriale delle due.
+       Colonne: titolo 1-7, bottone 8-10, indice 11-12. Nessuna sovrapposizione,
+       e i tre elementi condividono la riga 1. */
+    .fp__intro {
+      grid-column: 1 / span 7;
       grid-row: 1;
       margin-top: 0;
     }
-    .fp__plates {
+    /* Colonne 9-12 e allineato a DESTRA, sotto l'indice di sezione: i due
+       formano una colonna destra coerente (indice in alto, azione in basso)
+       contro il titolo a sinistra — l'impaginazione da testata.
+       Non si sovrappongono pur essendo nella stessa riga di griglia perché
+       hanno `align-self` opposti e insieme sono più bassi del titolo: indice
+       ~30px in alto + bottone ~60px in basso = 90px, contro i ~135px del
+       titolo su due righe.
+       ⚠ ERA `8 / span 3` allineato a sinistra: 283px di colonna contro 292px
+       di contenuto, e la freccia andava a capo DENTRO il bottone. Quattro
+       colonne danno margine reale, e `white-space: nowrap` sul bottone rende
+       il difetto impossibile anche se un domani la label si allunga. */
+    .fp__cta-row {
+      grid-column: 9 / span 4;
+      grid-row: 1;
+      align-self: end;
+      justify-self: end;
+      margin-top: 0;
+    }
+    .fp__stack {
       grid-column: 1 / span 12;
       grid-row: 2;
     }
   }
 
-  /* -- Default: piatti in flusso, tutti visibili ---------------------------
-     È lo stato senza JS, con JS in errore, e sotto i 900px. Nessun piatto è
-     nascosto in questo stato: la sezione degrada in un elenco di tre progetti. */
-  .fp__plates {
-    display: grid;
-    gap: clamp(3rem, 7vw, 5rem);
-    margin-top: clamp(2.5rem, 5vw, 4rem);
+  /* ⚠ SOLO SOTTO UN'ALTEZZA CORTA, e la ragione è misurata via CDP, non un
+     capriccio di "supportare ogni caso". Nel ramo sticky il mazzo riceve
+     TUTTO ciò che resta dopo `.fp__intro` (vedi `grid-template-rows: auto
+     minmax(0,1fr)` più sotto): un titolo su due righe più il bottone CTA
+     costano ~200px in più di quanto costava il vecchio titolo a una riga
+     senza CTA, e su un viewport largo ma BASSO (1440×720) quel budget in meno
+     faceva traboccare `.fp__copy` delle card sotto — misurato: 41px di testo
+     tagliato dal `overflow: clip` della card, invisibile e silenzioso.
+     A 768px di altezza l'overflow è già 0; il taglio a 46.25rem (740px) sta
+     nel mezzo, con margine da entrambe le parti. Sopra questa soglia — cioè
+     al riferimento 1440×900 di tutto il resto del sito — questo blocco non
+     esiste e il design resta quello verificato a schermo. */
+  @media (min-width: 56.25rem) and (max-height: 46.25rem) {
+    /* ⚠ È IL TITOLO a costare, non più il bottone: da quando la CTA sta di
+       fianco (colonne 9-12) non pesa un pixel in verticale, mentre il titolo è
+       passato da 32 a 60px e su due righe sono ~124px. Misurato a 1440×720:
+       16px di testo delle card tagliati dal clip. `clamp()` sa solo la
+       LARGHEZZA — `4.2vw` a 1440 dà 60px sia su uno schermo alto che su uno
+       basso — quindi il tetto per altezza va messo qui. 40px resta comunque
+       molto sopra i 32px del titolo vecchio: non si torna indietro, si adatta. */
+    .fp__h {
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+    }
+    /* Serve solo sotto i 900px, dove la CTA torna impilata sotto il titolo. */
+    .fp__cta-row {
+      margin-top: 0.5rem;
+    }
+    /* Specificità voluta più alta di `.btn--filled.btn--dark` (due classi):
+       tre classi vincono senza `!important`, che avrebbe reso il valore
+       irraggiungibile da un domani in cui Button.astro cambi la propria
+       altezza di base. */
+    .fp__cta-row :global(.btn--filled) {
+      height: 2.75rem;
+    }
   }
 
-  .fp__plate {
-    position: relative; /* riferimento per l'::after dello stretched-link */
+  /* -- Default: card in flusso, tutte visibili ----------------------------
+     È lo stato senza JS, con JS in errore, e sotto i 900px. Nessuna card è
+     nascosta qui: la sezione degrada in un elenco di tre progetti. */
+  .fp__stack {
     display: grid;
-    gap: 0.75rem;
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+    margin-top: clamp(2rem, 4vw, 3rem);
   }
 
+  .fp__card {
+    display: grid;
+    /* ⚠ `minmax(0, 1fr)`, mai la traccia implicita `auto`: quella si dimensiona
+       sul MAX-CONTENT e sfonda il contenitore. Vedi la nota in CTASection —
+       qui costava 323px di overflow orizzontale nel ramo senza JS. */
+    grid-template-columns: minmax(0, 1fr);
+    background-color: var(--color-surface-1);
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-panel);
+    /* Il clip è FUNZIONALE: è ciò che tiene la vetrina dentro il raggio del
+       pannello, così arriva a filo del bordo senza una cornice propria. */
+    overflow: clip;
+    /* Le card più avanti nel DOM stanno sopra: è questo che rende la
+       sovrapposizione leggibile come "l'ultima arrivata copre". */
+    z-index: calc(var(--i) + 1);
+  }
+
+  /* -- Colonna di testo -------------------------------------------------- */
+  .fp__copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    /* Numero in alto, pill in basso, testo nel mezzo. È la distanza fra i tre
+       a dare il respiro editoriale: con `gap` fisso e contenuto corto la colonna
+       si accalcherebbe in cima lasciando un vuoto sotto. */
+    align-content: space-between;
+    gap: clamp(1.25rem, 2.6vw, 2.25rem);
+    padding: clamp(1.375rem, 2.8vw, 2.75rem);
+    min-height: 0;
+  }
+
+  /* Il numero gigante: mono, come ogni numero indice del sito — qui il mono fa
+     lavoro semantico (è un ordinale), non decorazione. */
   .fp__n {
     font-family: var(--font-mono);
-    font-size: var(--text-micro);
+    font-size: clamp(2rem, 3.6vw, 3.5rem);
     font-weight: 500;
-    letter-spacing: 0.1em;
+    line-height: 1;
+    letter-spacing: -0.03em;
     color: var(--color-accent);
   }
 
-  .fp__title {
-    font-size: clamp(2rem, 5.4vw, 5.5rem);
-    line-height: 0.92;
-    letter-spacing: -0.038em;
-    font-weight: 500;
-    max-width: 14ch;
-    text-wrap: balance;
+  .fp__text {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(0.55rem, 1.1vw, 1rem);
   }
 
-  .fp__link {
-    color: var(--color-text-1);
-    text-decoration: none;
-    transition: color 240ms var(--ease-snappy);
-  }
-  .fp__link::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-  }
-
-  .fp__cover {
-    border: 1px solid var(--color-hairline);
-    border-radius: var(--radius-card);
-    background-color: var(--color-surface-1);
-  }
-
-  .fp__img {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    transition: transform 520ms var(--ease-out-expo);
-  }
-
-  .fp__sub {
-    max-width: 40ch;
-    font-size: var(--text-sm);
-    color: var(--color-text-2);
-  }
-
-  .fp__meta {
+  .fp__cat {
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-text-3);
+    /* ⚠ `--color-text-2`, non `--color-text-3`. Su queste superfici scure il
+       text-3 di :root (#717175) sta sotto AA — 4.19:1 su canvas, ~4.0:1 su
+       `--color-surface-1` — ed è testo micro (11-12px), dove 4.5:1 è
+       obbligatorio, non consigliato. Difetto noto, documentato in CLAUDE.md:
+       qui non lo si eredita. Nelle sezioni `.theme-slate` il token è già
+       ritarato e lì text-3 va benissimo. */
+    color: var(--color-text-2);
   }
 
+  .fp__name {
+    font-size: clamp(1.5rem, 2.3vw, 2.25rem);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+
+  .fp__blurb {
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+    max-width: 44ch;
+  }
+
+  .fp__actions {
+    display: flex;
+  }
+
+  /* La pill: il disegno del bottone outline, senza essere un controllo (vedi la
+     nota nel markup). Nessun hover, perché non c'è niente da premere. */
+  .fp__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 2.75rem;
+    padding-inline: 1.25rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* La variante LINK (solo i progetti online). Più chiara della pill inerte,
+     perché è la sola delle due su cui si può premere: la differenza di colore
+     è l'affordance, non una decorazione. */
+  .fp__cta--link {
+    color: var(--color-text-1);
+    text-decoration: none;
+    transition: border-color 260ms var(--ease-out-expo), color 260ms var(--ease-out-expo);
+  }
+  .fp__cta-out {
+    flex: 0 0 auto;
+    transition: transform 320ms var(--ease-out-expo);
+  }
   @media (hover: hover) {
-    .fp__plate:hover .fp__img {
-      transform: scale(1.03);
-    }
-    .fp__plate:hover .fp__link {
+    .fp__cta--link:hover {
+      border-color: var(--color-accent);
       color: var(--color-accent);
     }
+    .fp__cta--link:hover .fp__cta-out {
+      transform: translate3d(2px, -2px, 0);
+    }
   }
 
-  /* -- Stage: solo ≥900px E con JS attivo ---------------------------------- */
-  @media (min-width: 56.25rem) {
-    :global(html.js-anim) .fp__plates {
-      /* I piatti si sovrappongono in un'unica cella. */
-      display: grid;
-      grid-template-areas: 'stack';
-      grid-template-columns: minmax(0, 1fr);
-    }
+  /* -- La vetrina -------------------------------------------------------- */
+  .fp__shot {
+    position: relative;
+    overflow: clip;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    /* In flusso l'altezza non arriva da nessuna parte: la danno le proporzioni.
+       Nel ramo a due colonne comanda invece l'altezza della card. */
+    aspect-ratio: 16 / 12;
+    padding: clamp(1rem, 2.4vw, 2.25rem);
+    background-color: var(--color-surface-1);
+  }
 
-    :global(html.js-anim) .fp__plate {
-      grid-area: stack;
-      /* Griglia interna a 12 colonne: è qui che vive l'occlusione M13. */
-      grid-template-columns: repeat(12, 1fr);
-      gap: 0.75rem clamp(1rem, 1.5vw, 2rem);
-      align-content: center;
-      /* `visibility` e non solo opacity: toglie il piatto anche dall'albero di
-         accessibilità e dall'ordine di tabulazione. Si transiziona per davvero
-         — è animabile in modo discreto, e la regola CSS è che durante la
-         transizione vale `visible` se lo è uno dei due estremi: quindi entra
-         subito e esce solo alla fine della dissolvenza. Esattamente ciò che
-         serve. */
-      visibility: hidden;
-      opacity: 0;
-      transform: translate3d(0, 2.5%, 0);
-      transition:
-        opacity 520ms var(--ease-out-expo),
-        transform 620ms var(--ease-out-expo),
-        visibility 520ms;
-    }
+  /* Un alone appena percettibile dietro la vetrina: stacca i device dal fondo
+     senza `backdrop-filter` (confinato alla navbar) e senza griglia blueprint
+     (provata e tolta su richiesta). Un solo gradiente, dipinto una volta. */
+  .fp__shot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      124% 84% at 50% 36%,
+      color-mix(in oklab, var(--color-accent) 14%, transparent) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 
-    :global(html.js-anim) .fp__plate.is-active {
-      visibility: visible;
-      opacity: 1;
-      transform: none;
-    }
+  /* ⚠ `container-type: size` (non `inline-size`): serve `cqh`, cioè la query
+     sull'ALTEZZA. Sta su questo wrapper e non su `.fp__shot` di proposito — la
+     size containment impedisce ai figli di contribuire all'altezza del
+     contenitore, e messa su `.fp__shot` farebbe collassare la vetrina nel ramo
+     in flusso, dove è l'altezza della riga a doverla dimensionare. Qui
+     l'altezza arriva da `height: 100%`, quindi è sempre definita. */
+  .fp__fit {
+    position: relative;
+    display: grid;
+    /* ⚠ `grid-template-columns: minmax(0, 1fr)` + `align-content: center`, MAI
+       `place-content: center`. Con `justify-content: center` la traccia della
+       colonna si dimensiona sul CONTENUTO, quindi il `width: 100%` della
+       vetrina non ha più una base definita: diventa circolare e collassa.
+       Misurato via CDP alla prima stesura — `.fp__devices` veniva 2×3px, gli
+       schermi 0×0, e i reel avevano corsa 0 (cioè l'animazione "funzionava" su
+       elementi inesistenti). Il centraggio orizzontale lo fa `justify-self`
+       sul figlio, che non tocca il dimensionamento della traccia. */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    container-type: size;
+  }
 
-    /* Tutto parte dalla colonna 2, come l'intestazione della sezione: con i
-       piatti a filo di colonna 1 il titolo del progetto risultava sfalsato di una
-       colonna rispetto a "Tre lavori, per esteso", e la sezione sembrava composta
-       da due griglie diverse. */
-    :global(html.js-anim) .fp__n {
-      grid-column: 2 / span 4;
-      grid-row: 1;
-    }
+  /* =========================== M17a — il duo di device ==================== */
+  /* Tutta la geometria passa da queste quattro custom property, così la
+     variante speculare costa quattro righe e non un secondo blocco. */
+  .fp__devices {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    --mac-w: 88%;
+    --mac-x: center;
+    --phone-w: 20%;
+    --phone-l: auto;
+    --phone-r: 1%;
+    --phone-drop: 20%;
+    /* ⚠ IL `min()` È IL VINCOLO DI ALTEZZA, e il numero è MISURATO, non stimato.
+       Il laptop è l'unico figlio in flusso, quindi è LUI a essere centrato
+       verticalmente, non l'ingombro del gruppo: il telefono sporge sotto e quel
+       pezzo non entra nel conto del centraggio. Il vincolo è quindi
+       `(H − macH)/2 + macH·1.2 ≤ H`, cioè `macH ≤ 0.714H`; con `macH ≈ 0.565W`
+       (misurato) si ottiene `W ≤ 1.26H`.
+       Prima stesura: `138cqh`, ricavato dall'ingombro invece che dal centraggio.
+       Sembrava giusto e a 1440×900 lo era per 32px, ma a 1440×720 il telefono
+       sforava di 21px sotto il bordo della card. Portato a 124.
+       ⚠ POI L'INTRO È DIVENTATA PIÙ ALTA (titolo su due righe + il bottone
+       CTA), quindi la finestra della vetrina si è ristretta ANCHE lei — a
+       parità di `124cqh` il duo tornava a sforare, di 3px a 1440×720. Il
+       rapporto fra l'altezza del laptop e la larghezza del gruppo non è
+       costante al ridursi della finestra: i padding dei device sono in `px`
+       fissi (clamp con un minimo assoluto, vedi `.fp__mac-lid`), quindi su una
+       vetrina piccola pesano proporzionalmente più che su una grande. 116
+       lascia di nuovo margine reale, verificato via CDP su quattro viewport
+       (720/640/768/1080 di altezza). */
+    width: min(100%, 116cqh);
+    justify-self: center;
+  }
 
-    /* M13 — il titolo sta SOTTO, colonne 2-8. */
-    :global(html.js-anim) .fp__title {
-      grid-column: 2 / span 7;
-      grid-row: 2;
-      z-index: 0;
-      align-self: center;
-      max-width: none;
-    }
+  /* La variante della seconda card. Non è un semplice specchio: cambiano anche
+     le proporzioni (laptop più grande, telefono più grande, sporgenza minore),
+     perché due card identiche di fila si leggono come un copia-incolla. */
+  .fp__devices--mirror {
+    --mac-w: 92%;
+    --mac-x: end;
+    --phone-w: 23%;
+    /* 1.5% e non 0: a filo del bordo il telefono sfiorava la colonna di testo
+       accanto, e la vetrina sembrava sfondata invece che composta. */
+    --phone-l: 1.5%;
+    --phone-r: auto;
+    --phone-drop: 12%;
+  }
 
-    /* ...e la cover sopra, colonne 7-12: le colonne 7 e 8 sono la zona di
-       sovrapposizione, dove le ultime lettere del titolo finiscono dietro la
-       fotografia. Larghezza e posizione sono costanti, quindi il compositor
-       disegna questo strato una volta sola. */
-    :global(html.js-anim) .fp__cover {
-      grid-column: 7 / span 6;
-      grid-row: 2;
-      z-index: 1;
-      align-self: center;
-    }
+  .fp__mac {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: var(--mac-w);
+    justify-self: var(--mac-x);
+  }
 
-    :global(html.js-anim) .fp__img {
-      max-height: 46svh;
+  /* Il coperchio è un filo più STRETTO del gruppo, così la base sotto risulta
+     più larga di lui — come nella realtà — senza che nessuno dei due debba
+     sporgere fuori dal gruppo. La prima stesura faceva l'opposto (base al 106%
+     del coperchio) e nella variante speculare, con il laptop allineato a destra,
+     l'angolo della base finiva tagliato dal clip della card. */
+  .fp__mac-lid {
+    width: 95%;
+    justify-self: center;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-frame);
+    /* ⚠ LUNGHEZZE, NON PERCENTUALI, e non è pignoleria: un `padding` in % si
+       risolve sulla larghezza del CONTENITORE, non dell'elemento. Costato due
+       difetti misurati via CDP nella prima stesura — la cornice del telefono
+       (`padding: 4.5%`) prendeva il 4.5% di `.fp__devices` invece che del
+       telefono, cioè 32px invece di 6, e lo schermo si riduceva a 77px di
+       larghezza su un telefono da 143. Una cornice di device è comunque uno
+       spessore quasi costante, non una proporzione: la lunghezza è anche la
+       descrizione più onesta.
+       Il mento sotto lo schermo è il doppio delle cornici laterali: è quella
+       asimmetria a far leggere "laptop" invece di "cornice". */
+    padding: clamp(6px, 0.7vw, 12px) clamp(6px, 0.7vw, 12px) clamp(13px, 1.5vw, 26px);
+    background-color: var(--color-surface-2);
+  }
+
+  .fp__mac-screen {
+    position: relative;
+    overflow: clip;
+    aspect-ratio: 16 / 10;
+    border-radius: 0.25rem;
+    background-color: var(--color-canvas);
+  }
+
+  /* La camera: un punto, non una tacca. Riduttivo per scelta. */
+  .fp__cam {
+    position: absolute;
+    z-index: 2;
+    top: 0.5%;
+    /* ⚠ Centrato con `inset-inline: 0` + `margin-inline: auto`, MAI con
+       `left: 50%` + `translate: -50%`. Le proprietà CSS indipendenti
+       `translate`/`scale`/`rotate` sono vietate nel repo perché GSAP le
+       ricompila dentro la propria matrice applicandole due volte (è costata una
+       griglia finita mezza pagina a sinistra). Qui GSAP non anima questo
+       elemento, ma la regola vale comunque: un domani potrebbe. */
+    inset-inline: 0;
+    width: 3px;
+    height: 3px;
+    margin-inline: auto;
+    border-radius: 50%;
+    background-color: var(--color-hairline-strong);
+  }
+
+  /* La base: la larghezza piena del gruppo, quindi più larga del coperchio.
+     ⚠ `height` in LUNGHEZZA: era `1.6%`, e una percentuale di altezza su un
+     elemento il cui contenitore ha altezza `auto` si risolve in `auto`. Risultato
+     misurato: la base era alta 1px — cioè i soli bordi — e il laptop non aveva
+     una base. */
+  .fp__mac-base {
+    width: 100%;
+    height: clamp(4px, 0.5vw, 9px);
+    justify-self: center;
+    border: 1px solid var(--color-hairline-strong);
+    border-top: 0;
+    border-radius: 0 0 0.3rem 0.3rem;
+    /* Più chiara del coperchio: è l'unico riflesso "metallico" del disegno, e
+       senza di lui la base restava una riga indistinguibile dal fondo. */
+    background-color: color-mix(in oklab, var(--color-hairline-strong) 78%, var(--color-canvas));
+  }
+
+  .fp__phone {
+    position: absolute;
+    z-index: 3;
+    width: var(--phone-w);
+    inset-inline: var(--phone-l) var(--phone-r);
+    /* Sporge sotto il coperchio di `--phone-drop` dell'altezza del gruppo: è
+       questa sovrapposizione a fare la profondità, e il telefono resta INTERO
+       (è la prova della versione mobile: tagliarlo la annullerebbe). */
+    bottom: calc(-1 * var(--phone-drop));
+    /* Lunghezza, non percentuale — vedi la nota su `.fp__mac-lid`: è qui che il
+       difetto si vedeva, la cornice era 5 volte troppo spessa. */
+    padding: clamp(4px, 0.45vw, 8px);
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: 1.7rem;
+    background-color: var(--color-surface-2);
+    /* L'ombra è ciò che lo stacca dal laptop dietro. Statica, mai animata. */
+    box-shadow: 0 1.5rem 3rem -0.75rem rgb(0 0 0 / 0.85);
+  }
+
+  .fp__phone-screen {
+    position: relative;
+    overflow: clip;
+    aspect-ratio: 9 / 19.5;
+    border-radius: 1.35rem;
+    background-color: var(--color-canvas);
+  }
+
+  .fp__island {
+    position: absolute;
+    z-index: 2;
+    top: 2.2%;
+    inset-inline: 0; /* stessa nota del `.fp__cam`: margini auto, mai translate */
+    width: 30%;
+    height: 2.4%;
+    margin-inline: auto;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-hairline-strong);
+  }
+
+  /* -- Il reel: il wireframe che scorre ---------------------------------- */
+  .fp__reel {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    /* Altezza in % dello schermo: 260% = ~2,6 schermate da scorrere. È l'UNICO
+       posto dove questo numero esiste: `data-reel` è un marcatore nudo e la
+       corsa in pixel la calcola stage.ts misurando reel e finestra a runtime.
+       Cambiare qui basta, e vale anche per gli screenshot veri che avranno
+       proporzioni diverse. */
+    height: 260%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9%;
+    padding: 3% 6%;
+  }
+
+  .fp__reel--m {
+    height: 340%;
+    gap: 1.2%;
+    padding: 4% 7%;
+  }
+
+  /* -- Il reel con lo SCREENSHOT VERO ------------------------------------
+     ⚠ `height: auto`, e NON il 260%/340% dei wireframe: qui l'altezza la deve
+     dettare l'IMMAGINE, non il CSS. Gli screenshot sono catturati a 2,6
+     schermate desktop e 3,4 mobile, quindi messi a `width: 100%` dentro uno
+     schermo delle stesse proporzioni producono da soli esattamente quelle
+     altezze — verificato: 1150×1869 su uno schermo 16:10 fa 260%.
+     Il vantaggio non è l'eleganza, è che stage.ts misura la corsa a runtime
+     (`reel.offsetHeight − schermo.clientHeight`): un reel con proporzioni
+     diverse — un altro sito, un altro ritaglio — funziona senza toccare una
+     riga, invece di richiedere che qualcuno ricalcoli la percentuale. */
+  .fp__reel--shot {
+    display: block;
+    height: auto;
+    padding: 0;
+    gap: 0;
+  }
+
+  .fp__reel--shot :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ⚠ I GRIGI DEL WIREFRAME SONO PIÙ CHIARI DI QUELLI DI SUPERFICIE, e non è un
+     capriccio: la prima stesura usava `--color-surface-2` (#181818) per i blocchi
+     e `--color-hairline` (#242424) per le righe, cioè i token pensati per stare
+     su una CARD. Ma questi stanno dentro uno schermo il cui fondo è
+     `--color-canvas` (#050505) e la card che li contiene è #0e0e0e: sullo
+     screenshot il "sito" dentro il MacBook era una macchia indistinta. Sono
+     ricavati con `color-mix` da `--color-hairline-strong`, così restano
+     ancorati alla palette invece di essere tre hex nuovi.
+
+     La gerarchia è quella di un wireframe vero: chrome (nav, footer) in
+     secondo piano, blocchi immagine a metà, righe di testo le più chiare. */
+  .fp__blk {
+    flex: 0 0 var(--h);
+    width: var(--w);
+    border-radius: 0.15rem;
+    /* `line` — il testo, l'elemento più leggibile della pagina */
+    background-color: var(--color-hairline-strong);
+  }
+
+  /* `bar` — navbar e footer: cromatura, sta indietro */
+  .fp__blk[data-t='bar'] {
+    background-color: color-mix(in oklab, var(--color-hairline-strong) 42%, var(--color-canvas));
+  }
+
+  .fp__blk[data-t='hero'],
+  .fp__blk[data-t='shot'] {
+    background-color: color-mix(in oklab, var(--color-hairline-strong) 70%, var(--color-canvas));
+    border-radius: 0.3rem;
+  }
+
+  .fp__blk[data-t='accent'] {
+    background-color: color-mix(in oklab, var(--color-accent) 34%, var(--color-canvas));
+    border-radius: 0.3rem;
+  }
+
+  /* Le griglie a colonne: un gradiente ripetuto, zero elementi figli. */
+  .fp__blk[data-t='cols3'] {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-hairline-strong) 70%, var(--color-canvas)) 0 30%,
+      transparent 30% 35%
+    );
+  }
+  .fp__blk[data-t='cols2'] {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-hairline-strong) 70%, var(--color-canvas)) 0 47%,
+      transparent 47% 53%
+    );
+  }
+
+  /* Nel reel mobile le griglie si impilano: diventano un blocco pieno. Dettaglio
+     che fa leggere i due device come lo stesso sito a due larghezze. */
+  .fp__reel--m .fp__blk[data-t='cols3'],
+  .fp__reel--m .fp__blk[data-t='cols2'] {
+    background-image: none;
+    background-color: color-mix(in oklab, var(--color-hairline-strong) 70%, var(--color-canvas));
+    border-radius: 0.3rem;
+  }
+
+  /* =========================== M17b — la chiamata ======================== */
+  .fp__call {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: clamp(0.7rem, 1.6vh, 1.35rem);
+    width: 100%;
+    max-width: 30rem;
+    justify-self: center;
+    font-size: clamp(0.75rem, 1.35vh, 0.9375rem);
+  }
+
+  .fp__call-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.7em;
+    border-bottom: 1px solid var(--color-hairline);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* ⚠ LO STATO STATICO È QUELLO FINALE — chiamata CONCLUSA — e non quello
+     iniziale. Senza JS o sotto i 900px l'animazione non gira mai, quindi ciò che
+     si vede lì deve essere il risultato, non l'inizio congelato. Costava un
+     difetto reale, trovato nello screenshot a 390px: `--live` e `--done` vivono
+     nella stessa cella di griglia e partivano entrambe a `opacity: 1`, perché lo
+     spegnimento di `--done` stava dentro il blocco `@media (min-width: 56.25rem)`
+     — su mobile si leggeva "CONCLUSA · 00:34" stampato SOPRA "In corso".
+     È lo stesso principio per cui il trascritto senza JS è già completo. */
+  .fp__call-dot {
+    flex: 0 0 auto;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background-color: var(--color-hairline-strong);
+  }
+
+  /* I due stati nella stessa cella: si scambiano senza spostare niente. La
+     larghezza è quella del più lungo, quindi nessun salto di layout. */
+  .fp__call-state {
+    display: grid;
+  }
+  .fp__call-s {
+    grid-area: 1 / 1;
+  }
+  .fp__call-s--live {
+    opacity: 0;
+  }
+
+  .fp__call-num {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* -- La forma d'onda --------------------------------------------------- */
+  .fp__wave {
+    display: flex;
+    align-items: center;
+    gap: 0.16em;
+    height: 3.2em;
+  }
+
+  /* ⚠ `border-radius: 1px`, NON `--radius-pill`. Con il raggio pill una barra
+     alta 4px diventa un cerchio: sullo screenshot la forma d'onda si leggeva
+     come una collana di perline, non come un tracciato audio. Il raggio di un
+     tracciato deve restare molto più piccolo della barra più bassa. */
+  .fp__bar {
+    flex: 1 1 0;
+    min-width: 2px;
+    height: calc(var(--a) * 100%);
+    border-radius: 1px;
+    /* Come le etichette di stato: il colore statico è quello ACCESO. A
+       `--color-hairline` (#242424) su fondo card #0e0e0e la forma d'onda è
+       praticamente invisibile, e senza JS resterebbe così per sempre. Lo
+       spegnimento iniziale lo mette il ramo js-anim, che è l'unico in cui
+       qualcosa la riaccenderà. */
+    background-color: color-mix(in oklab, var(--color-accent) 45%, var(--color-text-3));
+  }
+
+  /* -- Il trascritto ----------------------------------------------------- */
+  .fp__turns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(0.6rem, 1.4vh, 1.1rem);
+    /* Nessun pallino: il divieto degli elenchi puntati è visivo, la semantica
+       ordinata resta (vedi la nota nel markup). */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* L'agente rientra: due registri distinti senza colorare bolle. */
+  .fp__turn[data-who='Agente'] {
+    padding-left: 9%;
+  }
+
+  .fp__who {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* Il filetto dopo l'etichetta: lo stesso dispositivo di `01/02/03`. */
+  .fp__who::after {
+    content: '';
+    flex: 1 1 auto;
+    max-width: 3.5em;
+    height: 1px;
+    background-color: var(--color-hairline);
+  }
+
+  .fp__turn[data-who='Agente'] .fp__who {
+    color: var(--color-accent);
+  }
+
+  .fp__said {
+    margin-top: 0.35em;
+    line-height: 1.45;
+    color: var(--color-text-1);
+    text-wrap: pretty;
+  }
+
+  .fp__turn[data-who='Cliente'] .fp__said {
+    color: var(--color-text-2);
+  }
+
+  /* -- L'esito ----------------------------------------------------------- */
+  .fp__slot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0 1rem;
+    padding: 0.85em 1em;
+    border: 1px solid var(--color-hairline-strong);
+    border-left: 2px solid var(--color-accent);
+    border-radius: var(--radius-frame);
+    background-color: var(--color-surface-2);
+  }
+
+  .fp__slot-when {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--color-text-1);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fp__slot-what {
+    font-size: var(--text-micro);
+    letter-spacing: 0.02em;
+    color: var(--color-text-2);
+  }
+
+  .fp__slot-ok {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    display: grid;
+    place-items: center;
+    width: 1.7em;
+    height: 1.7em;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    color: var(--color-canvas);
+    font-size: 0.8em;
+  }
+
+  .fp__call-foot {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* -- Sotto i 900px: il telefono da solo -------------------------------
+     Il duo non funziona a queste larghezze, ed è aritmetica, non gusto: con la
+     card a colonna singola la vetrina è larga ~318px, quindi il laptop avrebbe
+     uno schermo da 218px (un sito desktop dentro 218px è una macchia) e il
+     telefono 57px (una scheggia). Resta il TELEFONO, più grande — e su un
+     telefono la prova che conta è proprio la versione mobile.
+
+     `width < 56.25rem` (range syntax) e non `max-width: 56.24rem`: il secondo
+     lascia una fessura di 0.16px in cui non si applica né questo blocco né
+     quello da 900px in su. */
+  @media (width < 56.25rem) {
+    /* L'altezza la detta il telefono, non una proporzione: un ritratto dentro
+       un box 16/12 non ci sta, e il container query non serve più perché non c'è
+       nessuna altezza da rispettare. */
+    .fp__shot {
+      aspect-ratio: auto;
+    }
+    .fp__fit {
+      height: auto;
+      container-type: normal;
+    }
+    .fp__devices {
       width: 100%;
     }
-
-    :global(html.js-anim) .fp__sub {
-      grid-column: 2 / span 4;
-      grid-row: 3;
+    .fp__mac {
+      display: none;
     }
-    :global(html.js-anim) .fp__meta {
-      grid-column: 2 / span 4;
-      grid-row: 4;
+    .fp__phone {
+      position: static;
+      width: min(60%, 13rem);
+      justify-self: center;
+      bottom: auto;
+    }
+    /* Il pavimento del corpo del trascritto sale: 1.35vh su un telefono dà 11px,
+       e il pavimento di leggibilità del sito è più alto di così. */
+    .fp__call {
+      font-size: clamp(0.8125rem, 1.35vh, 0.9375rem);
+    }
+  }
+
+  /* -- Il layout asimmetrico: solo da 900px in su -----------------------
+     40% testo / 60% vetrina. È LAYOUT, non movimento, quindi NON è gated su
+     `html.js-anim`: vale anche senza JS, dove le card restano in flusso. */
+  @media (min-width: 56.25rem) {
+    .fp__card {
+      grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+    }
+    .fp__shot {
+      aspect-ratio: auto;
+    }
+  }
+
+  /* =======================================================================
+     M16 — IL MAZZO. Solo ≥900px E con JS attivo.
+
+     Le card escono dal flusso e si sovrappongono nella stessa cella. Da qui in
+     poi nessuna proprietà di posizione è animata in CSS: `transform` è
+     territorio esclusivo di GSAP (vedi stage.ts).
+
+     ⚠ Nessuna proprietà CSS `translate`/`scale`/`rotate` su `.fp__card`, e non è
+     una dimenticanza: GSAP le legge e le ricompila DENTRO la matrice che scrive
+     su `transform`, applicandole due volte (divieto in CLAUDE.md). Il
+     parcheggio iniziale delle card lo fa `gsap.set`, non il CSS. */
+  @media (min-width: 56.25rem) {
+    /* Altezza FISSA, non `min-height`: è il vincolo dello sticky (vedi la nota
+       in testa al file). `align-content: stretch` perché la riga dello stack
+       deve prendersi tutto lo spazio residuo — con `center` (il default della
+       sezione) le righe non si allungherebbero e `1fr` non avrebbe senso. */
+    /* ⚠ `padding-top` che tiene conto della NAVBAR. La sezione è incollata a
+       `top: 0`, quindi il suo bordo superiore coincide col bordo della viewport,
+       dove sta la pillola fissa della navbar. Col titolo piccolo di prima
+       (32px) i 45px di padding bastavano; col titolo grande la prima riga
+       arrivava a sfiorare la pillola — misurato, si toccavano fra x 512 e 680.
+       `--nav-h` + un respiro è la stessa clearance che usa `.idx`. */
+    :global(html.js-anim) .fp {
+      height: 100svh;
+      align-content: stretch;
+      padding-top: calc(var(--nav-h) + 1rem);
+    }
+
+    :global(html.js-anim) .fp__wrap {
+      height: 100%;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    /* `overflow: clip` è funzionale: le card che aspettano il proprio turno
+       stanno parcheggiate SOTTO il bordo inferiore, e senza questo si
+       vedrebbero sporgere nella sezione successiva. */
+    :global(html.js-anim) .fp__stack {
+      position: relative;
+      overflow: clip;
+      min-height: 0;
+      margin-top: clamp(1.25rem, 2.5vw, 2rem);
+      display: block;
+    }
+
+    /* ⚠ ERA `height: 96%` INCHIODATO, cioè corretto SOLO con tre card. I punti
+       percentuali liberi sono lo spazio in cui le card arrivate si posano a
+       scalini restando dentro il clip: servono `STEP × (card − 1)` (STEP = 2 in
+       stage.ts). Con una quarta card il 96% avrebbe fatto sfondare l'ultima dal
+       contenitore, in silenzio. Ora il conto lo fa il CSS da `--fp-cards`, che
+       Astro scrive sullo stack dalla lunghezza reale dell'array. */
+    :global(html.js-anim) .fp__card {
+      position: absolute;
+      inset-inline: 0;
+      top: 0;
+      height: calc(100% - (var(--fp-cards, 3) - 1) * 2%);
+      /* Invisibili finché `gsap.set` non ha stabilito il parcheggio: senza, il
+         primo fotogramma mostrerebbe le tre card sovrapposte a pila ferma, cioè
+         solo l'ULTIMA. Se il JS va in errore `showEverything()` rimuove
+         `html.js-anim` e tutto questo blocco si disattiva: non esiste uno stato
+         in cui le card restano invisibili. */
+      opacity: 0;
+    }
+
+    /* -------- Gli stati di partenza di M17 ----------------------------------
+       Valgono SOLO con JS: senza, il reel resta in cima (uno screenshot dentro
+       un device) e il trascritto è già completo. Nessuno stato incompleto mai.
+
+       ⚠ Il reel NON parte da `opacity: 0` né sfocato: "spento" non è mai
+       invisibile mentre è leggibile (invariante di M14). Parte semplicemente in
+       cima alla pagina, che è dove uno screenshot sta di suo. */
+
+    /* Il trascritto: prima battuta spenta. `data-activate` non c'entra qui —
+       la soglia di M14 (`top 80%`) scatterebbe quando entra la SEZIONE, cioè
+       molto prima che questa card sia in cima al mazzo. La classe la mette
+       stage.ts leggendo il progresso della timeline. */
+    :global(html.js-anim) .fp__turn,
+    :global(html.js-anim) .fp__slot,
+    :global(html.js-anim) .fp__call-foot {
+      opacity: 0;
+    }
+    :global(html.js-anim) .fp__turn {
+      /* Solo `translate` come proprietà CSS indipendente? NO: `transform`.
+         Stessa regola del divieto — e qui è anche l'unica che compone con la
+         transizione di `opacity` senza un secondo layer. */
+      transform: translate3d(0, 0.5rem, 0);
+    }
+    :global(html.js-anim) .fp__slot {
+      transform: scale(0.94);
+    }
+    /* Il ribaltamento degli stati statici: qui — e SOLO qui, dove qualcosa li
+       riaccenderà — la chiamata riparte "in corso" e la forma d'onda spenta. */
+    :global(html.js-anim) .fp__call-s--done {
+      opacity: 0;
+    }
+    :global(html.js-anim) .fp__call-s--live {
+      opacity: 1;
+    }
+    :global(html.js-anim) .fp__call-dot {
+      background-color: var(--color-accent);
+    }
+    :global(html.js-anim) .fp__bar {
+      background-color: var(--color-hairline);
+    }
+
+    /* -------- L'accensione: additiva, una volta sola ----------------------
+       La cascata fra elementi fratelli è `transition-delay` su `--k` / `--w`,
+       quindi NON costa un tween per elemento: è tutta CSS. Stessa filosofia di
+       M14, e per lo stesso motivo la classe si AGGIUNGE e non si toglie mai —
+       risalendo la pagina il trascritto non si dis-dice. */
+    /* Acceso, ma NON accento pieno: la forma d'onda è un elemento di contorno e
+       a saturazione piena rubava l'occhio al trascritto, che è il contenuto. */
+    :global(html.js-anim) .fp__call.is-in .fp__bar {
+      background-color: color-mix(in oklab, var(--color-accent) 45%, var(--color-text-3));
+      transition: background-color 260ms var(--ease-out-expo) calc(var(--w) * 15ms);
+    }
+
+    :global(html.js-anim) .fp__call.is-in .fp__turn {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+      transition:
+        opacity 520ms var(--ease-out-expo) calc(600ms + var(--k) * 420ms),
+        transform 520ms var(--ease-out-expo) calc(600ms + var(--k) * 420ms);
+    }
+
+    /* L'esito arriva DOPO l'ultima battuta (4 × 420 + 600 = 2280ms) con un
+       soprassalto: `--ease-back` non esiste in palette, quindi l'overshoot è
+       nella curva `--ease-morph` più una scala che parte sotto 1. */
+    :global(html.js-anim) .fp__call.is-in .fp__slot {
+      opacity: 1;
+      transform: scale(1);
+      transition:
+        opacity 420ms var(--ease-out-expo) 2500ms,
+        transform 520ms var(--ease-morph) 2500ms;
+    }
+
+    :global(html.js-anim) .fp__call.is-in .fp__call-foot {
+      opacity: 1;
+      transition: opacity 520ms var(--ease-out-expo) 2900ms;
+    }
+
+    /* La chiamata si chiude: il pallino si spegne e l'etichetta si scambia. */
+    :global(html.js-anim) .fp__call.is-in .fp__call-s--live {
+      opacity: 0;
+      transition: opacity 300ms var(--ease-out-expo) 2600ms;
+    }
+    :global(html.js-anim) .fp__call.is-in .fp__call-s--done {
+      opacity: 1;
+      transition: opacity 300ms var(--ease-out-expo) 2600ms;
+    }
+    :global(html.js-anim) .fp__call.is-in .fp__call-dot {
+      background-color: var(--color-hairline-strong);
+      transition: background-color 300ms var(--ease-out-expo) 2600ms;
+    }
+
+    /* ⚠ `is-instant` azzera DURATA **E** RITARDO, non solo il ritardo. Trovato
+       via CDP su un salto al fondo pagina: azzerando solo il `delay`, un
+       elemento con 2,5s di durata restava a metà per secondi dopo un salto —
+       un'animazione di cui nessuno ha visto l'inizio non deve nemmeno impiegare
+       tempo a finire. Stessa regola di M14. */
+    :global(html.js-anim) .fp__call.is-instant * {
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
     }
   }
 
@@ -309,6 +1556,6 @@ const total = String(projects.length).padStart(2, '0');
      `prefers-reduced-motion: no-preference`, quindi gatare sulla classe implica
      già il consenso al movimento. Se l'utente cambia impostazione a sessione
      aperta, il ramo reduce di reveal.ts rimuove la classe e la stage si smonta
-     da sola. Un blocco `reduce` con !important qui sarebbe una seconda fonte di
+     da sola. Un blocco `reduce` con !important sarebbe una seconda fonte di
      verità per la stessa regola. */
 </style>

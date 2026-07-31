@@ -208,8 +208,24 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
   .tli__dash {
     color: var(--color-hairline-strong);
   }
+  /* "In corso" respira: unica animazione CONTINUA del componente (le altre
+     tutte one-shot, per la regola del sito — vedi CLAUDE.md), stessa eccezione
+     già concessa al word-carousel della hero e all'anello di scroll: qui il
+     loop non annuncia un ingresso, descrive uno STATO tuttora vero ("la laurea
+     È ancora in corso, ogni volta che guardi"), quindi il ripetersi è il senso
+     e non un vizio.
+     ⚠ Nessun gate su `html.js-anim`: è `animation` CSS pura, quindi funziona
+     anche senza JS — e `prefers-reduced-motion: reduce` la ferma già da sola
+     tramite la regola globale in `global.css` (`animation-iteration-count: 1
+     !important`), che non richiede una dichiarazione per componente. */
   .tli__now {
     color: var(--color-accent);
+    animation: tli-now-breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes tli-now-breathe {
+    50% {
+      opacity: 0.4;
+    }
   }
 
   .tli__role {

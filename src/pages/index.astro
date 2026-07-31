@@ -45,30 +45,61 @@ import { SITE } from '../lib/site';
 <BaseLayout description={SITE.description}>
   <Handoff name="intro" tone="canvas">
     <HeroHome slot="out" />
-    <WhatIDo slot="in" />
+    <div slot="in">
+      <WhatIDo />
+      <SocialProof />
+    </div>
   </Handoff>
 
-  <SocialProof />
+  {
+    /* La corsa è il tempo in cui il mazzo di §30 si compone mentre lo schermo
+      resta incollato. È l'equivalente onesto di ciò che `pin: true` farebbe
+      iniettando un pin-spacer nel DOM: qui la distanza è un elemento dichiarato,
+      non una mutazione di layout al refresh.
 
-  {/* La corsa di 220svh è il tempo in cui i tre piatti si scambiano mentre lo
-      schermo resta incollato. È l'equivalente onesto di ciò che `pin: true`
-      farebbe iniettando un pin-spacer nel DOM: qui la distanza è un elemento
-      dichiarato, non una mutazione di layout al refresh. */}
-  <Handoff name="featured" tone="paper" travel={220}>
+      ⚠ 440svh, ERA 360 (e 320, e 220 prima ancora). I 100svh fissi in fondo sono
+      UNO SCHERMO DI CORSA A VUOTO: il mazzo finisce di comporsi 100svh prima
+      della fine e resta immobile per l'ultimo schermo, così chi scorre lo
+      vede fermo e intero prima che lo Statement cominci a coprirlo — vedi
+      `holdPx` in stage.ts, che è sempre esattamente un'altezza di viewport,
+      indipendentemente da questo valore. Gli svh in più rispetto a 360 vanno
+      quindi TUTTI alla parte animata (mazzo che si compone), non alla coda:
+      allungano proporzionalmente ogni fase della timeline di stage.ts,
+      compreso `LEAD` — la prima card (Network Day) resta sola in scena più a
+      lungo prima che la seconda le salga sopra.
+
+      ⚠ QUESTO VALORE NON SI ALZA DA SOLO: va in coppia con `LEAD` in stage.ts
+      (oggi 0.45), che è la FRAZIONE di corsa riservata alla prima card. Alzare
+      solo uno dei due non produce quasi nulla — la formula in pixel è nel
+      commento accanto a `LEAD`. Tre giri di richiami su questo punto: 220 →
+      320 → 360 → 440svh, con LEAD 0.12 → 0.2 → 0.32 → 0.45.
+
+      ⚠ QUESTO VALORE, NON `end` DELLO SCROLLTRIGGER, È CIÒ CHE TIENE INCOLLATA
+      LA SEZIONE. Lo sticky di `.ho__out` dura quanto questo distanziatore (vedi
+      Handoff.astro); ScrollTrigger lo LEGGE per sapere su quale distanza
+      scrubbare. Allungare solo `end` in stage.ts avrebbe spalmato l'animazione
+      su una corsa più lunga dello sticky: il mazzo sarebbe ancora stato in
+      movimento mentre lo Statement lo copriva, cioè l'opposto dell'effetto
+      voluto. La coda ferma sta in stage.ts come tween finale, ma lo SPAZIO in
+      cui esistere glielo dà questa riga. */
+  }
+  <Handoff name="featured" tone="paper" travel={440}>
     <FeaturedProjects slot="out" name="featured" />
     <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
   </Handoff>
 
-  <Testimonials n="50" />
+  <Testimonials n="05" />
 
-  {/* `travel` anche qui, ma per un motivo diverso da §30: là è il tempo in cui i
+  {
+    /* `travel` anche qui, ma per un motivo diverso da §30: là è il tempo in cui i
       piatti si scambiano, qui è TEMPO DI LETTURA. Senza, la CTA inizia a coprire
       il teaser nell'istante esatto in cui il teaser ha finito di comparire, e le
       tre tappe del percorso restano leggibili per un fotogramma. Va bene per un
       hero, non per contenuto che si deve leggere: uno schermo di corsa lo tiene
-      fermo e intero prima che l'accento arrivi. */}
+      fermo e intero prima che l'accento arrivi. */
+  }
   <Handoff name="closing" tone="accent" travel={100}>
-    <JourneyTeaser slot="out" n="60" />
+    <JourneyTeaser slot="out" n="04" />
     <CTASection slot="in" />
   </Handoff>
 </BaseLayout>

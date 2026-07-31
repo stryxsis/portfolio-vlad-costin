@@ -24,7 +24,11 @@ import { TIMELINE } from '../../data/timeline';
 interface Props {
   n?: string;
 }
-const { n = '60' } = Astro.props;
+const { n = '04' } = Astro.props;
+
+// `teaser: false` esclude una voce anche se rientrerebbe nel `limit` — vedi il
+// campo in lib/types.ts e la nota sulla voce spenta in data/timeline.ts.
+const teaserEntries = TIMELINE.filter((e) => e.teaser !== false);
 ---
 
 <section class="jt" data-section id="percorso-breve">
@@ -42,7 +46,7 @@ const { n = '60' } = Astro.props;
         radice di un figlio. Le custom property invece EREDITANO, ed è così che
         si ritara la dimensione dei numerali da qui. */}
     <div class="jt__tl">
-      <Timeline entries={TIMELINE} limit={3} compact />
+      <Timeline entries={teaserEntries} limit={3} compact />
     </div>
 
     <div class="jt__more">

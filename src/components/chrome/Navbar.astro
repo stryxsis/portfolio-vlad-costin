@@ -3,22 +3,34 @@
  * Navbar a due stati.
  *
  * Stato A (top di pagina): barra trasparente a piena larghezza, nessun fondo.
- * Stato B (scroll ≥ 80px): pill centrato con blur.
+ * Stato B (dopo 4px di scroll): pill piccolo e ravvicinato, con blur.
  *
  * UN SOLO nodo DOM, non due sovrapposti. Le differenze fra i due stati sono
- * tutte proprietà CSS dello stesso elemento (max-width, background, border,
- * border-radius, backdrop-filter, height), quindi si transizionano in loco.
+ * tutte proprietà CSS dello stesso elemento (larghezza, gap, background,
+ * bordo, raggio, backdrop-filter, altezza), quindi si transizionano in loco.
  * Due nodi cross-fadati avrebbero duplicato i link nell'albero di
  * accessibilità e richiesto un aria-hidden su elementi focusabili — che è
  * esattamente un errore di accessibilità, non un dettaglio.
  *
- * Il morph è innescato da UNA classe su <html> (`.nav-compact`) che uno
- * ScrollTrigger `onToggle` accende una volta sola (src/scripts/nav.ts):
- * un paint sulla transizione, zero lavoro per frame.
+ * Il morph è TRIGGERATO, non legato allo scroll: una classe su <html>
+ * (`nav-compact`) si accende al primo pixel di scroll (src/scripts/nav.ts) e
+ * una transizione CSS a durata fissa la porta a termine da sola, sia dopo un
+ * pixel di scroll sia dopo mille — mai a metà strada; tornando a top 0 va a
+ * rovescio. Una versione precedente legava le stesse proprietà 1:1 allo
+ * scroll (`scrub`): essendo proprietà di LAYOUT (larghezza, gap, padding, non
+ * solo transform), ricalcolarle a ogni tick pesava più di quanto un singolo
+ * passaggio di transizione pesi qui. Durata e curva stanno in DUE token
+ * (`--nav-morph-t/-e` su `.nav`) letti da ogni regola, così il morph resta un
+ * solo gesto invece di sfaldarsi in animazioni scoordinate.
  *
- * `backdrop-filter` è consentito SOLO qui: l'area è ≤ 544×48px e il raggio di
- * blur non viene mai animato. Su una superficie a tutto schermo sarebbe la
- * singola fonte di jank più grave disponibile.
+ * ⚠ Perché la larghezza di arrivo è un numero misurato in JS e non
+ * `fit-content`: quest'ultimo è una parola chiave, non interpolabile, e
+ * faceva saltare la larghezza in un frame — il difetto che rendeva il morph
+ * invisibile. Vedi la nota su `.nav__bar` e `measure()` in nav.ts.
+ *
+ * `backdrop-filter` è consentito SOLO qui: l'area è piccola (vedi le misure
+ * più sotto) e il raggio di blur non viene mai animato di per sé — cambia
+ * insieme al resto in un'unica transizione innescata una volta.
  *
  * Menu mobile: <details>/<summary> nativo, quindi funziona anche senza JS.
  * Il JS aggiunge solo lenis.stop()/start() e la chiusura con Escape.
@@ -28,6 +40,11 @@ import Button from '../primitives/Button.astro';
 
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 const isCurrent = (href: string) => path === href;
+
+/* Sulla barra desktop "Contatti" e il bottone "Scrivimi" portavano allo stesso
+   posto — ridondante, e la voce in più toglieva anche eleganza alla pillola.
+   Il menu mobile non ha un bottone equivalente, quindi lì la voce resta. */
+const DESKTOP_NAV = NAV.filter((item) => item.href !== '/contatti');
 ---
 
 <header class="nav" data-nav>
@@ -39,7 +56,7 @@ const isCurrent = (href: string) => path === href;
 
     <nav class="nav__links" aria-label="Navigazione principale">
       {
-        NAV.map((item) => (
+        DESKTOP_NAV.map((item) => (
           <a
             href={item.href}
             class="nav__link"
@@ -90,6 +107,30 @@ const isCurrent = (href: string) => path === href;
     left: 0;
     width: 100%;
     z-index: var(--z-nav);
+
+    /* UNA durata e UNA curva per tutto il morph, dichiarate una volta qui e
+       lette da ogni discendente: il morph deve leggere come UN gesto solo, e
+       se durata e curva sono ripetute a mano su ogni regola prima o poi una
+       resta indietro e il gesto si sfalda in più animazioni scoordinate.
+
+       1200ms è deliberatamente lungo: la richiesta è vedere la pillola
+       rimpicciolirsi a occhio nudo, non accorgersi che è rimpicciolita.
+       Ma la durata da sola non basta, e questo è il punto meno ovvio:
+       `--ease-fluid` (la ease-out usata prima) a metà durata è già al 90% del
+       movimento, quindi allungarla non rendeva il morph più leggibile —
+       lasciava lo stesso scatto iniziale e ci aggiungeva un lungo strisciare
+       finale. Serve una curva a velocità quasi costante: `--ease-morph`
+       esiste per questo (vedi la nota in global.css). */
+    --nav-morph-t: 1200ms;
+    --nav-morph-e: var(--ease-morph);
+  }
+
+  /* Misura invisibile: vedi `measure()` in src/scripts/nav.ts. Per un istante
+     la barra riceve le metriche compatte per essere misurata, e NIENTE di
+     quel passaggio si deve vedere. */
+  :global(html.nav-measuring) .nav__bar,
+  :global(html.nav-measuring) .nav__bar * {
+    transition: none !important;
   }
 
   /* -- Desktop ------------------------------------------------------------ */
@@ -112,23 +153,38 @@ const isCurrent = (href: string) => path === href;
       border: 1px solid transparent;
       border-radius: 0;
       background-color: transparent;
-      transition:
-        max-width 420ms var(--ease-out-expo),
-        height 380ms var(--ease-out-expo),
-        margin-top 380ms var(--ease-out-expo),
-        padding-inline 380ms var(--ease-out-expo),
-        border-radius 380ms var(--ease-out-expo),
-        border-color 380ms var(--ease-snappy),
-        background-color 380ms var(--ease-snappy);
+      transition: width var(--nav-morph-t) var(--nav-morph-e),
+        height var(--nav-morph-t) var(--nav-morph-e),
+        margin-top var(--nav-morph-t) var(--nav-morph-e),
+        padding-inline var(--nav-morph-t) var(--nav-morph-e),
+        gap var(--nav-morph-t) var(--nav-morph-e),
+        border-radius var(--nav-morph-t) var(--nav-morph-e),
+        border-color var(--nav-morph-t) var(--nav-morph-e),
+        background-color var(--nav-morph-t) var(--nav-morph-e),
+        backdrop-filter var(--nav-morph-t) var(--nav-morph-e);
     }
 
-    /* Stato B: il morph. */
+    /* Stato B: pillola raccolta ma non minuscola.
+       ⚠ `var(--nav-compact-w)` e NON `fit-content`, che è ciò che si vorrebbe
+       scrivere qui: `fit-content` è una parola chiave, CSS non sa interpolare
+       `100%` → parola chiave, e la larghezza saltava al valore finale in un
+       frame solo mentre tutto il resto animava — il morph si vedeva a metà.
+       Il numero lo misura nav.ts (vedi lì la nota lunga). Il fallback 26rem
+       serve solo al frame prima della prima misura, e a chi arriva senza JS
+       (dove però la classe non viene mai accesa, quindi non si vede mai).
+
+       Nessun `max-width` accanto: `none` → `36rem` non è interpolabile per lo
+       stesso motivo, e non serve più — la larghezza di arrivo è già esatta.
+
+       `gap: 1.75rem` qui è la distanza badge↔link e link↔bottone: leggermente
+       più larga di quella FRA i link (1.5rem in `.nav__links` più sotto) di
+       proposito — il logo resta un po' più staccato dal gruppo di link. */
     :global(html.nav-compact) .nav__bar {
-      max-width: 36rem;
+      width: var(--nav-compact-w, 26rem);
       height: 3rem;
       margin-top: 0.75rem;
       padding-inline: 0.5rem;
-      gap: 1.25rem;
+      gap: 1.75rem;
       border-radius: var(--radius-pill);
       border-color: var(--color-hairline);
       /* 92% e non 82%: la navbar passa SOPRA le due sezioni full-bleed chiare, e
@@ -155,7 +211,10 @@ const isCurrent = (href: string) => path === href;
     font-weight: 500;
     color: var(--color-text-1);
     text-decoration: none;
-    transition: border-color 240ms var(--ease-snappy);
+    transition:
+      border-color 240ms var(--ease-snappy),
+      width var(--nav-morph-t) var(--nav-morph-e),
+      height var(--nav-morph-t) var(--nav-morph-e);
   }
   .nav__badge:hover {
     border-color: var(--color-accent);
@@ -169,11 +228,19 @@ const isCurrent = (href: string) => path === href;
     display: flex;
     align-items: center;
     gap: 1.75rem;
+    /* Nessun `margin-left: 0` nello stato compatto: `auto` → `0` non è
+       interpolabile (stessa famiglia di problemi di `fit-content`), e non
+       serve — mentre la barra si restringe verso la larghezza del contenuto
+       lo spazio libero si esaurisce, quindi questo margine si annulla DA SÉ,
+       in modo continuo. È anche ciò che fa "avvicinare" logo e link durante
+       il morph invece di farli scattare. */
     margin-left: auto;
+    transition: gap var(--nav-morph-t) var(--nav-morph-e);
   }
+  /* Un po' più larghi fra loro rispetto a prima, ma comunque meno del gap
+     badge↔link in `.nav__bar` qui sopra: il logo resta il più staccato. */
   :global(html.nav-compact) .nav__links {
-    gap: 1.25rem;
-    margin-left: 0;
+    gap: 1.5rem;
   }
 
   .nav__link {
@@ -210,6 +277,9 @@ const isCurrent = (href: string) => path === href;
 
   .nav__cta {
     flex-shrink: 0;
+    transition:
+      height var(--nav-morph-t) var(--nav-morph-e),
+      padding-inline var(--nav-morph-t) var(--nav-morph-e);
   }
   :global(html.nav-compact) .nav__cta {
     height: 2.25rem;

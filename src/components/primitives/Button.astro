@@ -60,9 +60,23 @@ const classes = ['btn', `btn--${variant}`, `btn--${tone}`, className].filter(Boo
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* ⚠ `inline-flex`, NON il default inline, e serve a far stare un'ICONA sulla
+     stessa riga del testo. Il difetto era sottile: `.btn__label` è un flex item
+     di `.btn`, quindi il browser lo BLOCKIFICA (inline → block, è nelle
+     specifiche), e la preflight di Tailwind dichiara `svg { display: block }`.
+     Un blocco dentro un blocco si prende una riga propria: qualunque `<Button>`
+     con un'icona nello slot la mandava a capo sotto il testo, e
+     `white-space: nowrap` non poteva farci niente perché non è un problema di
+     ritorno a capo del testo — è layout di blocchi.
+     Visto sul bottone "Vedi tutti i progetti" di §30 (freccia su due righe) ma
+     riguardava OGNI bottone con icona, CvButton compreso. Reso flex, testo e
+     icona tornano allineati e il `gap` qui sotto li distanzia. */
   .btn__label {
     position: relative;
     z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     transition: color 200ms var(--ease-snappy);
   }
 
