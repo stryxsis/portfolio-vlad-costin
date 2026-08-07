@@ -103,7 +103,7 @@ Questi non sono stile: sono correzioni a errori concreti già commessi o a scorc
 - **Mai le proprietà CSS indipendenti `translate` / `scale` / `rotate` su un elemento che GSAP anima.** Sembrano il modo pulito di lasciare `transform` libero per GSAP, e non lo sono: GSAP le legge e le ricompila dentro la matrice che scrive su `transform`, quindi il valore CSS finisce applicato **due volte**. Costato una griglia sperimentale (poi rimossa) centrata con `left: 50%` + `translate: -50%`, che si è piazzata a `-712px`, mezza pagina a sinistra. Per centrare un assoluto senza toccare `transform` si usano i margini auto (`inset: 0`, larghezza definita, `margin-inline: auto`).
 - **Mai un assert che duplica il valore di un design token** in `tools/verify-*.mjs`. Diventa rosso al primo ritocco di palette senza che nulla si sia rotto, e un controllo sempre rosso insegna a ignorare l'esito dell'intero strumento. Si verifica l'invariante — luminanza, rapporto di contrasto, relazione fra due valori letti a runtime — non l'hex.
 
-## Stato attuale (aggiornato 2026-07-31)
+## Stato attuale (aggiornato 2026-08-07)
 
 **⏸ IN PAUSA. Non è una pausa "di questa sessione": vale finché non la revoca l'utente a voce, e va riconfermata da lui, non dedotta dal fatto che sembri il momento giusto.**
 - **Non eseguire Lighthouse.**
@@ -115,6 +115,18 @@ Questi non sono stile: sono correzioni a errori concreti già commessi o a scorc
 Ri-design visivo della Home, **una sezione alla volta**. Dopo §01/§02 (sotto), il lavoro è passato a **§03 In evidenza** (`FeaturedProjects.astro`): sostituito interamente il vecchio carosello a "piatti" (M9) con un mazzo di card sovrapposte (M16) e una vetrina viva dentro ogni card (M17) — vedi le due sezioni dedicate più sotto. Poi il titolo della sezione è stato riportato in linea con la gerarchia tipografica del resto del sito (era rimasto a `--text-h3`, più piccolo dei titoli che introduce) e affiancato da una CTA vera verso `/portfolio`.
 
 Da lì il lavoro è proseguito **verso il fondo pagina**, sempre una sezione alla volta: **§04 Dicono** (accesa con segnaposto, spostata due volte, e infine riscritta come muro di voci che scorre — M18) e **§07 CTA** (riscritta in tipografia, poi portata da fondo accento pieno a fondo scuro con un cielo di onde animate). Le due sezioni dedicate più sotto sono la fonte di verità per entrambe.
+
+### Sessione 2026-08-07 — chiusa, committata (`1eb7686`) e pushata
+
+Tre lavori indipendenti, tutti verificati (`check`/`build`/`verify:stage` 34/34/`verify:anim` tutto verde/`sample:px` nessun contrasto sotto soglia) prima del commit:
+
+- **Onde della CTA**: partivano già "in pausa a metà" (ritardi negativi + `animation-play-state: paused`, vedi il corollario in cima al file su cosa mostra una pausa con ritardo negativo). Corrette a partenza ritardata di mezzo secondo, ordinata dalla prima onda, e rallentate (18s). Link LinkedIn reale (`linkedin.com/in/vlad-costin`) in `SITE.author.linkedin`/`sameAs`.
+- **Footer ridisegnato** (vedi §80 sotto): bagliore che continua la luce della CTA invece di riaccenderla, tre canali di contatto, tre difetti di contrasto/cucitura misurati e corretti col nuovo `tools/sample-px.mjs`.
+- **Doppio impianto testimonianze** (vedi §04 Dicono sotto): `Testimonials.astro` sceglie da solo fra righe editoriali (1-5) e muro che scorre (6+) in base a quante citazioni ci sono in `data/testimonials.ts`. **Approvato da Vlad il 2026-08-07** — la pagina di prova `/prova-testimonianze` è stata cancellata di conseguenza, non esiste più.
+
+⚠ **Falso allarme, non un difetto reale**: a inizio sessione l'immagine della hero sembrava non caricarsi nel browser di Vlad. Verificato via screenshot CDP fresco (`tools/measure.mjs`) che il ritratto (`hero4-clean.png`) è renderizzato correttamente dal dev server — file presente, tracciato, servito con 200, `<picture>` con srcset corretto. Quasi certamente lo zombie-dev-server o la cache di Vite già documentati sotto ("Il dev server può servire CSS vecchio in modo silenzioso"): se ricapita, riavviare il dev server prima di sospettare il codice.
+
+**Un'esperienza aperta, non ancora decisa**: la prova "fai partire le onde della CTA quando entro nella viewport di §05 Percorso invece che della CTA stessa" è ancora nel codice (`CTASection.astro`, selettore `:global(.ho:has(.jt.is-in))`, con il selettore precedente conservato in un commento per il revert). Vlad non ha ancora detto se tenerla o tornare indietro.
 
 **Difetti trovati e corretti in questo giro, non specifici di una sezione:**
 - **`Button.astro` mandava a capo qualunque icona nello slot**, su TUTTI i bottoni del sito (anche "Scarica il CV"), non solo quello nuovo. Causa: `.btn__label` è un flex item di `.btn`, quindi il browser lo blockifica (inline→block, da specifica), e la preflight di Tailwind dichiara `svg { display: block }` — un blocco dentro un blocco prende riga propria, e `white-space: nowrap` non può risolverlo perché non è un problema di ritorno a capo del testo. Fix: `.btn__label { display: inline-flex; align-items: center; gap: 0.5rem }`.
@@ -286,7 +298,7 @@ Il problema è **l'opposto** di quello del muro: un muro che scorre dice "ce ne 
 
 Numerazione a scorrimento: **03 In evidenza → 04 Dicono → 05 Percorso**. Lo "Statement 04" nel timbro di `Statement.astro` è una numerazione DIVERSA — l'identità del testo in `data/statements.ts`, non l'indice di sezione — e non collide: sono due badge visivamente distinti.
 
-⚠ **Esiste una pagina di prova temporanea, `/prova-testimonianze`**, che rende la sezione a tutti i conteggi (1,2,3,4,5,6,9) su una pagina sola. È `noindex` e non è linkata. **Va cancellata quando i registri sono approvati** — una pagina di prova lasciata in produzione è un URL pubblico che nessuno mantiene. ⚠ Ha un'intestazione alta 60svh che NON è decorativa: senza, la prima sezione sta a ridosso del bordo del documento e il suo titolo M2 si trova già oltre la propria soglia al caricamento, quindi non riceve mai l'ingresso e resta invisibile. Sembrava un difetto del registro `solo` ed era solo la posizione.
+⚠ **I due registri sono stati approvati da Vlad il 2026-08-07**, e la pagina di prova temporanea `/prova-testimonianze` (che li rendeva affiancati a tutti i conteggi) è stata cancellata di conseguenza — non esiste più, non c'è più bisogno di ricrearla per giudicare l'impaginazione. Se in futuro serve ri-guardare un conteggio specifico, il modo più rapido è forzarlo temporaneamente con `force`/`limit` su `<Testimonials>` (props documentate come "solo per anteprima" in `Testimonials.astro`) e ripristinare prima di committare.
 
 #### Il titolo, condiviso: è il contenuto
 
