@@ -33,11 +33,18 @@ const { tone = 'dark' } = Astro.props;
     gap: 0.75rem;
   }
 
+  /* ⚠ `--color-text-2` e NON `text-3` (2026-08-07). Questo componente ha UN solo
+     utente, il footer, e da quando il footer ha un bagliore viola in alto a
+     destra questa riga cade proprio sotto il centro del gradiente: `text-3` ci
+     misurava 3.38:1, sotto il pavimento di 4.5:1 che vale per del mono da 12px
+     (e già faceva 4.19:1 sul nero nudo — difetto noto, vedi CLAUDE.md).
+     Se un domani questo bottone finisce su una superficie diversa, il colore va
+     riverificato lì: `text-2` è tarato sul buio. */
   .cv__meta {
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-text-3);
+    color: var(--color-text-2);
   }
 </style>

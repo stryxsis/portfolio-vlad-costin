@@ -246,11 +246,20 @@ check(
 // combaciano invece di sovrapporsi e l'handoff non esiste.
 // Si pretende MARGINE, non uguaglianza: a parità esatta l'invariante regge per
 // un pelo e un pixel di crescita la ribalta.
-const violations = rest.inH.filter((h, i) => h <= rest.screenH[i]);
+//
+// ⚠ ESCLUSE le entranti sotto 10px: è `bareIn` (Handoff.astro), l'uscita di
+// sicurezza per un handoff che non occlude NIENTE di proposito (oggi
+// "featured": il mazzo di §30 si stacca senza che nulla lo copra). Un `in`
+// vuoto non protegge un invariante reale, quindi pretendere che superi lo
+// schermo qui non misurerebbe niente — misurerebbe solo se `bareIn` è stato
+// scritto, che è un dettaglio d'implementazione e non il vincolo geometrico.
+const realIn = rest.inH.map((h, i) => ({ h, screen: rest.screenH[i] })).filter((e) => e.h > 10);
+const violations = realIn.filter((e) => e.h <= e.screen);
 check(
   violations.length === 0,
   "ogni entrante e' piu' alta del suo schermo (con margine)",
-  `entranti ${rest.inH.join('/')} vs schermi ${rest.screenH.join('/')}`
+  `entranti ${realIn.map((e) => e.h).join('/')} vs schermi ${realIn.map((e) => e.screen).join('/')}` +
+    (rest.inH.length > realIn.length ? ` (${rest.inH.length - realIn.length} bareIn escluse)` : '')
 );
 check(
   rest.travels.featured > +H,
@@ -517,10 +526,26 @@ check(
   'closing: il teaser sotto e\' rientrato (opacity <0.6)',
   `opacity ${end.scrOp}`
 );
+/* ⚠ ERA `end.bg === 'rgb(147, 112, 245)'`, cioè l'hex dell'accento inchiodato —
+   lo stesso difetto che il commento qui sotto descrive per il colore del testo,
+   rimasto in piedi accanto a lui. È diventato rosso il 2026-08-06, quando la CTA
+   è passata da fondo accento pieno a fondo canvas con le onde di luce: niente si
+   era rotto, era cambiato il design.
+   L'invariante che questo controllo deve difendere NON è "il fondo è viola", è
+   "il fondo è OPACO" — perché è l'opacità a produrre l'occlusione M12, non il
+   colore (lo dice Handoff.astro: `tone` sceglie quale opaco, non se esserlo).
+   Un `rgba()` con alpha < 1 o un `transparent` lascerebbe trasparire la sezione
+   uscente e l'handoff smetterebbe di funzionare: QUELLO va misurato. */
+const alpha = (rgb) => {
+  const m = rgb.match(/rgba?\(([^)]+)\)/);
+  if (!m) return 0; // `transparent` o valore non riconosciuto
+  const parts = m[1].split(',').map((s) => Number(s.trim()));
+  return parts.length < 4 ? 1 : parts[3];
+};
 check(
-  end.bg === 'rgb(147, 112, 245)',
-  'closing: fondo accento opaco (e\' l\'opacita\' a occludere)',
-  end.bg
+  alpha(end.bg) === 1,
+  "closing: il fondo dell'occlusore e' OPACO (e' l'opacita' a occludere)",
+  `${end.bg} — alpha ${alpha(end.bg)}`
 );
 /* ⚠ ERA `end.color === 'rgb(18, 20, 26)'`, cioè #12141A inchiodato nel test:
    il near-black blu-ardesia che --color-canvas aveva all'epoca. Quando il canvas
@@ -531,10 +556,16 @@ check(
    "è sempre rosso e si sa perché" è peggio di nessun controllo: insegna a
    ignorare l'esito.
 
-   L'invariante vera è duplice, e nessuna delle due metà dipende da un hex
-   specifico: il testo deve essere SCURO (mai la variante bianca, che è la
-   combinazione che non passa AA sul viola pieno) e deve stare sopra 4.5:1 sul
-   fondo accento. Entrambe si misurano. */
+   ⚠ SECONDA CORREZIONE, 2026-08-06: era rimasta una metà che ancora inchiodava
+   una DECISIONE invece di un requisito — `lumText < 0.1`, cioè "il testo deve
+   essere scuro". Valeva finché il fondo era l'accento pieno (là il bianco non
+   passa AA), ma la CTA è passata a fondo scuro con la tipografia chiara, e quella
+   metà è diventata rossa su un contrasto che era MIGLIORATO: 20:1 contro i 5.70
+   di prima. Un controllo che diventa rosso perché il contrasto è salito misura la
+   cosa sbagliata.
+   Resta quindi l'unica metà che è un requisito e non una scelta: il rapporto
+   deve stare sopra 4.5:1 sul fondo che l'elemento ha DAVVERO, chiaro su scuro o
+   scuro su chiaro indifferentemente. */
 const relLum = (rgb) => {
   const [r, g, b] = rgb.match(/\d+/g).map((n) => {
     const c = Number(n) / 255;
@@ -546,8 +577,8 @@ const lumText = relLum(end.color);
 const lumBg = relLum(end.bg);
 const ratio = (Math.max(lumText, lumBg) + 0.05) / (Math.min(lumText, lumBg) + 0.05);
 check(
-  lumText < 0.1 && ratio >= 4.5,
-  "closing: tipografia near-black sull'accento, mai bianca",
+  ratio >= 4.5,
+  'closing: la tipografia della CTA passa AA sul fondo che ha davvero',
   `${end.color} su ${end.bg} — ${ratio.toFixed(2)}:1`
 );
 

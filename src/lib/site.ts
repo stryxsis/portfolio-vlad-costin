@@ -46,17 +46,64 @@ export const SITE = {
     familyName: 'Costin',
     jobTitle: 'Sviluppatore web',
     email: 'vladcostin58@gmail.com',
+
     /**
-     * Località. Scelta di privacy deliberata: numero di telefono e data di
-     * nascita NON compaiono sul sito pubblico. Contatto solo via email e form.
+     * WhatsApp — canale di contatto della CTA finale.
+     *
+     * ⚠⚠ QUESTO CAMPO PUBBLICA IL NUMERO DI TELEFONO, e lo fa per scelta
+     * esplicita di Vlad (2026-08-06), che ha revocato la regola precedente
+     * ("numero di telefono e data di nascita non compaiono da nessuna parte nel
+     * sito pubblico"). Non è un'omissione: `wa.me` non ha nessuna variante che
+     * nasconda il numero — sta nell'URL, quindi nell'HTML servito, quindi
+     * leggibile da qualunque scraper. Chi rimuove WhatsApp dalla CTA rimuova
+     * anche questo campo, o resta un numero pubblicato senza nessuno che lo usi.
+     *
+     * ⚠ LA DATA DI NASCITA RESTA NON PUBBLICATA: la revoca riguarda solo il
+     * telefono, non l'intera regola di privacy.
+     *
+     * `number` è in formato E.164 senza `+` né spazi, come pretende wa.me.
+     * `url` è precomposto qui e non nei componenti, così il numero esiste in un
+     * solo posto anche se un domani lo si usa altrove.
+     */
+    whatsapp: {
+      number: '393515173372',
+      label: '+39 351 517 3372',
+      /* Messaggio precompilato: chi arriva da qui ha già scrollato tutta la
+         Home, quindi la prima riga può darlo per scontato invece di far
+         ricominciare da "ciao". `encodeURIComponent` a mano — è una costante,
+         non vale una chiamata a runtime. */
+      url: 'https://wa.me/393515173372?text=Ciao%20Vlad%2C%20ho%20visto%20il%20tuo%20portfolio%20e%20vorrei%20parlarti%20di%20un%20progetto.',
+    },
+
+    /**
+     * LinkedIn — profilo reale (fornito il 2026-08-06, non più un segnaposto).
+     * Lo legge il link "LinkedIn" fra i canali diretti della CTA finale.
+     * ⚠ Lo stesso URL è ripetuto in `sameAs` qui sotto, e la duplicazione è
+     * voluta: sono due consumatori diversi (un link visibile contro un elenco
+     * per i motori) e leggere l'uno dall'altro legherebbe il tipo di `sameAs` a
+     * questo campo. Se l'URL cambia, vanno cambiati entrambi.
+     */
+    linkedin: 'https://www.linkedin.com/in/vlad-costin/',
+
+    /**
+     * Località. Scelta di privacy deliberata: la data di nascita NON compare sul
+     * sito pubblico. Il numero di telefono invece SÌ, da agosto 2026, ma solo
+     * come link WhatsApp — vedi il campo `whatsapp` qui sopra.
      */
     location: { locality: 'Colorno', region: 'Emilia-Romagna', country: 'IT' },
     locationLabel: 'Colorno (PR), Italia',
     languages: ['Italiano (madrelingua)', 'Romeno (madrelingua)', 'Inglese (intermedio)'],
-    /** Profili pubblici, usati in JSON-LD `sameAs`. */
+    /**
+     * Profili pubblici, destinati a `Person.sameAs` nel JSON-LD.
+     * ⚠ OGGI NESSUNO LEGGE QUESTO CAMPO: `Seo.astro` emette il JSON-LD solo se
+     * riceve la prop `jsonLd`, e nessuna pagina la passa ancora. Compilarlo è
+     * preparazione, non un effetto — chi si aspetta di vedere il proprio URL
+     * nell'HTML servito cercandolo qui non lo troverà, e il posto dove
+     * intervenire è la pagina, non questa riga.
+     */
     sameAs: [
-      // [placeholder] Inserire gli URL reali; le voci vuote vengono filtrate.
-      // 'https://www.linkedin.com/in/...',
+      'https://www.linkedin.com/in/vlad-costin/',
+      // [placeholder] GitHub: inserire l'URL reale quando c'è un profilo da mostrare.
       // 'https://github.com/...',
     ] as string[],
   },
@@ -81,8 +128,8 @@ export const SITE = {
    * sono ancora. Il componente e i dati esistono già: cambia solo il flag.
    */
   features: {
-    /** Nessuna testimonianza reale disponibile: sezione non renderizzata. */
-    testimonials: false,
+    /** ⚠ Placeholder attivo su richiesta esplicita — vedi src/data/testimonials.ts. */
+    testimonials: true,
     /** Il blog arriva in fase 2, quando esisterà il primo articolo. */
     blog: false,
   },

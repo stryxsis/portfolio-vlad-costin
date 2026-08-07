@@ -51,8 +51,21 @@ interface Props {
    * renderizzata: sarebbe solo scroll vuoto.
    */
   travel?: number;
+  /**
+   * ⚠ Uscita di sicurezza dal vincolo geometrico qui sopra, e SOLO per il caso in
+   * cui `slot="in"` è intenzionalmente vuoto: un occlusore senza contenuto non ha
+   * niente da occludere, quindi il floor di 104svh non protegge nessun invariante
+   * reale — protegge solo un blocco vuoto, aggiungendo scroll morto. Usarlo per
+   * un Handoff che ha davvero un `in` sarebbe la falla stessa che il floor
+   * esiste per impedire: `verify-stage.mjs` continua a pretendere il floor su
+   * ogni Handoff che NON lo passa. Nato per l'handoff "featured" quando Dicono
+   * (§04) è diventato l'`out` di un handoff successivo invece che l'`in` di
+   * questo: senza `bareIn`, i 104svh forzati qui si sarebbero aggiunti come
+   * scroll a vuoto PRIMA che Dicono anche solo cominci a entrare.
+   */
+  bareIn?: boolean;
 }
-const { name, tone, travel } = Astro.props;
+const { name, tone, travel, bareIn = false } = Astro.props;
 
 /* Le classi che in global.css riportano il focus ring a un colore leggibile
    sopra i fondi invertiti. */
@@ -77,7 +90,10 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
     )
   }
 
-  <div class:list={['ho__in', `ho__in--${tone}`, TONE_CONTEXT[tone]]} data-occludes={name}>
+  <div
+    class:list={['ho__in', `ho__in--${tone}`, bareIn && 'ho__in--bare', TONE_CONTEXT[tone]]}
+    data-occludes={name}
+  >
     <slot name="in" />
   </div>
 </div>
@@ -127,8 +143,29 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
        pelo — la copertura si completa nell'istante preciso in cui lo sticky si
        sgancia — e basta un pixel di crescita della sezione uscente per passare
        dall'altra parte del vincolo. Il 4% è il margine che rende l'invariante
-       robusta invece che fortunata; `verify-stage.mjs` pretende che ci sia. */
-    min-height: 104svh;
+       robusta invece che fortunata; `verify-stage.mjs` pretende che ci sia.
+       ⚠ IL VALORE È ANCHE UNA CUSTOM PROPERTY, non solo un `min-height`, e
+       serve a chi sta DENTRO. Una sezione che dichiara `min-height: 100svh`
+       (la convenzione del sito) dentro un occlusore da 104svh lascia 4svh del
+       fondo di QUESTO elemento scoperti sotto di sé — 36px a 900 di viewport.
+       Finché entrambi erano dello stesso colore la differenza non si vedeva;
+       dal momento in cui la sezione dipinge qualcosa di suo (il cielo della
+       CTA, il bagliore che continua nel footer) quei 36px diventano una banda
+       nera fra due campi luminosi. Le proprietà custom ereditano, quindi una
+       sezione può riempire ESATTAMENTE il proprio occlusore leggendo il floor
+       da qui invece di ricopiarne il numero — vedi `.cta` in CTASection. */
+    --ho-in-floor: 104svh;
+    min-height: var(--ho-in-floor);
+  }
+
+  /* Vedi il prop `bareIn`: qui non c'è nessun `in` reale da proteggere, quindi
+     il floor diventerebbe solo scroll morto. Il layer resta (backdrop + fondo
+     opaco), sparisce solo il minimo forzato.
+     ⚠ Va azzerata anche la custom property, non solo il `min-height`: chi la
+     legge deve ricevere il floor REALE di questo occlusore, che qui è zero. */
+  .ho__in--bare {
+    --ho-in-floor: 0px;
+    min-height: 0;
   }
 
   .ho__in--canvas {

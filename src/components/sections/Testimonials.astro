@@ -1,86 +1,85 @@
 ---
 /**
- * §60 TESTIMONIANZE — spenta.
+ * §04 DICONO — sceglie l'impianto in base a QUANTE citazioni ci sono.
  *
- * Doppia condizione per accendersi: il flag in site.ts E almeno una voce reale
- * in src/data/testimonials.ts. Due controlli e non uno perché sono due errori
- * diversi: alzare il flag senza avere citazioni renderebbe una sezione vuota, e
- * avere citazioni col flag basso le terrebbe nascoste senza dirlo.
+ * È il solo file che le pagine importano: `index.astro` scrive
+ * `<Testimonials slot="out" n="04" />` e non sa, né deve sapere, quale dei due
+ * impianti verrà reso. Il giorno in cui Vlad aggiunge la sesta testimonianza la
+ * Home cambia layout da sola.
  *
- * UNA sola card larga, non una griglia da tre. Tre testimonianze affiancate
- * dicono "ne ho collezionate tre"; una sola, grande, dice "leggi questa".
- * Quando ce ne saranno diverse, restano impilate — mai in griglia.
+ * ⚠ PERCHÉ AUTOMATICO E NON UN IMPORT DA CAMBIARE A MANO. Perché il difetto che
+ * si evita è SILENZIOSO: il muro con tre citazioni non si rompe, si limita a
+ * ripetere le stesse tre frasi in loop in una colonna sola — sembra funzionare.
+ * Un impianto sbagliato che sembra funzionare è peggio di uno rotto, perché
+ * nessuno va a controllarlo. Qui la soglia è dichiarata in un posto solo e non
+ * c'è niente da ricordarsi.
  *
- * Nessuna testimonianza inventata come segnaposto: su un portfolio è l'unica
- * cosa che, se scoperta, azzera la fiducia in tutto il resto della pagina.
+ * ┌──────────┬───────────────────┬──────────────────────────────────────────┐
+ * │ citazioni│ impianto          │ perché                                   │
+ * ├──────────┼───────────────────┼──────────────────────────────────────────┤
+ * │    0     │ niente            │ la sezione non esiste (vedi `show`)      │
+ * │    1     │ Focus, reg. solo  │ la citazione prende la scena             │
+ * │   2-5    │ Focus, reg. righe │ una riga per voce, il corpo scala        │
+ * │    6+    │ Wall (2 colonne)  │ da qui in poi scorrere è l'unica         │
+ * │    9+    │ Wall (3 colonne)  │ risposta onesta allo spazio              │
+ * └──────────┴───────────────────┴──────────────────────────────────────────┘
+ *
+ * ⚠ LA SOGLIA È 6, E I DUE NUMERI CHE LA DECIDONO SONO GEOMETRICI, non di gusto.
+ * Da sotto: le righe editoriali si dividono un viewport meno il titolo, cioè
+ * ~615px a 900 di altezza; a sei righe sarebbero ~100px l'una, dove una
+ * citazione di tre righe non ci sta più insieme al nome. Da sopra: il muro
+ * riempie le colonne con almeno tre card ciascuna (o la traccia diventa più
+ * corta della finestra e ad ogni giro passa un buco), quindi la prima
+ * configurazione sensata è 2 colonne × 3 = 6. Le due condizioni si incontrano
+ * esattamente lì: sotto 6 le righe reggono, da 6 il muro ha senso.
+ *
+ * ⚠ E PERCHÉ NON PROVARE A ESSERE PIÙ FINI DI COSÌ. Si potevano fare quattro o
+ * cinque impianti, uno per numero. Sarebbero stati quattro o cinque percorsi di
+ * codice di cui, in un dato momento, uno solo è visibile — cioè quattro modi di
+ * rompersi in silenzio. Due impianti con un registro interno coprono ogni numero
+ * da 1 a ∞ e sono entrambi guardabili in qualunque momento.
  */
-import SectionIndex from '../primitives/SectionIndex.astro';
-import TestimonialCard from '../primitives/TestimonialCard.astro';
+import TestimonialsFocus from './TestimonialsFocus.astro';
+import TestimonialsWall from './TestimonialsWall.astro';
 import { TESTIMONIALS } from '../../data/testimonials';
 import { SITE } from '../../lib/site';
 
 interface Props {
   n?: string;
+  /** Deve combaciare col `tone` dell'Handoff che la contiene, come in Statement. */
+  tone?: 'paper' | 'canvas';
+  /**
+   * Forza un impianto invece di ricavarlo dal numero. ⚠ ESISTE PER GUARDARE, non
+   * per decidere: serve alla pagina di anteprima che mostra tutti i registri
+   * affiancati. In una pagina vera non va usato — scavalcare la soglia significa
+   * scegliere a mano un impianto che poi non si aggiorna quando i dati cambiano,
+   * cioè esattamente il difetto che questo file esiste per impedire.
+   */
+  force?: 'focus' | 'wall' | undefined;
+  /** Anteprima: mostra solo le prime N citazioni. Stessa avvertenza di `force`. */
+  limit?: number | undefined;
 }
-const { n = '05' } = Astro.props;
+const { n = '04', tone = 'canvas', force, limit } = Astro.props;
 
-const show = SITE.features.testimonials && TESTIMONIALS.length > 0;
+/* Doppia condizione per accendersi: il flag in site.ts E almeno una voce nei
+   dati. Due controlli e non uno perché sono due errori diversi: alzare il flag
+   senza avere citazioni renderebbe una sezione vuota, e avere citazioni col flag
+   basso le terrebbe nascoste senza dirlo.
+   ⚠ Oggi le voci sono SEGNAPOSTO, accese su richiesta esplicita per lavorare
+   sulla grafica — vedi l'avviso in testa a data/testimonials.ts. */
+const items = limit ? TESTIMONIALS.slice(0, limit) : TESTIMONIALS;
+const show = SITE.features.testimonials && items.length > 0;
+
+/** La soglia. Un numero, un posto. */
+const SOGLIA_MURO = 6;
+const impianto = force ?? (items.length >= SOGLIA_MURO ? 'wall' : 'focus');
 ---
 
 {
-  show && (
-    <section class="ts" data-section id="dicono">
-      <div class="ts__wrap">
-        <div class="ts__idx">
-          <SectionIndex n={n} label="Dicono" />
-        </div>
-        <div class="ts__body">
-          {TESTIMONIALS.map((t) => (
-            <TestimonialCard item={t} />
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+  show &&
+    (impianto === 'wall' ? (
+      <TestimonialsWall items={items} n={n} tone={tone} />
+    ) : (
+      <TestimonialsFocus items={items} n={n} tone={tone} />
+    ))
 }
-
-<style>
-  .ts {
-    padding-block: var(--spacing-section);
-  }
-
-  .ts__wrap {
-    max-width: 90rem;
-    margin-inline: auto;
-    padding-inline: var(--spacing-gutter);
-  }
-  @media (min-width: 56.25rem) {
-    .ts__wrap {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 0 clamp(1rem, 1.5vw, 2rem);
-    }
-    .ts__idx {
-      grid-column: 11 / span 2;
-      grid-row: 1;
-      justify-self: end;
-    }
-    /* Colonne 2-10: larga, ma non a piena pagina. Una citazione che arriva al
-       bordo perde la qualità di essere una voce dentro la pagina. */
-    .ts__body {
-      grid-column: 2 / span 9;
-      grid-row: 1;
-    }
-  }
-
-  .ts__body {
-    display: grid;
-    gap: clamp(4rem, 8vw, 7rem);
-    margin-top: 1.5rem;
-  }
-  @media (min-width: 56.25rem) {
-    .ts__body {
-      margin-top: 0;
-    }
-  }
-</style>

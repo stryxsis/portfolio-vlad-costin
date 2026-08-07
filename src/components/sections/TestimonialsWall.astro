@@ -1,0 +1,374 @@
+---
+/**
+ * §04 DICONO — M18, IL MURO DI VOCI CHE SCORRE.
+ *
+ * ⚠ È L'IMPIANTO PER QUANDO LE CITAZIONI SONO TANTE, non l'unico. Sotto la
+ * soglia lo sostituisce `TestimonialsFocus` (righe editoriali); a scegliere è
+ * `Testimonials.astro`, che è il solo file che le pagine importano. Il motivo
+ * per cui esistono due impianti è in testa a quel dispatcher, ma il nocciolo è
+ * questo: un muro che scorre DICE "ce ne sono più di quante ne stiano in uno
+ * schermo". Con tre citazioni direbbe una bugia, e la direbbe ripetendo le
+ * stesse tre frasi in loop.
+ *
+ * L'attacco (indice + titolo + cancellatura) sta in `TestimonialsIntro`, che è
+ * condiviso con l'altro impianto: la frase che introduce la sezione è la sua
+ * identità e non deve poter divergere fra le due versioni.
+ *
+ * Origine: una grafica di riferimento **React + `motion/react` + shadcn**.
+ * ⚠ Non è stata installata nessuna delle tre dipendenze, ed è la regola
+ * architetturale del repo, non una preferenza: React + motion costano ~45 KB
+ * gzip di runtime per un effetto che il CSS fa con tre dichiarazioni e zero JS.
+ * Si è portato il DISEGNO — tre colonne, loop senza giunture, dissolvenza sui
+ * bordi, forma della card — non l'implementazione.
+ *
+ * ⚠ IL LOOP SENZA GIUNTURE, E PERCHÉ IL CONTO TORNA. Ogni traccia contiene le sue
+ * card DUE VOLTE e trasla di `-50%`: quando la prima copia è uscita del tutto, la
+ * seconda si trova esattamente dove la prima era all'inizio, quindi il salto a
+ * fine ciclo è invisibile. Il `padding-bottom` pari al `gap` NON è un margine
+ * estetico: è ciò che rende il conto esatto. Con N card di altezza c e gap g,
+ * l'altezza è 2N·c + (2N−1)·g SENZA quel padding — e la metà di quel valore non
+ * coincide con "una copia più un gap". Aggiungendolo l'altezza diventa 2N(c+g) e
+ * il 50% cade sul primo pixel della seconda copia. Togliere il padding fa
+ * comparire uno scatto di mezzo gap ad ogni giro.
+ *
+ * ⚠ LA COPIA È `aria-hidden` (prop `decorative`). Il riferimento duplica senza
+ * marcare, quindi uno screen reader annuncia ogni citazione due volte, in coppie
+ * identiche. E marcare non basta: i link dentro la copia vanno anche tolti dal
+ * giro di tastiera — vedi il `tabindex` in TestimonialIdentity.
+ *
+ * ⚠ L'ALTEZZA DEL MURO NON È UN NUMERO, È QUELLO CHE RESTA. Il riferimento fissa
+ * `max-h-[740px]`, e qui NON si può: questa sezione è lo `slot="out"` di un
+ * handoff M12, cioè resta INCOLLATA — e una sezione incollata più alta della
+ * viewport rende irraggiungibile per sempre la parte che sfora (vedi
+ * Handoff.astro, e l'invariante che `verify-stage.mjs` controlla ad ogni giro).
+ * Da qui la struttura: la sezione è una griglia a due righe alta `100svh`, la
+ * testa prende `auto` e il muro prende `minmax(0, 1fr)`. Il muro è quindi alto
+ * "un viewport meno la testa" PER COSTRUZIONE, su qualunque schermo e con
+ * qualunque numero di card.
+ *
+ * ⚠ TRE COLONNE, MA IL NUMERO SI RICAVA DAI DATI. `COLS` non è 3 fisso: è il
+ * numero di colonne che si possono riempire con ALMENO TRE card ciascuna. Il
+ * motivo è geometrico e non ha una versione "bella": una traccia più corta della
+ * finestra che la mostra lascia un buco visibile ad ogni giro. Con 9 citazioni →
+ * 3 colonne; con 6 → 2 colonne più piene. Meglio meno colonne piene che tre
+ * colonne che sfarfallano.
+ */
+import TestimonialsIntro from './TestimonialsIntro.astro';
+import TestimonialCard from '../primitives/TestimonialCard.astro';
+import type { Testimonial } from '../../lib/types';
+
+interface Props {
+  items: Testimonial[];
+  n?: string;
+  tone?: 'paper' | 'canvas';
+}
+const { items, n = '04', tone = 'canvas' } = Astro.props;
+const paper = tone === 'paper' ? 'paper' : undefined;
+
+/* Vedi la nota "TRE COLONNE, MA IL NUMERO SI RICAVA DAI DATI" qui sopra.
+   `Math.min(3, ...)` perché oltre tre colonne le card diventano troppo strette
+   per una citazione, non perché il meccanismo non regga. */
+const COLS = Math.min(3, Math.max(1, Math.floor(items.length / 3)));
+const PER = Math.ceil(items.length / COLS);
+const COLUMNS = Array.from({ length: COLS }, (_, i) =>
+  items.slice(i * PER, (i + 1) * PER)
+).filter((col) => col.length > 0);
+
+/* ⚠ IL NUMERO DI TRACCE DELLA GRIGLIA VIENE DAI DATI, non dal breakpoint, e
+   correggerlo è servito davvero: la prima stesura scriveva `repeat(3, ...)` fisso
+   sopra i 75rem, quindi con 6 citazioni (che fanno 2 colonne) restava una terza
+   traccia VUOTA sulla destra — mezzo muro spostato a sinistra, senza che niente
+   lo segnalasse. Due valori perché i breakpoint mostrano un numero diverso di
+   colonne: sopra i 48rem al massimo due, sopra i 75rem tutte. */
+const COLS_LG = COLUMNS.length;
+const COLS_MD = Math.min(2, COLUMNS.length);
+
+/* LE VELOCITÀ, una per colonna, ed è la cosa che fa più lavoro di tutte: con la
+   stessa durata le tre colonne resterebbero in fase per sempre e il muro
+   leggerebbe come UN blocco che scivola invece di tre voci indipendenti.
+   ⚠ ~40s E NON I 15-19s DEL RIFERIMENTO. Non è un ritocco di gusto: qui dentro
+   c'è del TESTO DA LEGGERE, e alla velocità del riferimento una citazione lunga
+   attraversa la finestra prima che si finisca di leggerla. Il fondo di questo
+   sito è ambiente (vedi il cielo della CTA, portato a 18s per la stessa
+   ragione). L'ordine 38/46/42 e non 38/42/46 è deliberato: la colonna più lenta
+   al centro dà un asse al movimento invece di una scala. */
+const SPEED = ['38s', '46s', '42s'];
+/* Gli SFASAMENTI di partenza. ⚠ Qui il ritardo NEGATIVO è corretto, al contrario
+   di quanto vale per le onde della CTA (dove ha causato un difetto reale, vedi
+   CTASection.astro): lì la posa congelata a metà animazione era un'onda mezza
+   nata, qui è semplicemente "la colonna è scorsa un po'" — una composizione
+   statica valida, che è esattamente ciò che serve mentre il muro è in pausa. La
+   differenza non è il segno del ritardo, è se il fotogramma intermedio di
+   quell'animazione sia uno stato presentabile. */
+const PHASE = ['0s', '-15s', '-28s'];
+---
+
+<section
+  class:list={['ts', `ts--${tone}`]}
+  data-section
+  id="dicono"
+  style={`--ts-cols-lg: ${COLS_LG}; --ts-cols-md: ${COLS_MD}`}
+>
+  <TestimonialsIntro n={n} tone={tone} />
+
+  {
+    /* `data-activate` SUL MURO e non sulla testa: il muro sta sotto il titolo,
+       quindi attraversa la soglia dopo — l'ingresso delle colonne e la partenza
+       dello scorrimento si sequenziano da soli, senza un ritardo scritto a mano.
+       Due elementi `data-activate` nella stessa sezione sono previsti: reveal.ts
+       li osserva tutti, indipendentemente. */
+  }
+  <div class="ts__wall" data-activate>
+    {
+      COLUMNS.map((col, c) => (
+        <div class="ts__col">
+          <div class="ts__track" style={`--dur: ${SPEED[c]}; --off: ${PHASE[c]}`}>
+            {col.map((t) => (
+              <TestimonialCard item={t} tone={paper} />
+            ))}
+            {
+              /* LA SECONDA COPIA, quella che rende il loop invisibile. Vedi le
+                 due note in testa al file: `decorative` la toglie dall'albero di
+                 accessibilità e dal giro di tastiera, restando identica a
+                 schermo. */
+            }
+            {col.map((t) => (
+              <TestimonialCard item={t} tone={paper} decorative />
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  /* ⚠ DUE RIGHE, E LA SECONDA È `minmax(0, 1fr)`: è questo che tiene la sezione
+     dentro un viewport per COSTRUZIONE invece che per coincidenza — vedi la nota
+     lunga in testa al file. La testa prende l'altezza che le serve, il muro
+     prende quello che resta, e il totale è `100svh` qualunque cosa contengano.
+     `minmax(0, ...)` e non `1fr` secco: senza lo zero come minimo, la dimensione
+     automatica minima di una griglia impedirebbe alla riga di scendere sotto
+     l'altezza del proprio contenuto — che qui è una traccia alta due volte il
+     muro, cioè esattamente la cosa da NON far pesare sul layout.
+
+     ⚠⚠ `height` E NON `min-height`, ED È L'UNICA SEZIONE DEL SITO DOVE VA COSÌ.
+     La convenzione delle sezioni dentro un handoff M12 è `min-height: 100svh`, e
+     lì è corretta perché il loro contenuto è più CORTO di uno schermo: minimo e
+     altezza reale coincidono. Qui no, e la differenza è misurata: con
+     `min-height` l'altezza del contenitore resta INDEFINITA, e per specifica una
+     traccia flessibile in un contenitore indefinito non distribuisce spazio
+     libero — prende la dimensione del proprio contenuto. Risultato letto via
+     CDP: sezione a 2297px invece di 900, cioè lo sticky rotto e ~1400px di muro
+     irraggiungibili per sempre. `height` rende l'altezza definita, il che è
+     l'unico modo perché `minmax(0, 1fr)` significhi davvero "quello che resta". */
+  .ts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-block: clamp(3rem, 7vh, 5.5rem);
+    height: 100svh;
+    /* Un solo valore per il gap fra le card E fra le colonne: la giuntura del
+       loop dipende dal fatto che il gap verticale della traccia sia identico al
+       suo `padding-bottom` (vedi la nota sul conto), e tenere anche
+       l'orizzontale sullo stesso valore evita che una modifica di ritmo ne cambi
+       solo metà. */
+    --ts-gap: clamp(1rem, 1.6vw, 1.5rem);
+  }
+
+  /* ⚠ La testa e il muro dichiarano ognuno la propria gabbia (max-width +
+     gutter) invece di stare dentro un wrapper comune: un wrapper unico sarebbe
+     UN figlio, quindi occuperebbe una sola riga della griglia — e la divisione
+     in due righe è ciò che dà al muro un'altezza calcolata.
+     `:global` sulla testa perché arriva da TestimonialsIntro, quindi non porta
+     l'attributo di scope di questo file. */
+  :global(.ts__head),
+  .ts__wall {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* ═══ IL MURO ══════════════════════════════════════════════════════════
+     ⚠ `overflow: clip` E NON `hidden`: le tracce sbordano di proposito e vanno
+     ritagliate, ma `hidden` renderebbe il muro un contenitore di SCORRIMENTO —
+     cioè una cosa che si può scorrere. E qui sotto il taglio non c'è "il resto
+     del contenuto": c'è la SECONDA COPIA, che esiste solo per far tornare il
+     conto del loop. Un utente (o una barra spaziatrice, o un `scrollIntoView` su
+     un link dentro la copia) che riesca a scorrere quel contenitore vede la
+     giuntura e le citazioni doppie — cioè il trucco. `clip` ritaglia senza
+     creare niente da scorrere, ed è per questo il default di tutto il repo.
+
+     ⚠ `min-height: 0` sull'elemento e non solo sulla riga della griglia: è la
+     seconda metà della stessa garanzia. La dimensione automatica minima di un
+     grid item vale il proprio contenuto, e il contenuto qui è alto due volte il
+     muro.
+
+     ⚠ LA DISSOLVENZA SUI BORDI È UNA `mask-image`, non un `::after` con un
+     gradiente al colore del fondo. È la regola già stabilita nel repo (vedi il
+     word-carousel della hero): una maschera sfuma l'OPACITÀ reale dell'elemento,
+     quindi mostra sempre quello che c'è davvero dietro; un velo colorato deve
+     indovinare il colore sotto di sé, e qui sotto ci sono il canvas della sezione
+     E il fondo dell'occlusore M12 durante la transizione — due valori diversi
+     nello stesso punto in momenti diversi, cioè un indovinello senza risposta. */
+  .ts__wall {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ts-gap);
+    align-items: start;
+    min-height: 0;
+    overflow: clip;
+    margin-top: clamp(1.75rem, 4vh, 3rem);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 7%,
+      #000 93%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  }
+
+  /* ⚠ LE COLONNE OLTRE LA PRIMA SPARISCONO SOTTO I BREAKPOINT, ed è un COSTO
+     dichiarato, non una svista: `display: none` le toglie anche dall'albero di
+     accessibilità, quindi su telefono si leggono 3 citazioni su 9. La
+     ridistribuzione (una colonna sola con tutte) non è ottenibile in CSS, perché
+     la divisione in fette sta nel markup. La mitigazione è editoriale: le
+     citazioni più forti vanno in testa all'array, dove finiscono nella colonna
+     che si vede sempre — vedi la nota sull'ordine in data/testimonials.ts.
+     L'alternativa sarebbe due colonne strettissime a 390px, dove una citazione
+     sta su cinque parole per riga: illeggibile per tutti invece che parziale per
+     alcuni. */
+  .ts__col:nth-child(n + 2) {
+    display: none;
+  }
+  @media (min-width: 48rem) {
+    .ts__wall {
+      grid-template-columns: repeat(var(--ts-cols-md), minmax(0, 1fr));
+    }
+    .ts__col:nth-child(2) {
+      display: block;
+    }
+  }
+  @media (min-width: 75rem) {
+    .ts__wall {
+      grid-template-columns: repeat(var(--ts-cols-lg), minmax(0, 1fr));
+    }
+    .ts__col:nth-child(3) {
+      display: block;
+    }
+  }
+
+  /* La traccia. Vedi la nota sul conto in testa al file per il perché del
+     `padding-bottom`: è ciò che rende il `-50%` esatto. */
+  .ts__track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ts-gap);
+    padding-bottom: var(--ts-gap);
+  }
+
+  /* ⚠ ECCEZIONE DICHIARATA alla regola "ogni animazione una volta sola" (vedi
+     CLAUDE.md), e la giustificazione è la stessa delle altre: il loop non
+     annuncia un ingresso, descrive uno STATO — "di voci ce n'è più di quante ne
+     stiano in uno schermo". Un muro che scorresse una volta e si fermasse
+     direbbe l'opposto.
+
+     ⚠ TUTTA L'ANIMAZIONE VIVE SOTTO `html.js-anim`. Senza JS o con movimento
+     ridotto la traccia non ha nessun `animation-name`, quindi resta a
+     `translateY(0)`: le prime card di ogni colonna in cima, ferme, complete. È lo
+     stato corretto e non un ripiego — la stessa lezione del cielo della CTA. */
+  @keyframes ts-roll {
+    to {
+      transform: translateY(-50%);
+    }
+  }
+  :global(html.js-anim) .ts__track {
+    animation-name: ts-roll;
+    animation-duration: var(--dur);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-delay: var(--off);
+    /* ⚠ IN PAUSA FINCHÉ IL MURO NON È IN VISTA, per il budget dell'LCP: tre
+       colonne alte il doppio della viewport che traslano dal primo paint
+       terrebbero il compositor occupato per tutta la pagina, per un effetto che
+       vive nove schermate più sotto. In pausa la posa è quella dello
+       sfasamento, cioè una composizione statica valida: il muro non "compare",
+       riprende. */
+    animation-play-state: paused;
+  }
+  :global(html.js-anim) .ts__wall.is-in .ts__track {
+    animation-play-state: running;
+  }
+
+  /* ⚠ SI FERMA AL PASSAGGIO DEL MOUSE E CON IL FOCUS DENTRO, e non è una
+     concessione all'effetto: WCAG 2.2.2 chiede che un movimento automatico più
+     lungo di 5 secondi si possa mettere in pausa, e qui dentro c'è del testo da
+     leggere e dei link da centrare. Fermare TUTTE le colonne e non solo quella
+     sotto il puntatore è deliberato: se stai leggendo una citazione, le altre
+     due che continuano a scorrere nella periferia sono esattamente il disturbo
+     da cui ti stai difendendo.
+     ⚠ NON viola la regola "niente hover come trigger": quella riguarda le
+     animazioni che PARTONO al passaggio del mouse. Qui l'hover non accende
+     niente, spegne.
+     ⚠ L'hover è gated su `(hover: hover)` mentre il focus NO: su touch lo stato
+     `:hover` resta appiccicato dopo un tap, e un muro fermo per sempre dopo un
+     tocco casuale è un guasto; `:focus-within` invece serve a chi arriva coi
+     tasti, che esiste anche su un tablet.
+     ⚠ Queste regole DEVONO stare dopo quella di `.is-in`: hanno la stessa
+     specificità (quattro classi — una pseudo-classe pesa come una classe),
+     quindi è l'ordine nel file a decidere chi vince. */
+  @media (hover: hover) {
+    :global(html.js-anim) .ts__wall:hover .ts__track {
+      animation-play-state: paused;
+    }
+  }
+  :global(html.js-anim) .ts__wall:focus-within .ts__track {
+    animation-play-state: paused;
+  }
+
+  /* ⚠ IL SELETTORE RIPETE `html.js-anim` DI PROPOSITO: una media query non
+     aggiunge specificità, quindi un `.ts__track { animation: none }` perderebbe
+     contro la regola gated qui sopra e il muro continuerebbe a scorrere. Errore
+     già commesso una volta sul cielo della CTA e documentato in CLAUDE.md.
+     E perché non basti la regola globale di global.css: quella porta
+     `animation-iteration-count` a 1, che per un marquee NON è uno stop — è "fai
+     un giro solo", cioè quaranta secondi di scorrimento comunque. Movimento
+     ridotto vuol dire fermo, non "una volta". */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .ts__track {
+      animation-name: none;
+    }
+  }
+
+  /* -- L'INGRESSO DEL MURO (M14) -------------------------------------------
+     Le COLONNE entrano in cascata, non le card: tre ritardi invece di diciotto,
+     e la cascata la fa `transition-delay` su `nth-child` — zero tween.
+     `translate` e non `transform`: la traccia figlia usa `transform` per il
+     loop, e mescolare le due proprietà sullo stesso ramo è il modo più rapido di
+     ritrovarsi un valore applicato due volte. Qui sono su elementi diversi —
+     colonna e traccia — quindi convivono senza toccarsi. */
+  :global(html.js-anim) .ts__wall .ts__col {
+    opacity: 0;
+    translate: 0 34px;
+    transition:
+      opacity 900ms var(--ease-out-expo),
+      translate 900ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .ts__wall .ts__col:nth-child(2) {
+    transition-delay: 130ms;
+  }
+  :global(html.js-anim) .ts__wall .ts__col:nth-child(3) {
+    transition-delay: 260ms;
+  }
+  :global(html.js-anim) .ts__wall.is-in .ts__col {
+    opacity: 1;
+    translate: 0 0;
+  }
+  /* Salto in un colpo: stato finale netto, durata E ritardo azzerati. */
+  :global(html.js-anim) .ts__wall.is-instant .ts__col {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+</style>

@@ -17,12 +17,15 @@ npm run sync              # astro sync — rigenera i tipi delle content collect
 npm run verify:anim      http://localhost:4321/          # motore animazioni via CDP
 npm run verify:stage     http://localhost:4321/ 1440 900 # invarianti M12/M13 via CDP
 npm run measure           http://localhost:4321/ <w> <h> [screenshot.png]  # layout reale via CDP
+SELECTORS='.a,.b' SCROLL=bottom npm run sample:px http://localhost:4321/ 1440 900  # contrasto sui PIXEL dipinti
 npx lighthouse http://localhost/index.html --preset=desktop   # contro dist/ buildato, non dev
 ```
 
 `lighthouserc.json` è il budget assertito: performance ≥0.98, a11y/best-practices/SEO = 1, LCP <1800ms, CLS <0.02, TBT <150ms su preset desktop. Gira contro `staticDistDir: ./dist` — build prima di misurare, mai contro il dev server (HMR e non-minified falsano i numeri).
 
-Gli script `tools/*.mjs` guidano Chrome headless via CDP (non Playwright/Puppeteer): scrollano con eventi `mouseWheel` reali (Lenis intercetta lo scroll, `window.scrollTo` da solo non basta) e leggono `getBoundingClientRect`/`getComputedStyle` reali invece di fidarsi del codice a occhio. Per qualunque modifica a layout, stage sticky o animazioni, questi tre strumenti sono il modo per verificarla — non lo screenshot da solo.
+Gli script `tools/*.mjs` guidano Chrome headless via CDP (non Playwright/Puppeteer): scrollano con eventi `mouseWheel` reali (Lenis intercetta lo scroll, `window.scrollTo` da solo non basta) e leggono `getBoundingClientRect`/`getComputedStyle` reali invece di fidarsi del codice a occhio. Per qualunque modifica a layout, stage sticky o animazioni, questi strumenti sono il modo per verificarla — non lo screenshot da solo.
+
+⚠ **`sample:px` serve dove `getComputedStyle` non arriva.** Gli assert di contrasto in `verify-anim.mjs` risalgono il DOM finché non trovano un `background-color` non trasparente: corretto finché il fondo è un colore pieno, inutile nel momento in cui sotto il testo c'è un **gradiente, una foto o due strati sovrapposti** — lì il valore che conta non è dichiarato da nessuna parte e l'unica misura onesta è il pixel dipinto. Legge il fondo accanto al testo (mai sotto: si rischia di campionare un glifo), tiene il campione più chiaro come caso peggiore, e sceglie da solo la soglia WCAG giusta leggendo corpo e peso — 3:1 vale SOLO da 24px (o 18.66px in grassetto), e applicarlo a una label mono da 11px è il modo più comune di dichiararsi conformi senza esserlo.
 
 ## Architettura
 
@@ -53,7 +56,7 @@ I case study si scrivono duplicando `src/content/progetti/_template.mdx` — non
 
 Nome, bio, email, località, feature flag (`SITE.features.testimonials`, `SITE.features.blog`) e il CV vivono lì. Nessun componente scrive a mano un URL, un'email o un nome. L'URL base del sito sta invece in `astro.config.mjs` (`site:`) e si legge da `import.meta.env.SITE` — cambiare dominio è una riga sola, in un solo file.
 
-**Privacy deliberata**: numero di telefono e data di nascita non compaiono da nessuna parte nel sito pubblico. Solo email e form di contatto. Rispettarla in ogni modifica che tocchi `site.ts`, il footer o la pagina contatti.
+**Privacy deliberata, RIVISTA il 2026-08-06**: la data di nascita non compare da nessuna parte nel sito pubblico, e questa metà della regola resta intatta. Il **numero di telefono invece SÌ**, da quella data: Vlad ha revocato esplicitamente quella metà per avere WhatsApp fra i canali della CTA finale, sapendo che `wa.me` mette il numero nell'URL — quindi nell'HTML servito, quindi leggibile da qualunque scraper (non esiste una variante che lo nasconda). Il numero vive **solo** in `SITE.author.whatsapp`; nessun componente lo scrive a mano. Chi rimuove WhatsApp dalla CTA rimuova anche quel campo, o resta un numero pubblicato che nessuno usa. Rispettare entrambe le metà in ogni modifica che tocchi `site.ts`, il footer o la pagina contatti.
 
 ### Sistema visivo
 
@@ -63,11 +66,16 @@ Tutti i design token (colori, scala tipografica fluida, spaziatura, breakpoint) 
 
 | superficie | token | dove | registro |
 |---|---|---|---|
-| canvas | `--color-canvas: #050505` | hero, §03 In evidenza, §04 Percorso | nero assoluto |
+| canvas | `--color-canvas: #050505` | hero, §03 In evidenza, §04 Dicono, §05 Percorso, §07 CTA | nero assoluto |
 | slate | `.theme-slate` → `#14141a` | §01 Cosa faccio, §02 Dove | carbone tinto d'indaco |
-| paper | `--color-paper: #f0eae0` | Statement §04, CTA §07 | avorio caldo |
+| paper | `--color-paper: #f0eae0` | Statement (Nota a margine) | avorio caldo |
 
 **La decisione che tiene insieme la tabella: c'è UN SOLO momento di luce in tutta la Home, ed è il paper.** §01 e §02 erano una superficie chiara (`.theme-light`, un silver `#e2e2e8`) e sono state portate sul carbone. La sequenza è nero → carbone → nero → **avorio**, così il paper dello Statement è un evento e non una delle tante alternanze. Le tre ragioni per cui la versione chiara non funzionava sono scritte per esteso sopra `.theme-slate` in `global.css` — leggerle prima di proporre di tornare indietro.
+
+⚠ **L'accento pieno NON è più una superficie, dal 2026-08-06.** La CTA §07 era l'unico posto in cui `--color-accent` copriva il 100% dei pixel, ed era la seconda inversione della Home ("agire, adesso"). Oggi la CTA è su canvas e l'evento di chiusura lo produce un **campo di luce**: onde concentriche viola che si espandono dall'angolo in basso a destra (`.cta__sky` in `CTASection.astro`). Il motivo è vincolante, non estetico: le onde vivono di contrasto viola-su-buio, quindi su un fondo già viola diventavano una vibrazione tonale — la stessa ragione per cui un "glow viola" su fondo viola non esiste. Conseguenze da tenere a mente:
+- la Home ha ora **una sola inversione di palette** (il paper dello Statement) invece di due, quindi il paper è un evento ancora più isolato di prima;
+- `--color-accent-text-2` (che esiste SOLO per il testo sopra l'accento pieno) **non ha più nessun utente in Home**. Non rimuoverlo dai token: serve ancora a `Button` con `tone="accent"` e alle pagine interne, ma se un giorno risultasse orfano è lì che va cercato il perché;
+- la chiusura resta un evento perché cambia **luminanza e movimento**, non tinta: il handoff `closing` è passato a `tone="canvas"`, quindi è canvas → canvas come `intro` ("il cambio è di contenuto, non di palette").
 
 Corollari da non violare:
 
@@ -91,7 +99,7 @@ Questi non sono stile: sono correzioni a errori concreti già commessi o a scorc
 - **Mai animare `opacity` sull'elemento più grande sopra la piega** (vedi la regola LCP sopra).
 - **Mai `backdrop-filter` fuori dalla navbar** senza una ragione misurata: costa un compositing pass, ed è per questo confinato a un'area di ≤544×48px che non anima mai il raggio di blur.
 - **Mai una lista puntata nel sito.** Dove serve enumerare si usa il dispositivo mono `01 / 02 / 03` con filetto.
-- **Mai numero di telefono o data di nascita pubblicati** (vedi Privacy sopra).
+- **Mai la data di nascita pubblicata** (vedi Privacy sopra). Il numero di telefono NON è più vietato dal 2026-08-06, ma esiste in un solo posto (`SITE.author.whatsapp`) e per un solo scopo (il link WhatsApp della CTA): non replicarlo altrove né esporlo come `tel:` in chiaro senza chiederlo.
 - **Mai le proprietà CSS indipendenti `translate` / `scale` / `rotate` su un elemento che GSAP anima.** Sembrano il modo pulito di lasciare `transform` libero per GSAP, e non lo sono: GSAP le legge e le ricompila dentro la matrice che scrive su `transform`, quindi il valore CSS finisce applicato **due volte**. Costato una griglia sperimentale (poi rimossa) centrata con `left: 50%` + `translate: -50%`, che si è piazzata a `-712px`, mezza pagina a sinistra. Per centrare un assoluto senza toccare `transform` si usano i margini auto (`inset: 0`, larghezza definita, `margin-inline: auto`).
 - **Mai un assert che duplica il valore di un design token** in `tools/verify-*.mjs`. Diventa rosso al primo ritocco di palette senza che nulla si sia rotto, e un controllo sempre rosso insegna a ignorare l'esito dell'intero strumento. Si verifica l'invariante — luminanza, rapporto di contrasto, relazione fra due valori letti a runtime — non l'hex.
 
@@ -105,6 +113,8 @@ Questi non sono stile: sono correzioni a errori concreti già commessi o a scorc
 ### Cosa si sta facendo davvero
 
 Ri-design visivo della Home, **una sezione alla volta**. Dopo §01/§02 (sotto), il lavoro è passato a **§03 In evidenza** (`FeaturedProjects.astro`): sostituito interamente il vecchio carosello a "piatti" (M9) con un mazzo di card sovrapposte (M16) e una vetrina viva dentro ogni card (M17) — vedi le due sezioni dedicate più sotto. Poi il titolo della sezione è stato riportato in linea con la gerarchia tipografica del resto del sito (era rimasto a `--text-h3`, più piccolo dei titoli che introduce) e affiancato da una CTA vera verso `/portfolio`.
+
+Da lì il lavoro è proseguito **verso il fondo pagina**, sempre una sezione alla volta: **§04 Dicono** (accesa con segnaposto, spostata due volte, e infine riscritta come muro di voci che scorre — M18) e **§07 CTA** (riscritta in tipografia, poi portata da fondo accento pieno a fondo scuro con un cielo di onde animate). Le due sezioni dedicate più sotto sono la fonte di verità per entrambe.
 
 **Difetti trovati e corretti in questo giro, non specifici di una sezione:**
 - **`Button.astro` mandava a capo qualunque icona nello slot**, su TUTTI i bottoni del sito (anche "Scarica il CV"), non solo quello nuovo. Causa: `.btn__label` è un flex item di `.btn`, quindi il browser lo blockifica (inline→block, da specifica), e la preflight di Tailwind dichiara `svg { display: block }` — un blocco dentro un blocco prende riga propria, e `white-space: nowrap` non può risolverlo perché non è un problema di ritorno a capo del testo. Fix: `.btn__label { display: inline-flex; align-items: center; gap: 0.5rem }`.
@@ -122,7 +132,17 @@ Ri-design visivo della Home, **una sezione alla volta**. Dopo §01/§02 (sotto),
 Due regole esplicite dell'utente, dopo aver trovato §01/§02 che si ri-attivavano ogni volta che si tornava a scorrere sopra:
 
 1. **Niente hover come trigger**, tranne eccezioni dichiarate tipo i link (i loghi cliccabili di §02). Ogni altra animazione si attiva da sola per una combinazione di fattori (in pratica: posizione di scroll), non al passaggio del mouse.
-2. **Ogni animazione si esegue una volta sola**, tranne quelle esplicitamente continue e dichiarate come tali (il word-carousel della hero, l'anello di scroll `ring-spin`, il respiro di "in corso" nella timeline — vedi sotto). Una volta completata, NON deve tornare allo stato di partenza risalendo la pagina.
+2. **Ogni animazione si esegue una volta sola**, tranne quelle esplicitamente continue e dichiarate come tali. Le eccezioni dichiarate, in ordine di introduzione: il word-carousel della hero, l'anello di scroll `ring-spin`, il respiro di "in corso" nella timeline, e — dal 2026-08-06 — le **onde del cielo della CTA** (`.cta__wave`, 18s), il **respiro del glow** del suo bottone (`.cta__glow::before`, 4,6s) e il **muro di §04 Dicono** (`.ts__track`, 38/46/42s — M18). Una volta completata, un'animazione one-shot NON deve tornare allo stato di partenza risalendo la pagina.
+
+   ⚠ Le due eccezioni della CTA convivono nella stessa sezione ed è deliberato che non si sommino: operano su **scala** diversa (un'onda larga quanto la sezione contro un alone di 34px) e su **tempo** diverso (18s contro 4,6s). Due movimenti dello stesso colore che condividessero anche una delle due dimensioni si leggerebbero come un unico battito confuso — è il criterio da riusare se un giorno se ne aggiunge un'altra. Il muro di §04 non entra nel confronto perché sta in **un'altra sezione**: non si vede mai insieme a loro.
+
+   ⚠ **Un movimento continuo che porta TESTO DA LEGGERE si deve poter fermare, e non è una gentilezza:** WCAG 2.2.2 lo richiede sopra i 5 secondi. Il muro di §04 si ferma in `:hover` (gated su `(hover: hover)`, o su touch resterebbe fermo per sempre dopo un tap) e in `:focus-within` (non gated: chi arriva coi tasti esiste anche su un tablet). Fermarsi in hover **non** viola la regola 1 qui sopra: quella riguarda le animazioni che PARTONO al passaggio del mouse.
+
+   ⚠ **`animation-iteration-count: 1` NON è uno stop per un marquee.** La regola globale di `global.css` sotto `prefers-reduced-motion` basta per un respiro o un pulsare, ma per uno scorrimento significa "fai un giro solo" — cioè quaranta secondi di movimento comunque. Chi chiede meno movimento non chiede meno ripetizioni, chiede fermo: serve un blocco reduce dedicato che spenga il **nome** dell'animazione (e che ripeta il gate `html.js-anim` nel selettore, vedi il corollario di specificità sotto).
+
+   ⚠ **Un'animazione continua "in pausa" NON mostra i valori base se il suo `animation-delay` è NEGATIVO.** Costato un difetto visibile: le onde della CTA erano distribuite lungo il ciclo con ritardi negativi (per avere il campo già pieno all'arrivo) e messe in `animation-play-state: paused` fino al raggiungimento della sezione. Ma un ritardo negativo colloca la partenza nel passato, quindi la pausa congela ogni onda a un fotogramma qualsiasi: cinque bande immobili sparse a mezzo schermo, che poi ripartivano da lì — "sembra che l'animazione sia già partita e sia in pausa ad aspettare che parta". Con ritardi POSITIVI la pausa coincide invece con lo stato precedente al primo fotogramma, e la pausa congela anche il conteggio del ritardo (quindi un ritardo d'ingresso è un'attesa osservabile, non un numero già scaduto). Il prezzo è che il campo si popola in una durata intera: è inevitabile, "la prima onda parte dall'inizio" e "il campo è pieno subito" sono richieste incompatibili.
+
+   ⚠ Corollario di specificità: `@media (prefers-reduced-motion: reduce) { .cta__wave { animation: none } }` **non morde** se l'animazione è dichiarata sotto `html.js-anim` — una media query non aggiunge specificità. Il blocco reduce deve ripetere il gate nel selettore.
 
 ⚠ **Corollario che ha causato il bug reale: mai gatare un'animazione one-shot su `.is-active`.** Quella classe (vedi `initSectionState` in `reveal.ts`) è lo stato "sto guardando questa sezione ADESSO" — un IntersectionObserver la aggiunge e la toglie ad ogni passaggio, per design, perché serve a `SectionIndex.astro` per risincronizzarsi in tempo reale con la sezione corrente (quello SÌ deve tornare indietro, è uno stato non un'animazione). Sia lo squiggle sotto "tempo, soldi e mal di testa" sia l'accensione dei loghi su touch erano gated su `[data-section].is-active`/`.sp.is-active`: si disegnavano/accendevano, e risalendo la pagina si disfacevano, per poi ridisegnarsi da capo riscendendo. Il fix per entrambi è stato lo stesso: `data-activate` (M14), le cui classi si AGGIUNGONO e non si tolgono mai.
 
@@ -214,9 +234,95 @@ Il segnaposto tipografico ("REGGIANA PACK" composto in Geist) è stato sostituit
 - **Il timbro editoriale** (`[ MANIFESTO · STATEMENT 04 ]`, campo `stamp`): stesso corpo mono/stesso registro della label in alto, entra ultimo (1900ms, dopo filetto e parole) — parentesi e punto medio `aria-hidden`, le parole no.
 - `tools/verify-anim.mjs` aveva un assert stantio: "il testo dello statement è nell'HTML" cercava la stringa `'non scrivo solo'`, che è una riga di `WhatIDo.astro` — verde da sempre per il motivo sbagliato, sarebbe rimasto verde anche con la sezione statement cancellata dalla pagina. Corretto per cercare davvero premessa+accento+timbro. Aggiunte 4 asserzioni sui tre nuovi elementi (riposo/dopo-scroll/salto/reduce).
 
-### §04 Percorso (ex §06) — JEParma nel teaser, e il vincolo di UNO schermo
+### §04 Dicono — DUE impianti, e a scegliere è il numero di citazioni
 
-`JourneyTeaser` è passato da "06" a "04": con `Testimonials` spenta (flag a `false`), il numero saltava da "03 · In evidenza" a "06" senza nulla in mezzo.
+⚠ **`Testimonials.astro` non è più una sezione, è un dispatcher.** È il solo file che le pagine importano (`index.astro` non sa quale layout verrà reso) e sceglie da sé:
+
+| citazioni | impianto | file |
+|---|---|---|
+| 0 | niente | — |
+| 1 | Focus, registro `solo` | `TestimonialsFocus.astro` |
+| 2-5 | Focus, registro `righe` | `TestimonialsFocus.astro` |
+| 6-8 | Muro, 2 colonne | `TestimonialsWall.astro` |
+| 9+ | Muro, 3 colonne | `TestimonialsWall.astro` |
+
+⚠ **La soglia è 6 e i due numeri che la decidono sono geometrici, non di gusto.** Da sotto: le righe si dividono un viewport meno il titolo (~615px a 900 di altezza); a sei righe sarebbero ~100px l'una, dove una citazione di tre righe non ci sta più insieme al nome. Da sopra: il muro riempie le colonne con **almeno tre card ciascuna** (o la traccia diventa più corta della finestra e ad ogni giro passa un buco), quindi la prima configurazione sensata è 2 × 3 = 6. Le due condizioni si incontrano esattamente lì.
+
+⚠ **Automatico e non un import da cambiare a mano**, perché il difetto che si evita è SILENZIOSO: il muro con tre citazioni non si rompe, ripete le stesse tre frasi in loop in una colonna sola — *sembra* funzionare, quindi nessuno va a controllarlo.
+
+⚠ **Due impianti e non cinque.** Si potevano fare quattro o cinque layout, uno per numero: sarebbero stati quattro o cinque percorsi di codice di cui uno solo visibile alla volta, cioè quattro modi di rompersi in silenzio. Due impianti con un registro interno coprono ogni numero da 1 a ∞ e sono entrambi guardabili in qualunque momento.
+
+**Cosa condividono, e perché è estratto invece che copiato:**
+- `TestimonialsIntro.astro` — indice, titolo, cancellatura, coreografia M14. La frase è l'identità della sezione: copiata in due file sarebbero state due coreografie libere di divergere al primo ritocco, e la divergenza si sarebbe vista solo cambiando impianto, cioè mesi dopo. ⚠ Le classi restano `.ts__*` perché `verify-anim` le sonda: rinominarle avrebbe reso quegli assert verdi per assenza di bersaglio.
+- `TestimonialIdentity.astro` — ritratto/monogramma, nome, ruolo, social. Tre varianti (`card`, `blocco`, `riga`). Duplicarlo avrebbe significato correggere due volte ogni difetto di accessibilità, e scoprire di averne corretto uno solo per caso.
+
+⚠ **`verify-anim` si biforca insieme alla sezione.** Legge quale impianto è in scena e asserisce solo le invarianti che gli competono; senza, il giorno in cui i segnaposto diventano tre testimonianze vere metà dei controlli di §04 diventerebbe rossa senza che si sia rotto niente.
+
+#### L'impianto FOCUS (1-5) — righe editoriali
+
+Il problema è **l'opposto** di quello del muro: un muro che scorre dice "ce ne sono più di quante ne stiano in uno schermo", che con due citazioni è una bugia. Con poche testimonianze il lavoro è far leggere *quella*, e far sembrare la scarsità una scelta. Da cui: nessun box, nessun movimento, molta aria, e il corpo del testo che **cresce** quando le citazioni sono poche invece di lasciare vuoto.
+
+- **La persona sta a SINISTRA, la citazione a destra.** La colonna di sinistra diventa un elenco verticale di volti e nomi, che è letteralmente ciò che il titolo promette ("Ascolta loro:"). E le citazioni allineate su un unico bordo hanno una misura di lettura costante — a parti invertite il bordo destro sarebbe frastagliato e i nomi appesi a distanze irregolari.
+- ⚠ **Non riusa il dispositivo `01/02/03` di §01**, che sarebbe la scelta ovvia: §01 sta nella STESSA Home con esattamente quel disegno, e ripeterlo farebbe leggere le due sezioni come la stessa cosa detta due volte. Il filetto resta, il numero no — al suo posto c'è un volto.
+- ⚠ **Nessun movimento continuo.** Il muro si muove perché il movimento È il messaggio; qui non c'è niente da dire col movimento, e un loop su tre righe ferme sarebbe decorazione.
+- **`grid-auto-rows: minmax(0, 1fr)`**: le righe si dividono l'altezza in parti uguali. Con altezze automatiche una citazione lunga il doppio produrrebbe una riga alta il doppio e i filetti cadrebbero a distanze irregolari — un elenco *capitato* invece che composto.
+
+⚠ **Tre tarature misurate, non stimate** (`QUOTE_SIZE`, `MEASURE`, `denso` in `TestimonialsFocus.astro`):
+1. **Il corpo usa `min(Xvw, Yvh)`, non solo `vw`.** Con la sola larghezza il corpo restava identico a 1440×900 e a 1440×650, ma lo spazio no (579px → 404px): l'ultima riga sbordava. Il termine `vh` fa cedere il corpo quando è l'altezza a mancare.
+2. **La misura si ALLARGA al crescere delle citazioni** (22em → 30em), che sembra il contrario del giusto. È in `em`: una `max-width` in em fissa i CARATTERI per riga, quindi il numero di RIGHE è costante a qualunque corpo — rimpicciolire il testo non ne toglie nemmeno una. Con cinque blocchi in un viewport basso, l'unica leva che riduce l'altezza è allungare la riga.
+3. **Da 4 citazioni l'attribuzione va in linea** (`variant="riga"`). Impilata misura ~88px (ritratto 40 + stacco 14 + social 34) ed era LEI a non entrare, non il testo — il difetto si presentava come un ritaglio di pochi pixel e sembrava un problema tipografico.
+
+⚠ **Il debordo è sorvegliato**: `verify-anim` misura che le citazioni stiano nello spazio calcolato. Non c'è nessun ritaglio, quindi il testo in eccesso non sparisce — si sovrappone alla riga sotto, difetto che si nota solo andandolo a cercare. ⚠ E si misura **dopo lo scroll**: a riposo le righe portano `translate: 0 26px`, che entra nello `scrollHeight` e produce un debordo inesistente. La prima stesura sbagliava proprio questo, ed era rossa su un layout corretto.
+
+#### Contenuti e posizione (valgono per entrambi gli impianti)
+
+**⏳ Lo stato dei CONTENUTI è temporaneo e va cambiato SOLO su richiesta di Vlad.** `SITE.features.testimonials` è a `true` e `data/testimonials.ts` porta **nove citazioni segnaposto**, accese su sua richiesta esplicita per lavorare sulla grafica. Non rispegnere il flag né svuotare l'array di propria iniziativa — è già stato fatto una volta appellandosi alla policy anti-testimonianze-finte, ed era sbagliato: quella policy vale per ciò che finisce **pubblicato**, non per un segnaposto locale che lui ha chiesto di tenere acceso. **Vanno sostituite con citazioni vere prima di qualunque deploy.** ⚠ Nove segnaposto significano che la Home rende oggi il MURO: per guardare l'impianto focus si usa la pagina di prova (vedi sotto) o si abbassa il conteggio.
+
+⚠ **Erano tre, sono nove dal 2026-08-06, e il motivo è geometrico.** Il muro ha tre colonne, e una colonna che scorre in loop deve contenere abbastanza card da essere **più alta della finestra che la mostra**, altrimenti ad ogni giro passa un buco. I nomi sono coppie dell'alfabeto NATO fra parentesi quadre (`[Alfa Bravo]`, `[Charlie Delta]`, …) e **anche questa è una scelta funzionale**: le iniziali alimentano il monogramma, e nove card marcate tutte `[Nome Cognome]` producevano nove cerchi identici con dentro "NC" — in un muro si legge come un errore di rendering, non come un segnaposto. ⚠ **L'ordine dell'array è editoriale**: nel muro le colonne si riempiono a fette e quelle oltre la prima spariscono sotto i breakpoint, quindi su telefono si legge **solo la prima fetta** — le citazioni più forti vanno in testa.
+
+**Posizione: `slot="out"` dell'handoff `dicono`, su fondo CANVAS** (vedi la tabella delle superfici: Dicono è nera, il paper resta solo dello Statement). Entra scorrendo normalmente da sotto, si incolla, resta leggibile per `travel=140`, e solo allora lo Statement paper le sale sopra. Le versioni precedenti la mettevano nello `slot="in"` su paper: le note che lo dicono sono storia.
+
+**Il vincolo che governa entrambi gli impianti**: la sezione è incollata, quindi **non deve mai superare un viewport** (vedi Handoff.astro). Il muro ci arriva con `height: 100svh` e ritagliando; il focus con la stessa altezza rigida ma senza ritagliare — vedi le rispettive note.
+
+Numerazione a scorrimento: **03 In evidenza → 04 Dicono → 05 Percorso**. Lo "Statement 04" nel timbro di `Statement.astro` è una numerazione DIVERSA — l'identità del testo in `data/statements.ts`, non l'indice di sezione — e non collide: sono due badge visivamente distinti.
+
+⚠ **Esiste una pagina di prova temporanea, `/prova-testimonianze`**, che rende la sezione a tutti i conteggi (1,2,3,4,5,6,9) su una pagina sola. È `noindex` e non è linkata. **Va cancellata quando i registri sono approvati** — una pagina di prova lasciata in produzione è un URL pubblico che nessuno mantiene. ⚠ Ha un'intestazione alta 60svh che NON è decorativa: senza, la prima sezione sta a ridosso del bordo del documento e il suo titolo M2 si trova già oltre la propria soglia al caricamento, quindi non riceve mai l'ingresso e resta invisibile. Sembrava un difetto del registro `solo` ed era solo la posizione.
+
+#### Il titolo, condiviso: è il contenuto
+
+"Se ancora non ti ho convinto che sono la persona giusta, non ascoltare me. Ascolta loro:" fa una cosa sola, passa la parola. ⚠ **NON riusa il dispositivo dello Statement.** Ricopiare premessa+accento+sottolineatura+fantasma+timbro renderebbe le due sezioni indistinguibili. Stessa FAMIGLIA di vocabolario (tre registri, un `::after` in `scaleX`, M14 a due battute), **gesto diverso — una riga che CANCELLA invece di sottolineare.** Il filetto è d'accento e non grigio: un tratto grigio su testo grigio legge come un errore di stampa, l'accento lo rende un segno editoriale.
+
+- `is-in` — le 16 parole di M2 si posano (~1225ms), poi la cancellatura si tira (ritardo 1250ms, tarato su quel conto);
+- `is-on` — la frase si risolve: la parte barrata si smorza, "Ascolta loro:" passa all'accento. Niente è illeggibile in attesa: entrambe partono dal testo pieno e arrivano a valori sopra AA — la pausa trattiene colore, non informazione.
+
+#### L'impianto MURO (6+) — M18
+
+Origine: una grafica di riferimento **React + `motion/react` + shadcn** portata da Vlad. ⚠ **Non è stata installata nessuna delle tre dipendenze**, ed è la regola architetturale del repo, non una preferenza: React + motion costano ~45 KB gzip di runtime per un effetto che il CSS fa con tre dichiarazioni e zero JS. Si è portato il **disegno** — tre colonne, loop senza giunture, dissolvenza sui bordi, forma della card — non l'implementazione.
+
+- **Il loop senza giunture**: ogni traccia contiene le sue card DUE VOLTE e trasla di `-50%`. ⚠ Il `padding-bottom` pari al `gap` **non è un margine estetico, è ciò che rende il conto esatto**: senza, l'altezza è `2N·c + (2N−1)·g` e il 50% non cade sul primo pixel della seconda copia — compare uno scatto di mezzo gap ad ogni giro. Con il padding l'altezza è `2N(c+g)` e il salto è invisibile.
+- **La copia è `aria-hidden`** (prop `decorative` su `TestimonialCard`), altrimenti uno screen reader annuncia diciotto citazioni in coppie identiche — difetto che la grafica di riferimento ha. ⚠ E marcare **non basta**: i link dentro la copia prendono `tabindex="-1"`, perché un `aria-hidden` che contiene elementi raggiungibili da tastiera è una violazione WCAG vera (`aria-hidden-focus`). Togliere i link dalla copia avrebbe risolto l'accessibilità rompendo la grafica — card duplicate visibilmente diverse dalle originali, e in un loop la differenza si vede.
+- ⚠⚠ **`height: 100svh` e NON `min-height`, ed è l'unica sezione del sito dove va così.** La convenzione delle sezioni dentro un handoff è `min-height`, e lì è corretta perché il loro contenuto è più corto di uno schermo. Qui il contenuto è **deliberatamente più alto** (due copie di ogni card), e con `min-height` l'altezza del contenitore resta INDEFINITA: per specifica una traccia `1fr` in un contenitore indefinito non distribuisce spazio libero, prende la dimensione del contenuto. Misurato via CDP: **sezione a 2297px invece di 900**, cioè sticky rotto e ~1400px irraggiungibili. `height` rende l'altezza definita, il che è l'unico modo perché `minmax(0, 1fr)` significhi "quello che resta". Per una sezione che deve restare incollata non è una perdita di flessibilità, è la regola scritta per esteso.
+- **Conseguenza da ricordare**: il numero di testimonianze **non è più un vincolo di layout** della Home. Aggiungerne allunga le tracce, che sono ritagliate, non la sezione. La nota di avvertimento in `index.astro` sulla "quarta card" è stata riscritta di conseguenza.
+- **Le velocità (38/46/42s) sono la cosa che fa più lavoro**: con la stessa durata le tre colonne resterebbero in fase e il muro leggerebbe come UN blocco che scivola. ⚠ **~40s e non i 15-19s del riferimento**: qui dentro c'è del testo da leggere. La colonna più lenta al centro dà un asse al movimento invece di una scala.
+- ⚠ **Qui il ritardo NEGATIVO è corretto**, al contrario delle onde della CTA (dove ha causato un difetto reale). La differenza non è il segno del ritardo, è **se il fotogramma intermedio di quell'animazione sia uno stato presentabile**: lì era un'onda mezza nata, qui è "la colonna è scorsa un po'" — una composizione statica valida, che è esattamente ciò che serve mentre il muro è in pausa.
+- **Si ferma in hover e con il focus dentro** (WCAG 2.2.2: un movimento automatico più lungo di 5s deve essere fermabile). Ferma TUTTE le colonne, non solo quella sotto il puntatore: se stai leggendo, le altre due che scorrono nella periferia sono il disturbo da cui ti stai difendendo. ⚠ Non viola "niente hover come trigger": quella regola riguarda le animazioni che PARTONO al passaggio del mouse — qui l'hover spegne. L'hover è gated su `(hover: hover)` (su touch resterebbe appiccicato dopo un tap), il `:focus-within` no. ⚠ E queste regole devono stare **dopo** quella di `.is-in`: stessa specificità, decide l'ordine nel file.
+- **Il costo dichiarato**: `display: none` sulle colonne 2-3 sotto i breakpoint le toglie anche dall'albero di accessibilità, quindi su telefono si leggono 3 citazioni su 9. La ridistribuzione non è ottenibile in CSS (la divisione in fette sta nel markup); l'alternativa sarebbe due colonne strettissime a 390px, illeggibili per tutti invece che parziali per alcuni. Mitigazione editoriale: l'ordine dell'array.
+
+#### Le card (`TestimonialCard.astro`)
+
+Riscritta con il muro. **Cosa è cambiato**: via l'indice mono `01/02/03` (in una colonna che ripassa, un ordinale è una promessa che il layout non può mantenere), via il `grid-template-rows: auto 1fr auto` (ancorava l'attribuzione perché tre card AFFIANCATE avessero i nomi sulla stessa linea; in verticale non c'è nessuna linea condivisa da rispettare), via l'ingresso per card (entra la colonna: tre ritardi invece di diciotto). **La superficie ora ha un riempimento e un alone** — la nota precedente diceva l'opposto, cambiata di proposito. ⚠ Ma non copiati alla lettera: `shadow-lg` è un'ombra NERA e su un canvas `#050505` **non produce un solo pixel diverso**; l'unica parte traducibile di `shadow-lg shadow-primary/10` è la sua TINTA. Da qui `--color-surface-1` (il token che esiste per le card) e un alone d'accento al 26%. Nessun colore nuovo, nessun hex.
+
+**Cosa resta e va difeso**: nessuna stella e nessuna virgoletta gigante in corpo 120 (il cliché della sezione testimonianze; le stelle trasformerebbero una persona in un punteggio, esplicitamente escluse da Vlad). Il **monogramma dalle iniziali** quando manca la foto — uno slot vuoto legge come difetto, due lettere composte come una scelta; lo strip `\p{L}` serve perché i segnaposto hanno le parentesi quadre nel nome. Social come icone SVG scritte in markup Astro e non con `set:html`, così lo scope arriva gratis (la trappola già costata due volte con `.sp__logo-svg` e `.sp__letter`); bersaglio 34px, sopra il minimo WCAG 2.5.8, e `aria-label` che include il nome della persona perché nove link chiamati tutti "LinkedIn" sono indistinguibili in un elenco.
+
+⚠ **Nuovo assert da non indebolire**: `verify-anim` misura che **mezza traccia copra tutta la finestra** del muro. È l'unico difetto di questa sezione che non si vede guardandola per dieci secondi — quindi è esattamente quello che deve controllare uno strumento e non un paio d'occhi. Misura il rapporto, non un'altezza attesa: card e viewport cambiano, la relazione no.
+
+`verify-anim.mjs` è passato da 23 a **29 asserzioni**: riposo (cancellatura non tirata, card a opacità 0), dopo-scroll, salto in fondo, reduce, HTML senza JS, più un **assert di contrasto** sull'accento del titolo — misurato sul fondo reale risalito nel DOM (5.47:1), non confrontato con un hex, per la regola "mai un token duplicato in un assert".
+
+⚠ **Il dev server ha servito CSS stantio anche in questa sessione**, con lo stesso sintomo già documentato più sotto: HTML fresco (le classi nuove c'erano) e foglio di stile del componente ancora con una classe CANCELLATA (`ts__body`), quindi la griglia a 12 colonne auto-piazzava titolo e card in colonne singole e la sezione misurava 2259px invece di 900. Diagnosi rapida che evita di andare a caccia nel CSS: `curl` del modulo di stile del componente (`/src/components/.../X.astro?astro&type=style&index=0&lang.css`) e cercarci dentro una classe che non esiste più nel sorgente. Se c'è, il colpevole è il server.
+
+### §05 Percorso (ex §06, poi §04) — JEParma nel teaser, e il vincolo di UNO schermo
+
+`JourneyTeaser` è passato da "06" a "04" (con `Testimonials` spenta il numero saltava da "03 · In evidenza" a "06" senza nulla in mezzo), e poi da "04" a **"05"** quando Dicono si è accesa e ha preso il 04 — vedi sopra.
 
 Aggiunta l'esperienza JEParma al teaser (prima tagliata dal `limit={3}`, visibile solo su `/chi-sono`). Verificato via CDP PRIMA di scegliere come: con tutte e 4 le voci (`limit={4}`) la sezione misurava 1031px contro gli 900 disponibili — rompe il vincolo dello sticky (vedi la nota in testa a `JourneyTeaser.astro`: una sezione incollata più alta della viewport rende irraggiungibile la parte che sfora). Fix scelto: nuovo campo `teaser?: boolean` su `TimelineEntry` (`lib/types.ts`), messo a `false` sulla voce delle superiori in `data/timeline.ts` — esclusa SOLO dal teaser Home (`JourneyTeaser` filtra `entry.teaser !== false` prima di passare a `limit={3}`), resta intera su `/chi-sono` dove `Timeline` non legge questo campo. Risultato: 900px esatti a 1440×900.
 
@@ -238,9 +344,32 @@ Il piano di riferimento completo (milestone 1–11, decisioni bloccate, sistema 
 
 Le sessioni di rifinitura fino a questo punto erano rimaste locali (mai committate): il primo commit che le raccoglie tutte è quello che accompagna questo aggiornamento del file. Da qui in avanti vale il flusso normale in "Git workflow" sotto — commit ai blocchi di progresso significativi, non ad ogni modifica.
 
+### §80 Footer — la luce che si spegne (2026-08-07)
+
+Il footer non ha più un taglio netto in cima: **raccoglie la luce della CTA e la porta a morire nel nero** sul bordo inferiore della pagina. Origine dell'idea: uno snippet portato da Vlad (`radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%)`), che metteva la luce IN BASSO. Applicarlo alla lettera sarebbe stato un difetto e non un effetto — due campi viola impilati sotto la CTA che ne ha già uno, un secondo viola diverso da `--color-accent`, e il punto più chiaro dell'intera pagina sul suo ultimo pixel. L'idea è stata **ribaltata**: la luce non riparte, continua e si spegne.
+
+⚠ **Il gradiente NON è tarato a occhio, è la continuazione geometrica di quello della CTA.** Il core di `.cta__sky` sta `at 95% 105%`: il suo centro è 5svh *sotto* il bordo inferiore della sezione, cioè dentro il footer. Il bagliore del footer (`at 92% 2svh`) mostra la stessa sorgente vista dall'altra parte del confine — per questo i due combaciano senza doverli riaccordare a mano ad ogni ritocco. La caduta è però più ripida (38svh contro 85svh): il footer deve essere il decadimento, non un secondo picco.
+
+⚠ **Tre difetti trovati misurando, non guardando** — e sono il motivo per cui esiste `npm run sample:px`:
+1. **36px di banda nera** fra i due campi viola. `.cta` dichiarava `min-height: 100svh` dentro un `.ho__in` con floor 104svh: 4svh del fondo dell'occlusore restavano scoperti. Invisibili finché erano nero su nero. Risolto esponendo il floor come custom property — vedi la nota in "Convenzioni consolidate".
+2. **Scalino di 2,5:1 sulla cucitura** (`#7a65b8` → `#45337a`). Risolto con caduta più ripida e opacità pari a quella della CTA: oggi 1,41:1.
+3. **Le label del footer scese a 3,38:1**, sotto AA, perché il gradiente era finito sotto di loro (`--color-text-3` faceva già 4,19:1 sul nero — difetto noto). Portate a `--color-text-2`, insieme a `.cv__meta` e alla barra in basso. Oggi il punto peggiore di tutto il footer è 6,38:1.
+
+⚠ **Il quarto stop del gradiente esiste solo per far sparire un BORDO.** Con `accent-deep 30% → transparent 62%` l'alfa scendeva troppo regolarmente e su un'ellisse schiacciata il punto in cui arriva a zero si leggeva come un **arco disegnato** — una nuvola con un contorno. La tappa intermedia al 44% spezza la rampa in due pendenze: ripida dove la luce è forte, lunghissima nella coda. Una coda lunga e piatta non ha un punto in cui finisce.
+
+⚠ **Il footer si accorda a ciò che ha sopra, e lo capisce da solo** (`:global(body:has(.cta))`). `CTASection` esiste su una pagina sola: se è nel documento la luce si accende e il filetto sparisce; altrimenti footer nero col suo confine dichiarato. Non è rifinitura: un gradiente ritagliato dal bordo superiore mostra quel bordo come una **riga dritta** ogni volta che sopra non c'è niente di altrettanto luminoso — su `/chi-sono` si vedeva un rettangolo di luce che cominciava dal nulla. Ammorbidire il bordo con una dissolvenza NON è la via d'uscita: la stessa dissolvenza, in Home, aprirebbe una riga scura proprio sulla giuntura che il bagliore esiste per far sparire. Le due esigenze sono opposte, quindi si distinguono i casi invece di cercare un compromesso inesistente. `:has()` sul body e non un `bodyClass`: il footer resta UNO, e il segnale è la presenza del contenuto stesso — l'unica cosa che non può andare fuori sincrono.
+
+**Gli altri due interventi.** Tre canali (email + WhatsApp + LinkedIn) al posto della sola email, da cui anche il cambio di etichetta: "Dove sono" descriveva solo il luogo, **"Dove trovarmi"** copre il luogo e i modi. E **wordmark e barra base separati**: la barra viene ora PRIMA: prima le stava sopra (il `margin-bottom: -0.28em` del wordmark tirava su l'elemento successivo) e il suo testo misurava 3,65:1 sopra i glifi. Ora il wordmark è davvero l'ultimo gesto, tagliato solo dal bordo pagina.
+
+⚠ **Due proposte sono state ESCLUSE da Vlad** e non vanno riproposte come "fix": il bottone CV resta un bottone (non diventa un link testuale) e la griglia 4/3/3 resta com'è, vuoto compreso.
+
 ### Convenzioni consolidate durante le rifiniture, da riusare (non nel piano originale)
 
-- **Sezioni "in"/"out" di un handoff M12 dichiarano SEMPRE il proprio `min-height: 100svh`** (grid + `align-content:center` per centrare il contenuto), invece di affidarsi a padding generoso per raggiungere l'altezza minima richiesta da `Handoff.astro`. Pattern in `Statement.astro`, `CTASection.astro`, `FeaturedProjects.astro`, `JourneyTeaser.astro`, `WhatIDo.astro`. Vale su tutti i breakpoint, mobile incluso — non è un bug, è "un'idea per viewport" applicato alla lettera.
+- **Sezioni "in"/"out" di un handoff M12 dichiarano SEMPRE il proprio `min-height: 100svh`** (grid + `align-content:center` per centrare il contenuto), invece di affidarsi a padding generoso per raggiungere l'altezza minima richiesta da `Handoff.astro`. Pattern in `Statement.astro`, `FeaturedProjects.astro`, `JourneyTeaser.astro`, `WhatIDo.astro`. Vale su tutti i breakpoint, mobile incluso — non è un bug, è "un'idea per viewport" applicato alla lettera.
+
+  ⚠ **Ma una sezione `slot="in"` che DIPINGE qualcosa di suo deve riempire il floor dell'occlusore, non 100svh** (dal 2026-08-07). `.ho__in` ha `min-height: 104svh`: una sezione da 100svh lascia scoperti 4svh del fondo dell'occlusore sotto di sé — 36px a 900 di viewport. Finché sono nero su nero non li vede nessuno; dal momento in cui la sezione dipinge un fondo proprio diventano una banda visibile. Successo davvero con la CTA, quando il footer ha cominciato a raccoglierne la luce: fra i due campi viola c'erano 36px di nero. Il floor è esposto come custom property (`--ho-in-floor` su `.ho__in`, azzerata da `bareIn`), quindi `CTASection` scrive `min-height: var(--ho-in-floor, 100svh)` invece di ricopiare il numero — se un domani il 104 cambia, cambia in un posto solo.
+
+  ⚠ **Due sezioni adiacenti che devono sembrare UNA superficie continua non si accordano a occhio.** La geometria si eredita: il centro del gradiente della CTA sta al 105% della sua altezza, cioè fuori dalla sezione e dentro il footer — quindi il bagliore del footer non è un secondo gradiente da intonare, è la stessa sorgente vista dall'altra parte del confine (`at 92% 2svh`). E il risultato si MISURA in pixel reali, non si stima: alla prima taratura la cucitura passava da `#7a65b8` a `#45337a`, uno scalino di 2,5:1 in luminanza, chiaramente visibile (oggi 1,41:1, invisibile). Lo strumento è `npm run sample:px`, scritto in quell'occasione — vedi la nota in "Comandi".
 - **`fit-content` (parola chiave CSS) non è interpolabile** da una CSS transition/animation: qualunque `width: 100% → width: fit-content` scatta in un frame solo, a prescindere dalla `transition-duration`. Il fix è misurare la larghezza reale in JS e scriverla come lunghezza vera (px) in una custom property, poi transizionare verso `var(--quella-property)`. Vedi `src/scripts/nav.ts` (`measure()`) + `Navbar.astro` (`--nav-compact-w`).
 - **Curve di easing per morph "osservabili" lunghi** (es. pillola navbar): `--ease-fluid`/`--ease-in-out-quart` hanno velocità di picco 4-6x la media (front-loaded) e su una durata lunga sembrano uno scatto, non un movimento continuo. Aggiunto `--ease-morph: cubic-bezier(0.4, 0, 0.35, 1)` in `global.css` (picco ~2.2x la media, quasi lineare) per questi casi specifici.
 - **Navbar (`Navbar.astro` + `src/scripts/nav.ts`)**: morph TRIGGERATO da scroll (ScrollTrigger `onToggle` che tocca `html.nav-compact`), MAI scrubbato — l'utente lo vuole esplicitamente indipendente dalla velocità/quantità di scroll, parte e va fino in fondo da solo. Larghezza compatta misurata via JS (vedi punto sopra), non `fit-content` in CSS.

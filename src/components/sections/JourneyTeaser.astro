@@ -31,7 +31,18 @@ const { n = '04' } = Astro.props;
 const teaserEntries = TIMELINE.filter((e) => e.teaser !== false);
 ---
 
-<section class="jt" data-section id="percorso-breve">
+{
+  /* `data-activate` (M14) — PROVA, 2026-08-07: fa da segnale d'ingresso per il
+     cielo della CTA (`.cta__wave` in CTASection.astro), che normalmente parte
+     alla propria soglia (`is-on` di `.cta__say`). Vlad vuole provare a farlo
+     partire prima, quando §05 entra in viewport, per giudicare l'effetto.
+     Nessun CSS qui osserva `.jt.is-in`/`.is-on`: l'aggiunta non cambia niente
+     di visibile in QUESTA sezione, serve solo da lettura per l'altra. Se la
+     prova non convince, togliere questo attributo e ripristinare in
+     CTASection.astro il gate su `.cta__say.is-on` (vedi lì per il valore
+     precedente). */
+}
+<section class="jt" data-section data-activate id="percorso-breve">
   <div class="jt__wrap">
     <div class="jt__idx">
       <SectionIndex n={n} label="Percorso" />

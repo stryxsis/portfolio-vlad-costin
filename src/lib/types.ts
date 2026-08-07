@@ -38,12 +38,35 @@ export interface SkillGroup {
   items: string[];
 }
 
+/**
+ * Un profilo pubblico dell'autore di una testimonianza.
+ *
+ * `kind` è un'unione chiusa e non una stringa libera perché ogni valore ha il
+ * suo path SVG scritto a mano in TestimonialCard.astro: una piattaforma nuova
+ * deve essere un errore di compilazione lì, non un'icona che manca a runtime.
+ */
+export interface TestimonialSocial {
+  kind: 'linkedin' | 'github' | 'instagram' | 'sito';
+  url: string;
+}
+
 export interface Testimonial {
   quote: string;
   name: string;
   role: string;
-  linkedin?: string;
+  /**
+   * Ritratto piccolo, come URL pubblico (`/img/...`). Se manca, la card compone
+   * il monogramma dalle iniziali invece di lasciare un buco: non tutti mandano
+   * una foto, e uno slot vuoto si legge come un errore.
+   *
+   * Perché una stringa e non un `ImageMetadata` di astro:assets: i dati stanno
+   * in un `.ts` normale, quindi non c'è un import statico per riga. Il giorno in
+   * cui arrivano foto vere si scelga fra /public (semplice, nessuna
+   * ottimizzazione) e una mappa costruita con `import.meta.glob` — ma non si
+   * costruisce quella macchina prima di avere la prima foto.
+   */
   avatar?: string;
+  socials?: TestimonialSocial[];
 }
 
 export interface ClientRef {

@@ -1,0 +1,278 @@
+---
+/**
+ * L'ATTACCO DI §04 — indice, titolo e la sua coreografia.
+ *
+ * ⚠ ESISTE PER NON ESSERE DUPLICATO. §04 ha due impianti (`TestimonialsFocus`
+ * per poche citazioni, `TestimonialsWall` per molte, vedi il dispatcher in
+ * Testimonials.astro) e la frase che li introduce è la STESSA in entrambi —
+ * non "simile": la stessa, perché è l'identità della sezione. Tenerla copiata
+ * in due file avrebbe significato due coreografie libere di divergere al primo
+ * ritocco, e la divergenza si sarebbe vista solo cambiando impianto, cioè mesi
+ * dopo. Qui c'è una volta sola.
+ *
+ * IL TITOLO È IL CONTENUTO, non un'etichetta sopra le card. "Se ancora non ti ho
+ * convinto che sono la persona giusta, non ascoltare me. Ascolta loro:" fa una
+ * cosa sola: passa la parola. Da qui i tre registri e l'unico gesto cinetico che
+ * la frase si concede.
+ *
+ * ⚠ PERCHÉ NON RIUSA IL DISPOSITIVO DELLO STATEMENT. Statement ha: premessa
+ * smorzata + accento + filetto SOTTOLINEATO + parola-fantasma + timbro.
+ * Ricopiarlo qui renderebbe le due sezioni indistinguibili e farebbe smettere
+ * allo Statement di essere "l'unico momento di luce" della Home — la decisione
+ * su cui poggia l'intera tabella delle superfici (vedi CLAUDE.md). Quindi:
+ * stessa FAMIGLIA di vocabolario (tre registri, un ::after che si disegna in
+ * scaleX, M14 a due battute), gesto DIVERSO — una riga che CANCELLA invece di
+ * sottolineare. "Non ascoltare me" viene barrato: il segno dice letteralmente
+ * quello che dice la frase, quindi non è decorazione, è la frase resa visibile.
+ *
+ * ⚠ LE CLASSI RESTANO `.ts__*` anche ora che il file si chiama diversamente.
+ * Non è pigrizia: `tools/verify-anim.mjs` sonda `.ts__cut`, `.ts__loud` e
+ * `.ts__intro` per verificare la cancellatura, il contrasto dell'accento e le
+ * due battute di M14. Rinominarle avrebbe reso quegli assert verdi per assenza
+ * di bersaglio — il modo più silenzioso che esista di perdere una verifica.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+
+interface Props {
+  n?: string;
+  /** Deve combaciare col `tone` dell'Handoff che contiene la sezione. */
+  tone?: 'paper' | 'canvas';
+}
+const { n = '04', tone = 'canvas' } = Astro.props;
+const paper = tone === 'paper' ? 'paper' : undefined;
+---
+
+<div class:list={['ts__head', `ts__head--${tone}`]}>
+  <div class="ts__idx">
+    <SectionIndex n={n} label="Dicono" tone={paper} />
+  </div>
+
+  {
+    /* `data-activate` (M14) sul WRAPPER e non sull'h2: l'h2 porta già
+       `data-split`, e i due non vanno mai sullo stesso elemento (vedi
+       reveal.ts). Da qui le classi `is-in`/`is-on`/`is-instant` governano in
+       CSS il filetto che cancella e la risoluzione cromatica della frase. */
+  }
+  <div class="ts__intro" data-activate>
+    {
+      /* M2 word-mask: il reveal parola per parola, il device dei titoli-frase
+         del sito. Sotto la piega, quindi mai candidato LCP.
+         ⚠ L'<em> sopravvive allo split: SplitText spacca i NODI DI TESTO e
+         tiene gli elementi inline, e il filetto è un `::after` — generato
+         SULL'elemento, che SplitText sposta invece di distruggere. Un <span>
+         figlio vero al suo posto perderebbe il riferimento (già costato il
+         filetto di §30). */
+    }
+    <h2 class="ts__title" data-split="words">
+      <span class="ts__quiet">Se ancora non ti ho convinto che sono la persona giusta,</span>
+      <em class="ts__cut">non ascoltare me.</em>
+      <span class="ts__loud">Ascolta loro:</span>
+    </h2>
+  </div>
+</div>
+
+<style>
+  /* Mobile: tutto in colonna, indice per primo (è l'orientamento, e va letto
+     prima del titolo che introduce). Su desktop passa alla griglia a 12 e
+     l'indice torna in alto a destra, dove sta in ogni altra sezione. */
+  .ts__idx {
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 56.25rem) {
+    .ts__head {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .ts__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+      margin-bottom: 0;
+    }
+    /* Colonne 1-9 e non 1-12: il titolo deve andare a capo prima dell'indice,
+       altrimenti la riga più lunga gli finisce sotto. */
+    .ts__intro {
+      grid-column: 1 / span 9;
+      grid-row: 1;
+    }
+  }
+
+  /* ⚠ LA MISURA E IL NUMERO DI RIGHE VINCONO SULLA DIMENSIONE — la stessa lezione
+     dello Statement, e qui la frase è ancora più lunga (86 caratteri contro 76).
+     A `--text-h2` pieno su una misura larga diventerebbe un paragrafo grande
+     invece di una frase detta. 28→52px su 26ch tiene la premessa in due righe e
+     le due frasi forti su una riga ciascuna. */
+  .ts__title {
+    max-width: 26ch;
+    font-size: clamp(1.75rem, 3.6vw, 3.25rem);
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .ts__head--paper .ts__title {
+    color: var(--color-paper-text-1);
+  }
+
+  /* -- Registro 1: la premessa, detta piano -------------------------------
+     `display: block` è deliberato: manda la seconda metà a riga nuova invece di
+     lasciare il passaggio piano→forte a cadere a metà riga, dove si legge come un
+     incidente di impaginazione e non come una scelta.
+     `letter-spacing` MENO negativo del titolo: la crenatura stretta serve al
+     corpo grande, su 0.56em impasterebbe le lettere. */
+  .ts__quiet {
+    display: block;
+    margin-bottom: 0.45em;
+    font-size: 0.56em;
+    line-height: 1.25;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .ts__head--paper .ts__quiet {
+    color: var(--color-paper-text-2); /* 6.07:1 sul paper */
+  }
+  /* ⚠ `--color-text-2` e non `text-3`: sul canvas il text-3 di `:root` è 4.19:1,
+     sotto AA (difetto noto, documentato in CLAUDE.md). */
+  .ts__head--canvas .ts__quiet {
+    color: var(--color-text-2);
+  }
+
+  /* -- Registro 2: la frase cancellata ------------------------------------
+     ⚠ `display: inline-block` NON È DECORATIVO: tiene la frase su UNA riga, ed è
+     ciò che rende disegnabile il filetto. Con `line-height: 1.06` i frammenti di
+     riga di un inline che va a capo si SOVRAPPONGONO (l'area di contenuto di
+     Geist misura ~1.107em contro la riga da 1.06em), quindi la cancellatura del
+     primo frammento taglierebbe le lettere del secondo — misurato via CDP sullo
+     Statement, dove la prima stesura usava `background-image` +
+     `box-decoration-break: clone` proprio per sopravvivere al ritorno a capo, e
+     non funzionava. Un inline-block non si spezza mai a metà, si sposta INTERO
+     alla riga dopo: un solo frammento, quindi un solo `::after` con cui non c'è
+     niente da sovrapporre. */
+  .ts__cut {
+    position: relative;
+    display: inline-block;
+    font-style: normal;
+  }
+
+  /* -- Registro 3: la frase che prende la parola --------------------------
+     `display: block` per la stessa ragione della premessa: la composizione
+     voluta è tre blocchi, non "quello che avanza sulla riga". */
+  .ts__loud {
+    display: block;
+  }
+
+  /* ⚠ IL FILETTO È ACCENTO, non un grigio da correzione di bozze. Un tratto
+     grigio su testo grigio legge come un errore di stampa; l'accento lo rende un
+     SEGNO EDITORIALE, cioè una scelta. Su un tratto da 2px il pavimento di
+     contrasto è 3:1 (oggetto grafico, non testo), quindi entrambi i toni stanno
+     largamente dentro.
+     `top: 52%` e non `bottom`: la cancellatura sta a metà delle lettere, e il 52%
+     della scatola di riga cade appena sotto il centro ottico dei glifi — sopra ci
+     sono le ascendenti, che spostano il centro geometrico più in alto di quello
+     percepito. */
+  .ts__cut::after {
+    content: '';
+    position: absolute;
+    left: -0.04em;
+    right: -0.04em;
+    top: 52%;
+    height: 2px;
+    border-radius: 1px;
+    transform-origin: left;
+  }
+  .ts__head--paper .ts__cut::after {
+    background-color: var(--color-accent-deep);
+  }
+  .ts__head--canvas .ts__cut::after {
+    background-color: var(--color-accent);
+  }
+
+  /* ====================================================================
+     LA COREOGRAFIA, in due battute (M14).
+
+     `is-in`  (top 80%)  le parole sono salite (M2) e il filetto CANCELLA
+     `is-on`  (top 40%)  la frase si RISOLVE: la parte cancellata si smorza,
+                         "Ascolta loro:" passa all'accento e prende la scena
+
+     ⚠ La pausa fra le due NON è un `delay`, è la distanza di scroll fra le
+     soglie (~430px a 900px di viewport). E qui le due soglie FUNZIONANO davvero,
+     a differenza di quanto capita in §30: la sezione arriva scorrendo
+     normalmente da sotto e solo DOPO si incolla, quindi il titolo attraversa le
+     soglie a distanza reale invece che nello stesso istante.
+
+     ⚠ NIENTE è illeggibile in attesa. Sia la frase cancellata sia quella
+     d'accento partono dal testo pieno e si spostano su valori che restano sopra
+     AA: la pausa trattiene COLORE, non informazione. È l'invariante su cui
+     poggia tutta la rete di sicurezza di M14 (vedi reveal.ts) e non va rotta
+     per un effetto. */
+  :global(html.js-anim) .ts__cut::after {
+    transform: scaleX(0);
+    /* 1250ms: M2 ha 16 parole a 0.035s di stagger + 0.7s di durata, quindi
+       l'ultima si posa a ~1225ms dalla soglia. Il filetto arriva DOPO che la
+       frase è leggibile — cancellare parole che stanno ancora entrando non si
+       legge come un gesto, si legge come un glitch. Se la frase cambia lunghezza
+       di molto, questo numero va rifatto con quel conto. */
+    transition: transform 760ms var(--ease-out-expo) 1250ms;
+  }
+  :global(html.js-anim) .ts__intro.is-in .ts__cut::after {
+    transform: scaleX(1);
+  }
+
+  /* La risoluzione cromatica: un solo paint su commutazione di classe, non
+     un'animazione di colore per frame (stesso costo del numero di sezione che
+     passa ad accento in SectionIndex). */
+  :global(html.js-anim) .ts__cut,
+  :global(html.js-anim) .ts__loud {
+    transition: color 620ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .ts__head--paper .ts__intro.is-on .ts__cut {
+    color: var(--color-paper-text-2);
+  }
+  :global(html.js-anim) .ts__head--canvas .ts__intro.is-on .ts__cut {
+    color: var(--color-text-2);
+  }
+  :global(html.js-anim) .ts__head--paper .ts__intro.is-on .ts__loud {
+    color: var(--color-accent-deep);
+  }
+  :global(html.js-anim) .ts__head--canvas .ts__intro.is-on .ts__loud {
+    color: var(--color-accent);
+  }
+
+  /* Senza JS la frase è già risolta: lo stato d'attesa esiste solo sotto
+     `html.js-anim`, come ogni altro pre-hide del sito. Qui va ridichiarato
+     perché il colore finale vive in una regola gated. */
+  .ts__head--paper .ts__cut {
+    color: var(--color-paper-text-2);
+  }
+  .ts__head--canvas .ts__cut {
+    color: var(--color-text-2);
+  }
+  .ts__head--paper .ts__loud {
+    color: var(--color-accent-deep);
+  }
+  .ts__head--canvas .ts__loud {
+    color: var(--color-accent);
+  }
+  /* ...e sotto `js-anim` si riparte dal testo pieno, per poi arrivarci. */
+  :global(html.js-anim) .ts__head--paper .ts__cut,
+  :global(html.js-anim) .ts__head--paper .ts__loud {
+    color: var(--color-paper-text-1);
+  }
+  :global(html.js-anim) .ts__head--canvas .ts__cut,
+  :global(html.js-anim) .ts__head--canvas .ts__loud {
+    color: var(--color-text-1);
+  }
+
+  /* Salto in un colpo (tasto Fine, ripristino dello scroll al reload): stato
+     finale netto, durata E ritardo azzerati su ENTRAMBE le battute — una
+     cancellatura di cui nessuno ha visto l'inizio non deve impiegare tempo a
+     finire. Trovato via CDP altrove: azzerando il solo ritardo, il filetto
+     restava a metà disegno per secondi dopo il salto. */
+  :global(html.js-anim) .ts__intro.is-instant .ts__cut::after,
+  :global(html.js-anim) .ts__intro.is-instant .ts__cut,
+  :global(html.js-anim) .ts__intro.is-instant .ts__loud {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+</style>

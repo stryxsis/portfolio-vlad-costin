@@ -2,27 +2,73 @@
 /**
  * HOME — le nove sezioni.
  *
- * §00 Hero · §10 Cosa faccio · §20 Dove · §30 In evidenza · §40 Statement
- * §50 Dicono (spenta) · §60 Percorso · §70 CTA · §80 Footer (nel layout)
+ * §00 Hero · §10 Cosa faccio · §20 Dove · §30 In evidenza · §50 Dicono
+ * §40 Statement · §60 Percorso · §70 CTA · §80 Footer (nel layout)
  *
- * TRE HANDOFF M12, e sono la struttura della pagina, non un effetto aggiunto
- * sopra. Il cambio di sezione avviene per OCCLUSIONE: l'uscente resta incollata,
- * la entrante le scorre sopra con un fondo opaco. Zero paint per frame, e nessuna
- * "sezione impilata" — vedi Handoff.astro per il vincolo geometrico che rende
- * l'effetto possibile.
+ * QUATTRO HANDOFF M12, e sono la struttura della pagina, non un effetto
+ * aggiunto sopra. Il cambio di sezione avviene per OCCLUSIONE: l'uscente resta
+ * incollata, la entrante le scorre sopra con un fondo opaco. Zero paint per
+ * frame, e nessuna "sezione impilata" — vedi Handoff.astro per il vincolo
+ * geometrico che rende l'effetto possibile.
  *
  *   intro    hero → §10   tono canvas   il cambio è di contenuto, non di palette
- *   featured §30  → §40   tono paper    la prima inversione: la pausa
- *   closing  §60  → §70   tono accent   la seconda: agire, adesso
+ *   featured §30  → (niente, bareIn)    il mazzo si stacca, nessuna occlusione
+ *   dicono   §50  → §40   tono paper    l'occlusione vera: buio → avorio
+ *   closing  §60  → §70   tono canvas   agire, adesso (era accent, vedi sotto)
  *
- * SUL PERCHÉ §50 E §60 SONO INVERTITE RISPETTO AL PIANO.
- * Nel piano l'ordine era §50 percorso, §60 testimonianze. Le testimonianze sono
- * spente (nessuna citazione reale), e la sezione uscente di un handoff deve stare
- * in UNO schermo: l'unica delle due che può farlo è il teaser del percorso. Se
- * il percorso fosse rimasto al §50, accendere le testimonianze avrebbe messo
- * dentro un handoff una sezione alta due schermi — cioè avrebbe rotto lo sticky
- * a distanza di mesi, senza un errore visibile in nessun file. Invertendole, il
- * giorno in cui arriva una citazione vera la si aggiunge e basta.
+ * ⚠ STORIA DI QUESTO TRATTO, perché il perché conta più del cosa.
+ * Tre tentativi, su richieste via via più precise:
+ *  1. Dicono su paper, impilata con Statement nello stesso `slot="in"`.
+ *  2. Dicono su buio subito dopo i Progetti, poi un taglio netto SENZA
+ *     occlusione (`slot="out"` vuoto) verso Statement — "staccare tutto".
+ *  3. QUESTA VERSIONE: fra Progetti e Dicono non deve succedere NIENTE di
+ *     speciale ("continua a scrollare e vedo anche le testimonianze"); la
+ *     dissolvenza-e-copertura che piace ("quella shamless transition") va
+ *     invece fra Dicono e Statement, dove PRIMA (versione 2) c'era il taglio
+ *     a secco. Cioè: la vera occlusione sticky si sposta da §30→§50 a §50→§40.
+ *
+ * PERCHÉ DUE HANDOFF ANCHE QUI, E NON UNO CHE FA TUTTO.
+ * Un `[slot="out"]` non deve MAI superare la viewport mentre è incollato (vedi
+ * Handoff.astro) — il mazzo di §30 la satura già esattamente (900/900px, zero
+ * margine) — quindi non può contenere ANCHE Dicono. E un `[slot="in"]` non può
+ * essere "quasi vuoto": `.ho__in` ha un floor di 104svh che esiste per
+ * garantire che l'occlusione si completi PRIMA che l'uscente si sganci — un
+ * floor che, applicato a un `in` senza contenuto, diventerebbe scroll morto
+ * puro invece di proteggere qualcosa.
+ *
+ * Da qui `bareIn` (nuovo prop di Handoff.astro, vedi lì): l'handoff "featured"
+ * non occlude più NIENTE — resta solo per dare al mazzo di §30 la propria corsa
+ * sticky (`travel`), che è un bisogno del mazzo, non della transizione verso
+ * Dicono. Con `bareIn` il suo `in` non ha il floor, quindi Progetti si stacca e
+ * Dicono comincia a entrare in scroll NORMALE, senza copertura, senza rientro —
+ * "continua a scrollare" per davvero, non un'occlusione invisibile perché
+ * stesso colore (che era la versione 2, e sembrava comunque incollata).
+ *
+ * Dicono diventa quindi l'USCENTE del secondo handoff (`slot="out"`, non più
+ * `slot="in"` come nelle versioni 1-2): entra in scena scrollando normalmente
+ * da sotto, si INCOLLA una volta arrivata in cima (stesso comportamento del
+ * mazzo di §30), resta leggibile per `travel` (tempo di lettura delle card), e
+ * SOLO ALLORA Statement (paper) sale a coprirla — la stessa dissolvenza-e-scala
+ * (M12 rientro, stage.ts) che prima viveva fra §30 e Statement, oggi fra Dicono
+ * e Statement.
+ *
+ * ⚠ VINCOLO EREDITATO DA QUESTO RUOLO: un `[slot="out"]` non deve MAI superare
+ * la viewport (stesso vincolo di sopra, ora sul lato di Dicono). ⚠ QUESTA NOTA
+ * ERA UN AVVERTIMENTO E NON LO È PIÙ, aggiornata il 2026-08-06: con la riga di
+ * tre card ferme `Testimonials` stava dentro il vincolo per COINCIDENZA (900px
+ * esatti a 1440×900) e una quarta card, andando a una seconda riga della
+ * griglia, l'avrebbe rotto. Oggi la sezione è il muro che scorre (M18): la sua
+ * altezza è `100svh` per costruzione — griglia a due righe, testa `auto` e muro
+ * `minmax(0, 1fr)` — quindi aggiungere citazioni allunga le TRACCE, che sono
+ * ritagliate, e non la sezione. Il numero di testimonianze non è più un vincolo
+ * di layout di questa pagina. `verify-stage.mjs` continua a sorvegliare
+ * l'invariante ("nessuno schermo sticky supera la viewport"), e `verify-anim`
+ * quello nuovo del muro (mezza traccia deve coprire la finestra).
+ *
+ * `n="04"` su Dicono mantiene ascendenti i numeri visibili in scroll (03 In
+ * evidenza → 04 Dicono → 05 Percorso); lo "Statement 04" nel timbro di Statement
+ * è una numerazione diversa (l'identità del testo in data/statements.ts) e non
+ * collide: sono già oggi due badge visivamente diversi.
  *
  * §20 non ha handoff in uscita, ed è deliberato: è la sezione più tranquilla e
  * serve a far pesare la stage che arriva. Il ritmo si costruisce anche con le
@@ -83,12 +129,20 @@ import { SITE } from '../lib/site';
       voluto. La coda ferma sta in stage.ts come tween finale, ma lo SPAZIO in
       cui esistere glielo dà questa riga. */
   }
-  <Handoff name="featured" tone="paper" travel={440}>
+  <Handoff name="featured" tone="canvas" travel={440} bareIn>
     <FeaturedProjects slot="out" name="featured" />
-    <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
   </Handoff>
 
-  <Testimonials n="05" />
+  {
+    /* Vedi "PERCHÉ DUE HANDOFF" qui sopra. `travel=140`: tempo per leggere le
+       tre card mentre Dicono è incollata, prima che Statement salga a coprirla
+       — stessa logica di lettura del `travel=100` di "closing" sotto, un po'
+       più lungo perché qui ci sono tre citazioni da leggere e non un teaser. */
+  }
+  <Handoff name="dicono" tone="paper" travel={140}>
+    <Testimonials slot="out" n="04" />
+    <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
+  </Handoff>
 
   {
     /* `travel` anche qui, ma per un motivo diverso da §30: là è il tempo in cui i
@@ -98,8 +152,19 @@ import { SITE } from '../lib/site';
       hero, non per contenuto che si deve leggere: uno schermo di corsa lo tiene
       fermo e intero prima che l'accento arrivi. */
   }
-  <Handoff name="closing" tone="accent" travel={100}>
-    <JourneyTeaser slot="out" n="04" />
+  {
+    /* ⚠ `tone="canvas"`, ERA `accent`, cambiato il 2026-08-06.
+       La CTA non è più un campo viola pieno: è un campo scuro attraversato da
+       onde di luce viola che si espandono dall'angolo (vedi `.cta__sky` in
+       CTASection.astro). Conseguenza sulla struttura: questo handoff passa da
+       canvas → accento a canvas → canvas, cioè diventa dello stesso tipo di
+       `intro` ("il cambio è di contenuto, non di palette"). L'occlusione M12
+       continua a funzionare identica — `.ho__in--canvas` è opaco quanto
+       `.ho__in--accent`, ed è l'opacità a occludere, non il colore.
+       Il perché della scelta e cosa si perde stanno in testa a CTASection.astro. */
+  }
+  <Handoff name="closing" tone="canvas" travel={100}>
+    <JourneyTeaser slot="out" n="05" />
     <CTASection slot="in" />
   </Handoff>
 </BaseLayout>

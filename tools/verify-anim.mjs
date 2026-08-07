@@ -141,6 +141,122 @@ const PROBE = `(() => {
       : null,
     stStampOpacity: q('.st__stamp') ? getComputedStyle(q('.st__stamp')).opacity : null,
     stGhostOpacity: q('.st__ghost') ? getComputedStyle(q('.st__ghost')).opacity : null,
+    /* §04 DICONO. Il gesto cinetico qui e' una CANCELLATURA (un ::after in
+       scaleX su .ts__cut), non una sottolineatura: stessa famiglia di
+       vocabolario dello statement, elemento diverso — quindi serve un sondaggio
+       suo, e sondarlo con quello dello statement lo renderebbe verde per il
+       motivo sbagliato. Sondati gli stati OSSERVABILI, come sopra.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsCutTransform: q('.ts__cut')
+      ? getComputedStyle(q('.ts__cut'), '::after').transform
+      : null,
+    /* ⚠ §04 HA DUE IMPIANTI e a sceglierli e' il NUMERO di citazioni (vedi
+       Testimonials.astro): sotto 6 le righe editoriali, da 6 in su il muro che
+       scorre. Quindi questo strumento non puo' dare per scontato quale dei due
+       stia guardando: sonda quale c'e' e poi asserisce solo le invarianti che
+       hanno senso per quello. Senza questo, il giorno in cui Vlad sostituisce i
+       segnaposto con tre testimonianze vere meta' dei controlli di §04
+       diventerebbe rossa senza che si sia rotto niente — che e' il modo piu'
+       rapido di insegnare a ignorare l'esito dello strumento.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsImpianto: q('.ts__track') ? 'muro' : q('.ts__list') ? 'focus' : 'assente',
+    /* Le righe del registro editoriale: stessa logica delle colonne del muro,
+       elemento diverso. */
+    tsItemOpacities: Array.from(document.querySelectorAll('.ts__item')).map(
+      (el) => getComputedStyle(el).opacity
+    ),
+    /* ⚠ L'INVARIANTE DEL REGISTRO A RIGHE: l'elenco divide un viewport meno il
+       titolo fra le citazioni, e il corpo del testo e' tarato su quel conto
+       (vedi la tabella QUOTE_SIZE in TestimonialsFocus). Se una citazione molto
+       lunga, o un viewport molto basso, mandano il contenuto oltre lo spazio
+       calcolato, il testo sborda dal proprio riquadro — e siccome non c'e'
+       nessun ritaglio, sborda in silenzio, sovrapponendosi alla riga successiva.
+       Qui si misura il debordo in pixel: e' l'unico difetto di quell'impianto
+       che non si vede guardandolo a colpo d'occhio.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsListaDebordo: (() => {
+      const l = q('.ts__list');
+      if (!l) return null;
+      return { finestra: Math.round(l.clientHeight), contenuto: Math.round(l.scrollHeight) };
+    })(),
+    /* ⚠ SI SONDANO LE COLONNE, NON LE CARD (cambiato con M18, il muro che
+       scorre). Prima l'ingresso era per card, in cascata; oggi entra la colonna e
+       la card non ha piu' nessuna opacita' propria. Sondare ancora .tc darebbe
+       nove volte "1" a riposo e l'assert "a riposo non sono entrate" diventerebbe
+       rosso — o, peggio, verde per il motivo sbagliato se qualcuno lo allentasse.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsColOpacities: Array.from(document.querySelectorAll('.ts__col')).map(
+      (el) => getComputedStyle(el).opacity
+    ),
+    /* L'INVARIANTE GEOMETRICA DEL MARQUEE, e non e' un dettaglio: una traccia
+       contiene le sue card due volte e trasla del 50%, quindi META' della traccia
+       deve coprire ALMENO tutta la finestra che la mostra. Se non la copre, ad
+       ogni giro passa un buco — il difetto tipico di un marquee con troppo poco
+       contenuto, che si vede solo dopo decine di secondi (cioe' mai, durante uno
+       sviluppo) e sempre a chi guarda la pagina per davvero.
+       Si misura il rapporto e non un'altezza attesa: card e viewport cambiano,
+       la relazione no.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsWallSeam: (() => {
+      const wall = q('.ts__wall');
+      if (!wall) return null;
+      const h = wall.clientHeight;
+      return Array.from(wall.querySelectorAll('.ts__track')).map((t) => ({
+        half: Math.round(t.getBoundingClientRect().height / 2),
+        window: Math.round(h),
+      }));
+    })(),
+    /* La copia decorativa dev'essere marcata: tante card nascoste all'assistiva
+       quante visibili, e nessun link della copia raggiungibile da tastiera.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    tsDup: {
+      visibili: document.querySelectorAll('.tc:not([aria-hidden])').length,
+      nascoste: document.querySelectorAll('.tc[aria-hidden="true"]').length,
+      linkTabbabiliNellaCopia: document.querySelectorAll(
+        '.tc[aria-hidden="true"] a:not([tabindex="-1"])'
+      ).length,
+    },
+    /* Il colore risolto della frase che prende la parola, col fondo su cui
+       poggia: serve per l'invariante di contrasto (mai un hex negli assert —
+       vedi il divieto in CLAUDE.md). Il fondo lo mette l'antenato .ho__in--paper,
+       quindi va risalito finche' non si trova un colore non trasparente. */
+    tsLoud: (() => {
+      const el = q('.ts__loud');
+      if (!el) return null;
+      let bg = 'rgba(0, 0, 0, 0)';
+      for (let n = el; n; n = n.parentElement) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c && !/rgba\\(0, 0, 0, 0\\)|transparent/.test(c)) {
+          bg = c;
+          break;
+        }
+      }
+      return { color: getComputedStyle(el).color, bg: bg };
+    })(),
+    /* §70 CTA. Le quattro righe entrano in cascata (M14) e il gruppo azioni
+       DOPO di loro; il glow del bottone è invece l'unica animazione in LOOP
+       della sezione, quindi si sonda il suo conteggio di iterazioni — che sotto
+       reduced-motion la regola globale di global.css deve portare a 1.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    ctaLineOpacities: Array.from(document.querySelectorAll('.cta__line')).map(
+      (el) => getComputedStyle(el).opacity
+    ),
+    ctaActionsOpacity: q('.cta__actions') ? getComputedStyle(q('.cta__actions')).opacity : null,
+    ctaGlowIterations: q('.cta__glow')
+      ? getComputedStyle(q('.cta__glow'), '::before').animationIterationCount
+      : null,
+    /* Le opacita' delle cinque onde del cielo, lette DUE volte per due
+       invarianti opposti: a pagina caricata devono essere tutte a zero (prima
+       della partenza il cielo non ha bande — vedi il difetto dei ritardi
+       negativi piu' sotto), con movimento ridotto devono essere tutte VISIBILI
+       perche' quel fondo non deve sparire a chi chiede meno movimento. La
+       regola globale di global.css porta le iterazioni a 1, e il fotogramma
+       100% dell'onda e' opacity 0 — cioe' senza il blocco reduce dedicato in
+       CTASection il cielo diventerebbe nero vuoto. Qui si misura che non lo sia.
+       NB: nessun backtick in questo commento, sta dentro un template literal. */
+    ctaWaveOpacities: Array.from(document.querySelectorAll('.cta__wave')).map(
+      (el) => getComputedStyle(el).opacity
+    ),
   };
 })()`;
 
@@ -209,6 +325,127 @@ ok(
   p.stRuleTransform
 );
 
+/* §04 Dicono, stessa logica: la sezione è molto sotto la piega, quindi a pagina
+   appena caricata la cancellatura non può essere già tirata e le card non
+   possono essere già entrate. Senza questo, i due controlli "dopo lo scroll"
+   sarebbero verdi senza aver misurato nessuna animazione. */
+ok(
+  '§04 Dicono: a riposo la cancellatura NON è tirata',
+  /^matrix\(0,/.test(p.tsCutTransform || ''),
+  p.tsCutTransform
+);
+/* ⚠ DA QUI IN POI §04 SI BIFORCA. Quale impianto sia in scena lo decide il numero
+   di citazioni (vedi Testimonials.astro), quindi lo strumento lo LEGGE invece di
+   darlo per scontato: asserire le invarianti del muro su una pagina che rende le
+   righe editoriali produrrebbe una fila di rossi senza che si sia rotto niente.
+   L'impianto viene comunque stampato: un controllo che cambia forma in silenzio
+   è peggio di uno che manca. */
+const muro = p.tsImpianto === 'muro';
+ok(
+  `§04 Dicono: impianto in scena — ${p.tsImpianto}`,
+  p.tsImpianto === 'muro' || p.tsImpianto === 'focus',
+  muro ? 'muro che scorre (≥6 citazioni)' : 'righe editoriali (1-5 citazioni)'
+);
+
+if (muro) {
+  ok(
+    '§04 muro: a riposo le colonne non sono entrate',
+    p.tsColOpacities.length > 0 && p.tsColOpacities.every((o) => Number(o) < 0.1),
+    `${p.tsColOpacities.length} colonne · ${p.tsColOpacities.join(',')}`
+  );
+  /* ⚠ M18 — L'INVARIANTE CHE TIENE IN PIEDI IL LOOP. Vedi il commento accanto al
+     sondaggio: mezza traccia deve coprire tutta la finestra, o ad ogni giro passa
+     un buco. È l'unico difetto di quell'impianto che non si vede guardandolo per
+     dieci secondi — quindi è esattamente quello che deve controllare uno
+     strumento e non un paio d'occhi. Si controlla a pagina appena caricata perché
+     è geometria, non stato: vale anche prima che il muro entri in scena. */
+  ok(
+    '§04 muro: mezza traccia copre la finestra (nessuna giuntura nel loop)',
+    Array.isArray(p.tsWallSeam) &&
+      p.tsWallSeam.length > 0 &&
+      p.tsWallSeam.every((t) => t.half >= t.window),
+    (p.tsWallSeam || []).map((t) => `${t.half}≥${t.window}`).join(' · ')
+  );
+  /* La copia che rende invisibile il ciclo non deve rendere doppio il contenuto
+     per chi non la vede: tante card marcate `aria-hidden` quante visibili, e zero
+     link della copia nel giro di tastiera (un `aria-hidden` con dentro qualcosa di
+     focalizzabile è una violazione WCAG vera, non una pignoleria). */
+  ok(
+    '§04 muro: la copia del loop è invisibile ad assistiva e tastiera',
+    p.tsDup.visibili > 0 &&
+      p.tsDup.nascoste === p.tsDup.visibili &&
+      p.tsDup.linkTabbabiliNellaCopia === 0,
+    `${p.tsDup.visibili} reali / ${p.tsDup.nascoste} copie · ${p.tsDup.linkTabbabiliNellaCopia} link tabbabili nella copia`
+  );
+} else {
+  ok(
+    '§04 righe: a riposo le righe non sono entrate',
+    p.tsItemOpacities.length > 0 && p.tsItemOpacities.every((o) => Number(o) < 0.1),
+    `${p.tsItemOpacities.length} righe · ${p.tsItemOpacities.join(',')}`
+  );
+  /* ⚠ L'invariante geometrica di questo impianto NON si misura qui, si misura
+     dopo lo scroll — vedi più sotto. A riposo le righe sono ancora traslate di
+     26px dal proprio stato d'ingresso, e quella traslazione entra nello
+     `scrollHeight`: misurata adesso darebbe un debordo di 26px inesistente. È il
+     primo risultato che questo controllo ha prodotto, ed era un difetto suo. */
+}
+
+/* A pagina appena caricata le tracce devono essere IN PAUSA: girano solo da
+   quando il muro è in vista. Stesso controllo (e stessa ragione) del cielo della
+   CTA: tre colonne alte il doppio della viewport che traslano durante il
+   caricamento sono costo puro per un effetto che nessuno sta guardando. */
+if (muro) {
+  const wallAtRest = await evaluate(`(async () => {
+    const el = document.querySelector('.ts__track');
+    if (!el) return 'elemento assente';
+    const a = getComputedStyle(el).transform;
+    await new Promise((r) => setTimeout(r, 700));
+    return a === getComputedStyle(el).transform ? 'in pausa' : 'GIA IN MOTO';
+  })()`);
+  ok('§04 muro: a pagina caricata è in pausa (budget LCP)', wallAtRest === 'in pausa', wallAtRest);
+}
+/* §70 CTA, stessa logica: è l'ultima sezione della pagina, quindi a pagina
+   appena caricata le sue righe non possono essere già entrate. Le quattro righe
+   devono essere TUTTE spente, non "almeno una": una cascata in cui la prima è
+   già visibile non è una cascata. */
+ok(
+  '§70 CTA: a riposo le quattro righe non sono entrate',
+  p.ctaLineOpacities.length === 4 && p.ctaLineOpacities.every((o) => Number(o) < 0.1),
+  `${p.ctaLineOpacities.length} righe · ${p.ctaLineOpacities.join(',')}`
+);
+
+/* A pagina appena caricata le onde devono essere IN PAUSA: girano solo da quando
+   la sezione è stata raggiunta (`animation-play-state`, vedi CTASection). È il
+   controllo che protegge il budget dell'LCP — cinque strati grandi quanto la
+   viewport che animano durante il caricamento sono costo puro per un effetto
+   che nessuno sta guardando. */
+const waveAtRest = await evaluate(`(async () => {
+  const el = document.querySelector('.cta__wave');
+  if (!el) return 'elemento assente';
+  const a = getComputedStyle(el).transform;
+  await new Promise((r) => setTimeout(r, 700));
+  return a === getComputedStyle(el).transform ? 'in pausa' : 'GIA IN MOTO';
+})()`);
+ok(
+  '§70 CTA: a pagina caricata le onde sono in pausa (budget LCP)',
+  waveAtRest === 'in pausa',
+  waveAtRest
+);
+/* ⚠ E IN PAUSA DEVONO ESSERE ANCHE INVISIBILI, che è un invariante DIVERSO da
+   "sono ferme" e nasce da un difetto reale visto a schermo: con i ritardi
+   negativi della prima versione la pausa congelava ogni onda a un fotogramma
+   qualsiasi del proprio ciclo, quindi arrivando alla sezione si trovavano cinque
+   bande immobili sparse a mezzo schermo che poi ripartivano da lì — descritto
+   così: "sembra che l'animazione sia già partita e sia in pausa ad aspettare che
+   parta". Fermo NON basta: prima della partenza il cielo non deve avere bande.
+   Si misura l'opacità e non il ritardo perché è l'opacità ciò che si vede: un
+   domani i valori dei ritardi possono cambiare, questo invariante no. */
+ok(
+  '§70 CTA: prima della partenza nessuna onda è visibile',
+  p.ctaWaveOpacities.length === 5 && p.ctaWaveOpacities.every((o) => Number(o) < 0.02),
+  `onde ${p.ctaWaveOpacities.join(',')}`
+);
+
 /**
  * Scorre con eventi wheel REALI passati da CDP.
  *
@@ -233,6 +470,20 @@ async function wheelTo(ticks, delta = 500) {
 // Scorrimento normale fino in fondo: alla fine TUTTI i data-reveal devono essere
 // visibili, perché li si è attraversati uno per uno.
 await wheelTo(26);
+
+/* ⚠ ATTESA EXTRA, e serve per una ragione aritmetica, non per prudenza.
+   Le soglie M14 delle sezioni in fondo scattano negli ULTIMI tick di rotellina,
+   e l'elemento più lento della pagina è il timbro del manifesto §04: 700ms di
+   durata sopra 1900ms di ritardo, cioè 2600ms dalla propria soglia. `wheelTo`
+   lascia solo 1100ms di quiete, quindi il campione cadeva MENTRE la transizione
+   era ancora in corso: misurato 0.9027 e 0.9717 su due run consecutive, cioè a
+   filo della soglia di 0.9 dell'assert — verde o rosso a caso, sullo stesso
+   codice. Un controllo che sfarfalla insegna a ignorare l'esito dell'intero
+   strumento esattamente come uno sempre rosso.
+   2000ms portano la quiete totale a ~3100ms, sopra i 2600 richiesti. Se un
+   giorno un ritardo cresce oltre ~1400ms, questo numero va rifatto con quel
+   conto. */
+await sleep(2000);
 const after = await evaluate(PROBE);
 ok(
   'data-reveal visibili dopo lo scroll',
@@ -246,6 +497,80 @@ ok(
     Number(after.stStampOpacity) > 0.9 &&
     Number(after.stGhostOpacity) > 0.9,
   `filetto ${after.stRuleTransform} · timbro ${after.stStampOpacity} · fantasma ${after.stGhostOpacity}`
+);
+const entrati = muro ? after.tsColOpacities : after.tsItemOpacities;
+ok(
+  `§04 Dicono: cancellatura tirata e ${muro ? 'colonne' : 'righe'} entrate dopo lo scroll`,
+  steso(after.tsCutTransform) && entrati.length > 0 && entrati.every((o) => Number(o) > 0.9),
+  `cancellatura ${after.tsCutTransform} · ${entrati.join(',')}`
+);
+/* ...e ORA il muro deve scorrere: raggiunta la sezione, `is-in` è arrivata e
+   `animation-play-state` è passata a `running`. Come per il cielo della CTA, è
+   un'animazione che non dipende né dallo scroll né da un tween: senza questo
+   controllo un errore nei keyframes la lascerebbe ferma senza che niente diventi
+   rosso. Si campiona la traccia di UNA colonna: se una gira girano tutte, la
+   regola che le accende è la stessa.
+   ⚠ Solo per il muro: il registro a righe non ha NIENTE in loop, ed è una
+   decisione dichiarata (vedi TestimonialsFocus) — lì il movimento non avrebbe
+   niente da dire e sarebbe decorazione. */
+if (muro) {
+  const wallMotion = await evaluate(`(async () => {
+    const el = document.querySelector('.ts__track');
+    if (!el) return 'elemento assente';
+    const a = getComputedStyle(el).transform;
+    await new Promise((r) => setTimeout(r, 700));
+    return a === getComputedStyle(el).transform ? 'FERMO ' + a : 'in moto';
+  })()`);
+  ok('§04 muro: raggiunta la sezione, scorre', wallMotion === 'in moto', wallMotion);
+} else {
+  /* ⚠ L'INVARIANTE DEL REGISTRO A RIGHE, gemella di quella del loop: là il
+     rischio è un buco nel ciclo, qui è del testo che sborda oltre lo spazio
+     calcolato per lui. Non c'è nessun ritaglio, quindi il testo in eccesso non
+     sparisce — si sovrappone alla riga sotto, che è un difetto che si nota solo
+     andandolo a cercare.
+     ⚠ VA MISURATA QUI E NON A RIPOSO, e la prima stesura sbagliava proprio
+     questo: prima dell'ingresso le righe portano `translate: 0 26px`, che entra
+     nello `scrollHeight` e produce un debordo di 26px che non esiste. Il
+     controllo era rosso su un layout corretto — il tipo di errore che, se non lo
+     si insegue, finisce per far allentare la soglia invece del controllo.
+     La tolleranza di 2px assorbe gli arrotondamenti subpixel della griglia a
+     righe uguali. */
+  const d = after.tsListaDebordo;
+  ok(
+    '§04 righe: le citazioni stanno nello spazio calcolato',
+    d !== null && d.contenuto <= d.finestra + 2,
+    d
+      ? `contenuto ${d.contenuto} in finestra ${d.finestra} (debordo ${d.contenuto - d.finestra}px)`
+      : 'elenco assente'
+  );
+}
+
+/* ⚠ CONTRASTO, NON HEX. "Ascolta loro:" passa all'accento sulla superficie
+   AVORIO, dove `--color-accent` (tarato sul canvas nero) NON passa AA: serve la
+   variante deep. Ma asserire quale variante sia vorrebbe dire scrivere un token
+   in un test, cioè un controllo che diventa rosso al primo ritocco di palette
+   senza che niente si sia rotto (vedi il divieto in CLAUDE.md). L'invariante
+   vera è il RAPPORTO misurato sul fondo reale, e sopravvive a qualunque
+   cambio di tinta. 4.5:1 e non 3:1: il titolo è grande, ma la soglia larga
+   vale solo da 24px/18.66px-bold in su e questa regola deve restare vera anche
+   se il titolo si rimpicciolisce su viewport strette. */
+const relLum = (rgb) => {
+  const [r, g, b] = rgb.match(/\d+/g).map((n) => {
+    const c = Number(n) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const tsLum = after.tsLoud ? relLum(after.tsLoud.color) : null;
+const tsBgLum = after.tsLoud ? relLum(after.tsLoud.bg) : null;
+const tsRatio =
+  tsLum === null ? 0 : (Math.max(tsLum, tsBgLum) + 0.05) / (Math.min(tsLum, tsBgLum) + 0.05);
+ok(
+  "§04 Dicono: l'accento del titolo passa AA sulla superficie che ha davvero",
+  tsRatio >= 4.5,
+  after.tsLoud
+    ? `${after.tsLoud.color} su ${after.tsLoud.bg} — ${tsRatio.toFixed(2)}:1`
+    : 'elemento assente'
 );
 
 /* Scenario del SALTO, su una pagina appena caricata (Lenis a riposo, altrimenti
@@ -275,6 +600,65 @@ ok(
     Number(jumped.stGhostOpacity) > 0.9,
   `filetto ${jumped.stRuleTransform} · timbro ${jumped.stStampOpacity} · fantasma ${jumped.stGhostOpacity}`
 );
+/* Stesso scenario su §04 Dicono. Qui il ritardo in gioco è ancora più lungo
+   dello statement — la cancellatura ha 760ms di durata dopo 1250ms di attesa,
+   tarati per arrivare DOPO che le 16 parole di M2 si sono posate: senza
+   `is-instant` che azzera durata E ritardo, dopo un salto la frase resterebbe
+   mezza barrata per due secondi, e le card mezze trasparenti. */
+ok(
+  '§04 Dicono: salto in fondo, cancellatura e colonne già allo stato finale',
+  steso(jumped.tsCutTransform) &&
+    (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).length > 0 &&
+    (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).every((o) => Number(o) > 0.9),
+  `cancellatura ${jumped.tsCutTransform} · ${(muro ? jumped.tsColOpacities : jumped.tsItemOpacities).join(',')}`
+);
+/* §70 CTA sul salto, ed è lo scenario che conta di più per questa sezione: è
+   l'ULTIMA della pagina, quindi "salto in fondo" è esattamente dove atterra chi
+   premé Fine o ricarica con lo scroll ripristinato. Il conto senza `is-instant`
+   sarebbe pesante: le azioni hanno 900ms di durata sopra 560ms di ritardo, cioè
+   un bottone mezzo trasparente per un secondo e mezzo — su un bersaglio
+   cliccabile, non su una decorazione.
+   ⚠ Il ramo "dopo lo scroll normale" NON viene asserito qui di proposito: 26
+   tick di rotellina non arrivano con certezza fino all'ultima sezione, e un
+   assert che dipende da quanto lontano arriva lo scroll è un assert flaky —
+   lo stesso difetto appena corretto sul timbro del manifesto. */
+ok(
+  '§70 CTA: salto in fondo, righe e azioni già allo stato finale',
+  jumped.ctaLineOpacities.length === 4 &&
+    jumped.ctaLineOpacities.every((o) => Number(o) > 0.9) &&
+    Number(jumped.ctaActionsOpacity) > 0.9,
+  `righe ${jumped.ctaLineOpacities.join(',')} · azioni ${jumped.ctaActionsOpacity}`
+);
+/* ...e ORA le onde devono propagarsi E vedersi: la sezione è stata raggiunta,
+   quindi `is-on` è arrivata e `animation-play-state` è passata a `running`. Va
+   provato qui e non a pagina appena caricata (dove i due controlli di sopra
+   pretendono l'opposto): come il muro di §04, è un'animazione che non dipende né
+   dallo scroll né da un tween, quindi senza questo un errore nei keyframes la
+   lascerebbe ferma senza che niente diventi rosso.
+   ⚠ SI ASPETTA IL RITARDO DI PARTENZA PRIMA DI CAMPIONARE (500ms + margine): il
+   ritardo si conta da quando lo stato passa a `running`, quindi campionare
+   subito leggerebbe due volte la posa di attesa e riporterebbe "FERMA" per il
+   motivo sbagliato. È lo stesso difetto di campionamento già corretto sul timbro
+   del manifesto §04.
+   ⚠ E SI VERIFICA ANCHE CHE SIA VISIBILE, non solo che si muova: con lo stato
+   di attesa a `opacity: 0`, un'animazione che gira senza mai accendersi sarebbe
+   in moto e invisibile — cioè verde qui e nera a schermo. */
+const waveMotion = await evaluate(`(async () => {
+  const el = document.querySelector('.cta__wave');
+  if (!el) return 'elemento assente';
+  await new Promise((r) => setTimeout(r, 900));
+  const a = getComputedStyle(el).transform;
+  await new Promise((r) => setTimeout(r, 700));
+  if (a === getComputedStyle(el).transform) return 'FERMA ' + a;
+  const vis = Array.from(document.querySelectorAll('.cta__wave'))
+    .some((w) => Number(getComputedStyle(w).opacity) > 0.05);
+  return vis ? 'in moto' : 'IN MOTO MA INVISIBILE';
+})()`);
+ok(
+  '§70 CTA: raggiunta la sezione, le onde partono e si vedono',
+  waveMotion === 'in moto',
+  waveMotion
+);
 
 /* ---- 2. Reduced motion -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sid);
@@ -293,6 +677,70 @@ ok(
     Number(r.stGhostOpacity) > 0.9,
   `filetto ${r.stRuleTransform} · timbro ${r.stStampOpacity} · fantasma ${r.stGhostOpacity}`
 );
+const rVis = muro ? r.tsColOpacities : r.tsItemOpacities;
+ok(
+  `§04 Dicono: reduce, cancellatura già tirata e ${muro ? 'colonne' : 'righe'} visibili`,
+  steso(r.tsCutTransform) && rVis.length > 0 && rVis.every((o) => Number(o) > 0.9),
+  `cancellatura ${r.tsCutTransform} · ${rVis.join(',')}`
+);
+/* ⚠ L'INVARIANTE CHE IL BLOCCO REDUCE DEDICATO IN Testimonials.astro ESISTE PER
+   GARANTIRE, e va provato perché la regola globale di global.css NON basta: quella
+   porta `animation-iteration-count` a 1, che per un marquee non è uno stop — è
+   "fai un giro solo", cioè quaranta secondi di scorrimento comunque. Chi chiede
+   meno movimento non chiede "meno ripetizioni", chiede fermo. Due campioni a
+   distanza: la traccia non si deve muovere di un pixel.
+   Ed è anche il controllo che sorveglia la trappola di specificità già costata un
+   errore sul cielo della CTA: se il blocco reduce non ripete il gate
+   `html.js-anim`, perde nella cascata e questo assert diventa rosso. */
+if (muro) {
+  const wallStill = await evaluate(`(async () => {
+    const el = document.querySelector('.ts__track');
+    if (!el) return 'elemento assente';
+    const a = getComputedStyle(el).transform;
+    await new Promise((r) => setTimeout(r, 700));
+    return a === getComputedStyle(el).transform ? 'fermo' : 'ANCORA IN MOTO';
+  })()`);
+  ok('§04 muro: reduce, è fermo', wallStill === 'fermo', wallStill);
+}
+ok(
+  '§70 CTA: reduce, righe e azioni immediatamente visibili',
+  r.ctaLineOpacities.length === 4 &&
+    r.ctaLineOpacities.every((o) => Number(o) > 0.9) &&
+    Number(r.ctaActionsOpacity) > 0.9,
+  `righe ${r.ctaLineOpacities.join(',')} · azioni ${r.ctaActionsOpacity}`
+);
+/* Il glow è l'unica animazione in LOOP della CTA (quarta eccezione dichiarata
+   alla regola "ogni animazione una volta sola"), e sotto reduced-motion deve
+   fermarsi. Non lo fa una regola del componente: lo fa la regola globale in
+   global.css (`animation-iteration-count: 1 !important`). Verificarlo qui
+   significa verificare che quella regola COPRA davvero questo caso, invece di
+   dare per scontato che valga — è la stessa ragione per cui `.tli__now` non
+   dichiara un proprio blocco reduce. */
+ok(
+  '§70 CTA: reduce, il respiro del glow non va in loop',
+  r.ctaGlowIterations === '1',
+  `animation-iteration-count: ${r.ctaGlowIterations}`
+);
+/* ⚠ L'INVARIANTE PIÙ IMPORTANTE DEL CIELO, e il difetto che il blocco reduce
+   dedicato in CTASection esiste per impedire: la regola globale porta le
+   iterazioni a 1, e il fotogramma finale dell'onda è `opacity: 0`. Senza quel
+   blocco, con movimento ridotto la CTA perderebbe interamente il proprio fondo
+   e resterebbe un rettangolo nero — cioè l'utente che chiede MENO movimento
+   riceverebbe anche MENO design, che non è il patto. Le onde devono essere
+   ferme E visibili. */
+ok(
+  '§70 CTA: reduce, il cielo resta visibile (non collassa a nero)',
+  r.ctaWaveOpacities.length === 5 && r.ctaWaveOpacities.every((o) => Number(o) > 0.1),
+  `onde ${r.ctaWaveOpacities.join(',')}`
+);
+const waveStill = await evaluate(`(async () => {
+  const el = document.querySelector('.cta__wave');
+  if (!el) return 'elemento assente';
+  const a = getComputedStyle(el).transform;
+  await new Promise((r) => setTimeout(r, 700));
+  return a === getComputedStyle(el).transform ? 'ferma' : 'ANCORA IN MOTO';
+})()`);
+ok('§70 CTA: reduce, le onde sono ferme', waveStill === 'ferma', waveStill);
 
 /* ---- 3. JS disattivato -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] }, sid);
@@ -317,6 +765,34 @@ ok(
   'premessa + accento + timbro'
 );
 ok('senza JS: il titolo hero è nell\'HTML', html.includes('Ciao.') && html.includes('Entra'));
+/* §04 Dicono senza JS: i TRE registri del titolo più il contenuto di una card.
+   La frase è l'unica cosa che passa la parola alle testimonianze, quindi se un
+   crawler (o un browser con JS rotto) vede le card senza la frase che le
+   introduce, la sezione ha perso il suo senso e non solo la sua animazione. */
+ok(
+  "senza JS: §04 Dicono è tutto nell'HTML",
+  html.includes('Se ancora non ti ho convinto') &&
+    html.includes('non ascoltare me.') &&
+    html.includes('Ascolta loro:') &&
+    html.includes('Gli ho descritto il problema male'),
+  'titolo (3 registri) + citazione'
+);
+/* §70 CTA senza JS: TUTTE E QUATTRO le righe più i quattro canali. La CTA è il
+   solo punto della Home da cui si può agire: se il JS non parte e resta un muro
+   di testo senza modi di rispondere, la pagina è un vicolo cieco — che è il
+   difetto peggiore possibile proprio sull'ultima sezione. */
+ok(
+  "senza JS: §70 CTA è tutta nell'HTML, canali compresi",
+  html.includes('le opzioni sono due:') &&
+    html.includes('o ti piace molto come ho fatto questo sito,') &&
+    html.includes('una mano con il tuo progetto.') &&
+    html.includes('Nel secondo caso, io sono pronto.') &&
+    html.includes('Parliamone') &&
+    html.includes('mailto:') &&
+    html.includes('wa.me/') &&
+    html.includes('linkedin.com'),
+  '4 righe + form + mailto + WhatsApp + LinkedIn'
+);
 
 /* ---- esito -------------------------------------------------------------- */
 console.log('\n================ ESITO ================');
@@ -329,4 +805,17 @@ console.log(bad === 0 ? '\nTutti i controlli superati.' : `\n${bad} controlli FA
 
 ws.close();
 chrome.kill();
-process.exit(bad === 0 ? 0 : 1);
+/* ⚠ L'USCITA È RINVIATA DI UN GIRO DI TIMER, e non è scaramanzia: `process.exit()`
+   subito dopo `ws.close()` faceva morire questo strumento con
+   `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING) ... src\win\async.c` e
+   codice di uscita 9 — SEMPRE, anche con tutti i controlli verdi. La causa è la
+   chiusura di libuv ancora in corso su handle asincroni (la stretta di mano del
+   WebSocket e il socket keep-alive che `fetch` lascia aperto nel controllo
+   "senza JS") interrotta a metà dall'uscita immediata.
+   Perché valeva la pena sistemarlo: `npm run verify:anim` riportava un
+   fallimento a prescindere dall'esito, e uno strumento che è sempre rosso
+   insegna a ignorare quello che dice — la stessa ragione per cui in questi file
+   non si asserisce mai il valore di un design token. Un tick di ritardo lascia a
+   libuv il tempo di chiudere, e il codice di uscita torna a significare
+   qualcosa. */
+setTimeout(() => process.exit(bad === 0 ? 0 : 1), 150);

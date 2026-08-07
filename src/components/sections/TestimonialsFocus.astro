@@ -1,0 +1,381 @@
+---
+/**
+ * §04 DICONO — L'IMPIANTO PER POCHE CITAZIONI.
+ *
+ * ⚠ È UNO DEI DUE IMPIANTI DELLA SEZIONE. Sopra la soglia lo sostituisce
+ * `TestimonialsWall` (il muro che scorre); a scegliere è `Testimonials.astro`,
+ * che è il solo file che le pagine importano. L'attacco — indice, titolo,
+ * cancellatura — arriva da `TestimonialsIntro`, condiviso coi due impianti.
+ *
+ * ⚠ IL PROBLEMA È L'OPPOSTO DI QUELLO DEL MURO, e da lì viene ogni scelta qui
+ * dentro. Un muro che scorre dice "ce ne sono più di quante ne stiano in uno
+ * schermo": è la cosa giusta con dodici citazioni e una bugia con due. Con poche
+ * testimonianze il lavoro è contrario — far leggere QUELLA, e far sembrare la
+ * scarsità una scelta invece che una mancanza. Da cui: nessun box, nessun
+ * movimento, molta aria, e il corpo del testo che CRESCE quando le citazioni
+ * sono poche invece di lasciare spazio vuoto.
+ *
+ * ⚠ DUE REGISTRI INTERNI, non due componenti. Il salto vero è fra una citazione
+ * e più d'una; da 2 a 5 cambia solo la scala, non l'impianto:
+ *
+ *   1 sola     `solo`   la citazione prende la scena come una dichiarazione,
+ *                       l'attribuzione sotto. Con una testimonianza il rischio è
+ *                       che sembri un avanzo: l'unico modo di evitarlo è darle
+ *                       tutto lo spazio, non nasconderla in una card piccola in
+ *                       mezzo al vuoto.
+ *   2-5        `righe`  una riga per citazione: la PERSONA a sinistra
+ *                       (monogramma, nome, ruolo, social), le sue parole a
+ *                       destra. Le righe si dividono l'altezza in parti uguali,
+ *                       quindi due righe respirano e cinque si stringono —
+ *                       senza che l'impianto cambi.
+ *
+ * ⚠ PERCHÉ LA PERSONA STA A SINISTRA E NON LA CITAZIONE. La colonna di sinistra
+ * diventa un elenco verticale di volti e nomi, che è letteralmente ciò che il
+ * titolo promette ("Ascolta loro:"): eccoli. E le citazioni, allineate su un
+ * unico bordo sinistro a destra, formano una colonna di testo con una misura di
+ * lettura costante — mentre a parti invertite ogni citazione avrebbe una
+ * lunghezza diversa e il bordo destro sarebbe frastagliato, con i nomi appesi a
+ * distanze irregolari.
+ *
+ * ⚠ E PERCHÉ NON RIUSA IL DISPOSITIVO `01/02/03` di §01. Sarebbe la scelta
+ * ovvia — righe con filetto e numero mono, la grammatica di enumerazione del
+ * sito — ma §01 "Cosa faccio" sta nella STESSA Home, 4 sezioni più su, con
+ * esattamente quel disegno. Ripeterlo qui farebbe leggere le due sezioni come la
+ * stessa cosa detta due volte. Il filetto resta (è il ritmo del sito), il numero
+ * no: al suo posto c'è un volto, che è l'informazione che una testimonianza ha e
+ * un elenco di competenze non ha.
+ *
+ * ⚠ NESSUN MOVIMENTO CONTINUO, a differenza del muro. Non è coerenza formale: il
+ * muro si muove perché il movimento È il messaggio (ce ne sono troppe per stare
+ * ferme). Qui non c'è niente da dire con il movimento, e un'animazione in loop
+ * su tre righe ferme sarebbe decorazione — cioè l'unica cosa che questo sito non
+ * si concede.
+ */
+import TestimonialsIntro from './TestimonialsIntro.astro';
+import TestimonialIdentity from '../primitives/TestimonialIdentity.astro';
+import type { Testimonial } from '../../lib/types';
+
+interface Props {
+  items: Testimonial[];
+  n?: string;
+  tone?: 'paper' | 'canvas';
+}
+const { items, n = '04', tone = 'canvas' } = Astro.props;
+const paper = tone === 'paper' ? 'paper' : undefined;
+
+const solo = items.length === 1;
+
+/* ⚠ LA SCALA DEL TESTO È UNA TABELLA, non una formula. Un `calc()` sul numero di
+   righe sarebbe stato più corto e peggiore: la relazione fra quante righe ci
+   sono e quanto può essere grande il testo NON è lineare — dipende da quante
+   righe di testo genera una citazione a quel corpo, che a sua volta dipende
+   dalla misura. Ogni valore qui sotto è stato verificato a schermo con le
+   citazioni più lunghe dei dati: è una tabella di valori MISURATI, e va
+   rimisurata se cambiano il corpo del titolo o i padding.
+   Oltre il 5 non c'è niente perché oltre il 5 non arriva: da lì in poi la
+   sezione passa al muro (vedi la soglia in Testimonials.astro).
+
+   ⚠ `min(Xvw, Yvh)` E NON IL SOLO `vw`, ed è la correzione che ha richiesto più
+   giri di misura. Con la sola larghezza il corpo restava identico a 1440×900 e a
+   1440×650, ma lo spazio disponibile no: l'elenco passa da 579px a 404px, e
+   l'ultima riga finiva TAGLIATA (misurato: 14px con tre citazioni, 7px con
+   cinque). Il termine `vh` è quello che fa cedere il corpo quando è l'altezza a
+   mancare, e `min()` fa vincere sempre il vincolo più stretto dei due.
+   ⚠ E i minimi del clamp sono più bassi di quanto sembri ragionevole (0.875rem
+   sul caso a cinque) di proposito: quel valore si raggiunge solo su viewport
+   insieme STRETTE e BASSE, dove l'alternativa non è "testo più grande", è "testo
+   tagliato". Un minimo alto non protegge la leggibilità, la sposta soltanto
+   dall'essere piccola all'essere assente. */
+const QUOTE_SIZE: Record<number, string> = {
+  1: 'clamp(1.5rem, min(3.1vw, 5.6vh), 2.625rem)',
+  2: 'clamp(1.1875rem, min(2.1vw, 3.7vh), 1.875rem)',
+  3: 'clamp(1rem, min(1.65vw, 2.75vh), 1.4375rem)',
+  4: 'clamp(0.9375rem, min(1.35vw, 2.35vh), 1.1875rem)',
+  5: 'clamp(0.875rem, min(1.15vw, 2vh), 1.0625rem)',
+};
+const quoteSize = QUOTE_SIZE[items.length] ?? QUOTE_SIZE[5];
+
+/* ⚠ LA MISURA SI ALLARGA AL CRESCERE DELLE CITAZIONI, e sembra il contrario di
+   ciò che si vorrebbe. Il motivo è che la misura è in `em`: una `max-width` in
+   em fissa il numero di CARATTERI per riga, quindi il numero di RIGHE di una
+   citazione è costante a qualunque corpo — rimpicciolire il testo non gliene
+   toglie nemmeno una. Con cinque righe da comporre in un viewport basso, l'unica
+   leva che riduce davvero l'altezza di un blocco è allungare la riga.
+   Da 60 caratteri (22em, il centro della finestra 45-75 in cui si legge senza
+   perdere il segno) si sale a ~82 sul caso a cinque: sopra la finestra ideale,
+   ma su un corpo da 14-17px sono ~570px, cioè la larghezza di un paragrafo
+   normale. Il compromesso è dichiarato: righe un po' lunghe contro citazioni
+   tagliate a metà. */
+const MEASURE: Record<number, string> = { 1: '17em', 2: '22em', 3: '24em', 4: '28em', 5: '30em' };
+const measure = MEASURE[items.length] ?? MEASURE[5];
+
+/* Il ritratto cresce solo nel registro `solo`, dove è l'unico volto in scena e
+   una pastiglia da 48px in mezzo a tutta quell'aria sembrerebbe dimenticata. */
+const avatarSize = solo ? 'clamp(3rem, 4.5vw, 4rem)' : 'clamp(2.25rem, 2.9vw, 3rem)';
+
+/* ⚠ DA QUATTRO IN SU L'ATTRIBUZIONE VA IN LINEA. Vedi la nota sul variant `riga`
+   in TestimonialIdentity: impilata misura ~88px, e con quattro o cinque righe in
+   un viewport basso è LEI a non entrare — non il testo. Il difetto si presentava
+   come un ritaglio di qualche pixel e sembrava un problema di corpo tipografico;
+   lo era di un blocco alto il doppio del necessario. In linea scende a ~40px, e
+   la colonna della persona si allarga di conseguenza (vedi `.ts--denso`). */
+const denso = items.length >= 4;
+---
+
+<section
+  class:list={['ts', `ts--${tone}`, solo ? 'ts--solo' : 'ts--righe', denso && 'ts--denso']}
+  data-section
+  id="dicono"
+  style={`--ts-quote: ${quoteSize}; --ts-measure: ${measure}; --ti-avatar: ${avatarSize}`}
+>
+  <TestimonialsIntro n={n} tone={tone} />
+
+  {
+    /* `data-activate` (M14) sull'elenco e non sulla testa: l'elenco sta sotto il
+       titolo, quindi attraversa la soglia dopo — l'ingresso delle righe si
+       sequenzia da solo rispetto alla cancellatura, senza un ritardo scritto a
+       mano. Due elementi `data-activate` nella stessa sezione sono previsti:
+       reveal.ts li osserva tutti, indipendentemente. */
+  }
+  <div class="ts__list" data-activate>
+    {
+      items.map((t) => (
+        <figure class="ts__item">
+          <blockquote class="ts__quote">{t.quote}</blockquote>
+          <figcaption class="ts__who">
+            <TestimonialIdentity item={t} variant={denso ? 'riga' : 'blocco'} tone={paper} />
+          </figcaption>
+        </figure>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  /* ⚠ `height: 100svh` SOLO DA 900px IN SU, e la differenza col muro è
+     sostanziale. Il muro può permettersi un'altezza rigida a ogni breakpoint
+     perché il suo contenuto è ritagliato di proposito (è un marquee: ciò che
+     esce dalla finestra deve sparire). Qui no — qui ritagliare vorrebbe dire
+     TAGLIARE UNA TESTIMONIANZA A METÀ, che non è un compromesso accettabile.
+     Quindi: sopra i 900px, dove la sezione è incollata e non deve MAI superare
+     la viewport (vedi Handoff.astro), l'altezza è rigida e la tabella dei corpi
+     qui sopra garantisce che il contenuto ci stia; sotto i 900px non c'è nessuno
+     sticky da proteggere e la sezione può crescere quanto serve.
+     ⚠ Che il contenuto ci stia davvero non è affidato alla fiducia:
+     `verify-anim.mjs` misura che l'elenco non venga ritagliato. Se un domani una
+     citazione molto lunga sfora, quel controllo diventa rosso invece di lasciare
+     mezza frase invisibile. */
+  .ts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-block: clamp(3rem, 7vh, 5.5rem);
+    min-height: 100svh;
+  }
+  @media (min-width: 56.25rem) {
+    .ts {
+      height: 100svh;
+    }
+  }
+
+  /* ⚠ VIEWPORT BASSE: si stringe lo SPAZIO, non il testo. Misurato a 1440×720
+     (un portatile qualunque): con 3 citazioni l'elenco sforava di 9px e con 5 di
+     4px — pochi, ma sono pixel di una frase, e una frase tagliata a metà non è
+     un difetto estetico. La prima idea era abbassare ancora la tabella dei corpi,
+     ed era sbagliata: il corpo è già tarato sul numero di citazioni, e
+     rimpicciolirlo anche in altezza avrebbe prodotto testo da 14px su uno
+     schermo largo 1440 — illeggibile per risolvere un problema di margini.
+     I 100px di padding e i 29px di stacco sono invece spazio, e lo spazio è la
+     prima cosa da cui prendere: ne restano comunque 65+20, che a 720 di altezza
+     sono già generosi. Stessa famiglia di correzione già applicata a
+     FeaturedProjects per lo stesso motivo.
+     46rem = 736px: appena sopra i 720 misurati, così la regola morde prima che
+     il difetto compaia e non esattamente quando è già comparso. */
+  @media (min-width: 56.25rem) and (max-height: 46rem) {
+    .ts {
+      padding-block: clamp(1.75rem, 4.5vh, 3rem);
+    }
+    .ts__list {
+      margin-top: clamp(1rem, 2.5vh, 1.5rem);
+    }
+  }
+
+  /* La testa e l'elenco dichiarano ognuno la propria gabbia invece di stare
+     dentro un wrapper comune: un wrapper unico sarebbe UN figlio, quindi
+     occuperebbe una sola riga della griglia — e la divisione in due righe è ciò
+     che dà all'elenco un'altezza calcolata.
+     `:global` sulla testa perché arriva da TestimonialsIntro, quindi non porta
+     l'attributo di scope di questo file. */
+  :global(.ts__head),
+  .ts__list {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .ts__list {
+    min-height: 0;
+    margin-top: clamp(1.75rem, 4vh, 3rem);
+  }
+
+  /* ═══ REGISTRO `righe` (2-5 citazioni) ══════════════════════════════════
+     ⚠ `grid-auto-rows: minmax(0, 1fr)` e non `auto`: le righe si dividono
+     l'altezza disponibile in parti UGUALI invece di prendere ognuna quella del
+     proprio contenuto. È la differenza fra un elenco composto e un elenco
+     capitato: con altezze automatiche una citazione lunga il doppio produrrebbe
+     una riga alta il doppio, i filetti cadrebbero a distanze irregolari e la
+     sezione leggerebbe come un errore di impaginazione. Con `1fr` il ritmo
+     orizzontale dei filetti è costante e la disparità fra le citazioni la
+     assorbe il bianco, che è esattamente il mestiere del bianco.
+     `minmax(0, ...)` perché senza lo zero come minimo una riga non potrebbe
+     scendere sotto l'altezza del proprio contenuto, e le tracce uguali
+     salterebbero. */
+  .ts--righe .ts__list {
+    display: grid;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .ts--righe .ts__item {
+    display: grid;
+    gap: 1rem;
+    align-content: center;
+    margin: 0;
+    /* ⚠ Il minimo è basso (0.625rem) e il termine centrale è in `vh`: è padding
+       che si ritira quando l'altezza scarseggia. Su cinque righe questi due
+       valori valgono ~130px complessivi a viewport piena e ~96px a 600 di
+       altezza — cioè più di quanto si guadagni rimpicciolendo il testo, e senza
+       toglierne la leggibilità. Su una riga di elenco lo spazio interno è la
+       cosa da cui prendere per prima. */
+    padding-block: clamp(0.625rem, 1.5vh, 1.75rem);
+    /* Il filetto sta SOPRA ogni riga, quindi il primo fa anche da chiusura della
+       testa: un tratto in meno da dichiarare e una relazione in più resa
+       visibile (il titolo e l'elenco sono la stessa cosa). */
+    border-top: 1px solid var(--color-hairline);
+  }
+  .ts--paper .ts__item {
+    border-top-color: var(--color-paper-hairline);
+  }
+
+  /* Su desktop la griglia a 12 del resto del sito: persona sulle prime tre
+     colonne, citazione dalla quinta in poi. La quarta resta VUOTA di proposito —
+     è la distanza che separa chi parla da ciò che ha detto, e senza di lei le
+     due colonne si leggerebbero come un'unica riga di testo. */
+  @media (min-width: 56.25rem) {
+    .ts--righe .ts__item {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+      align-items: center;
+    }
+    .ts--righe .ts__who {
+      grid-column: 1 / span 3;
+      grid-row: 1;
+    }
+    .ts--righe .ts__quote {
+      grid-column: 5 / span 8;
+      grid-row: 1;
+    }
+
+    /* Da quattro citazioni in su l'attribuzione è in linea (vedi `denso` nel
+       frontmatter) e ha bisogno di più larghezza per non andare a capo — che
+       vanificherebbe il guadagno in altezza per cui è stata messa in linea. Una
+       colonna in più a lei, una in meno alla citazione: la misura del testo è
+       già governata da `--ts-measure`, quindi la citazione non se ne accorge. */
+    .ts--denso .ts__who {
+      grid-column: 1 / span 4;
+    }
+    .ts--denso .ts__quote {
+      grid-column: 6 / span 7;
+    }
+  }
+
+  /* ═══ REGISTRO `solo` (1 citazione) ═════════════════════════════════════
+     Nessuna colonna e nessun filetto: con una citazione sola non c'è niente da
+     separare da niente, e un filetto orizzontale in mezzo a tutto quel bianco
+     diventerebbe l'elemento più forte della sezione. La citazione prende la
+     scena, l'attribuzione la firma sotto. */
+  .ts--solo .ts__list {
+    display: grid;
+    align-content: center;
+  }
+  .ts--solo .ts__item {
+    display: grid;
+    gap: clamp(1.75rem, 4vh, 3rem);
+    justify-items: start;
+    margin: 0;
+  }
+
+  /* ⚠ LA MISURA È IN `em` E NON IN `ch`, ed è l'unico posto del sito dove serve.
+     La `ch` è la larghezza dello zero: cambia con il corpo, quindi `max-width:
+     30ch` produce misure di lettura diverse a 17px e a 42px — che è esattamente
+     ciò che succede qui, dove il corpo cambia con il numero di citazioni. `em`
+     scala con il testo, quindi la misura resta la stessa QUANTITÀ DI CARATTERI
+     per riga a qualunque scala. Il valore arriva dalla tabella `MEASURE` nel
+     frontmatter, che spiega perché si allarga al crescere delle citazioni. */
+  .ts__quote {
+    margin: 0;
+    max-width: var(--ts-measure, 22em);
+    font-size: var(--ts-quote);
+    line-height: 1.4;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+    text-wrap: pretty;
+    color: var(--color-text-1);
+  }
+  .ts--paper .ts__quote {
+    color: var(--color-paper-text-1);
+  }
+  /* Nel registro `solo` la citazione è una dichiarazione, non un paragrafo:
+     interlinea più stretta e crenatura più decisa, come i titoli del sito. */
+  .ts--solo .ts__quote {
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  .ts__who {
+    margin: 0;
+  }
+
+  /* -- L'INGRESSO (M14) ----------------------------------------------------
+     Le righe entrano in cascata; la cascata è `transition-delay` su
+     `nth-child`, quindi cinque righe costano zero tween. Lo stato spento vive
+     ESCLUSIVAMENTE sotto `html.js-anim`: senza JS, per un crawler o con
+     movimento ridotto, le testimonianze sono visibili e complete dal primo
+     paint.
+     ⚠ `translate` e non `transform`: la convenzione del sito è restare fuori dal
+     conflitto con GSAP per default, anche dove — come qui — GSAP non tocca
+     niente (vedi il divieto in CLAUDE.md).
+     ⚠ NIENTE `filter: blur()` qui, a differenza delle righe della CTA: è l'unica
+     proprietà del lotto che costa un paint per frame, e su cinque blocchi di
+     testo lungo non vale il mezzo effetto in più. */
+  :global(html.js-anim) .ts__list .ts__item {
+    opacity: 0;
+    translate: 0 26px;
+    transition:
+      opacity 800ms var(--ease-out-expo),
+      translate 800ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .ts__list .ts__item:nth-child(2) {
+    transition-delay: 110ms;
+  }
+  :global(html.js-anim) .ts__list .ts__item:nth-child(3) {
+    transition-delay: 220ms;
+  }
+  :global(html.js-anim) .ts__list .ts__item:nth-child(4) {
+    transition-delay: 330ms;
+  }
+  :global(html.js-anim) .ts__list .ts__item:nth-child(5) {
+    transition-delay: 440ms;
+  }
+  :global(html.js-anim) .ts__list.is-in .ts__item {
+    opacity: 1;
+    translate: 0 0;
+  }
+  /* Salto in un colpo (tasto Fine, ripristino dello scroll al reload): stato
+     finale netto, durata E ritardo azzerati — un ingresso di cui nessuno ha
+     visto l'inizio non deve impiegare tempo a finire. */
+  :global(html.js-anim) .ts__list.is-instant .ts__item {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+</style>

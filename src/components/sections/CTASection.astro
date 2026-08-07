@@ -1,37 +1,172 @@
 ---
 /**
- * §70 CTA — l'inversione SEGNALE.
+ * §70 CTA — l'inversione SEGNALE, ora per LUCE invece che per palette.
  *
- * Delle due inversioni full-bleed del sito questa è "agire, adesso": il fondo è
- * l'accento pieno, l'unico punto in cui il budget dell'accento è il 100% dei
- * pixel per scelta. La tipografia sopra è NEAR-BLACK e non bianca — più
- * editoriale, e l'unica delle due combinazioni conforme AA.
+ * ⚠ IL FONDO ERA `--color-accent` PIENO, ED È CAMBIATO IL 2026-08-06.
+ * Era "l'unico punto in cui il budget dell'accento è il 100% dei pixel", con
+ * tipografia near-black sopra. Oggi il fondo è `--color-canvas` e l'evento di
+ * chiusura lo produce IL CIELO: un bagliore viola che si espande dall'angolo in
+ * basso a destra in onde concentriche (vedi `.cta__sky` più sotto).
+ *
+ * Il cambio non è estetico a costo zero, ed è stato una scelta esplicita di Vlad
+ * davanti al trade-off: le onde della reference sono viola SU BUIO, quindi su un
+ * campo già viola sarebbero diventate una vibrazione tonale a contrasto quasi
+ * nullo — la stessa cosa che rende impossibile un "glow viola" su fondo viola.
+ * Cosa si è perso: l'inversione di PALETTE della chiusura (prima §60 canvas →
+ * §70 accento; ora canvas → canvas, come l'handoff `intro`). Cosa si è
+ * guadagnato: un evento di LUCE e di MOVIMENTO, e il glow viola del bottone —
+ * chiesto nel brief originale — che prima era letteralmente invisibile.
+ *
+ * Corollario da non dimenticare: la tipografia qui è tornata CHIARA su scuro, e
+ * `--color-accent-text-2` (che esiste solo per il fondo accento) non ha più
+ * nessun utente in questo file.
  *
  * Come lo statement, non ha numero d'indice: è una dichiarazione, non contenuto.
  *
  * Il fondo opaco è ciò che occlude la sezione precedente (M12): il colore non
  * viene animato, arriva coprendo. Vedi Handoff.astro.
+ *
+ * ═══ RISCRITTA (2026-08-06) ═══════════════════════════════════════════════
+ * Prima: label mono + `<h2>` corto a `--text-mega` ("Raccontami cosa ti serve.")
+ * + una lede + un bottone. Oggi: la frase LUNGA è il pezzo tipografico, e il
+ * vecchio titolo e la vecchia lede sono spariti perché il nuovo copy fa il
+ * lavoro di entrambi. Tenerli tutti e tre avrebbe messo due blocchi tipografici
+ * grandi in competizione dentro un solo schermo, che è l'opposto del "molto
+ * negative space" chiesto.
+ *
+ * ⚠ LA FRASE È UN `<h2>`, NON UN `<p>`, ed è la stessa decisione già presa in
+ * Statement.astro ("lo statement È il titolo della sezione, quindi la semantica
+ * è corretta"). Qui serve anche a un secondo scopo: una `<section>` senza
+ * heading è un landmark senza nome, e questa sezione non ha nessun altro
+ * candidato — il vecchio `<h2>` non c'è più.
+ *
+ * ⚠ LE QUATTRO RIGHE NON FRAMMENTANO IL TESTO PER GLI SCREEN READER. Sono
+ * `<span>` resi `display: block` dentro UN SOLO `<h2>`: il nome accessibile è la
+ * concatenazione dei nodi di testo, quindi si legge come una frase continua. È
+ * anche il motivo per cui qui NON si usa `data-split` (M1/M2): SplitText spacca
+ * e RICOSTRUISCE il DOM, e le righe servono a portare la cascata, non a essere
+ * ricalcolate a ogni resize.
+ *
+ * ⚠ E NON SI USA `IntersectionObserver`, che il brief indicava come ripiego "in
+ * assenza di librerie di animazione". Il progetto ha M14 (`data-activate` in
+ * reveal.ts), che fa esattamente questo reveal — one-shot, nessun re-trigger
+ * risalendo, classi additive — e porta una rete di sicurezza misurata via CDP
+ * per gli scenari che un observer scritto a mano perde: salto d'ancora, tasto
+ * Fine, ripristino dello scroll al reload. Riscriverlo qui avrebbe duplicato il
+ * meccanismo e perso la rete.
  */
 import Button from '../primitives/Button.astro';
 import { SITE } from '../../lib/site';
+
+/* Le quattro righe stanno in un array e non scritte a mano nel markup: la
+   cascata è `transition-delay` su `nth-child`, quindi l'ORDINE è informazione
+   che il CSS legge, e una riga aggiunta a mano nel posto sbagliato romperebbe la
+   sequenza in silenzio. `strong` marca l'unica riga enfatizzata.
+   ⚠ Tipo esplicito e NON `as const`: `as const` restringe ogni oggetto al
+   proprio letterale, quindi `line.strong` non esisterebbe sui tre elementi che
+   non lo dichiarano ed è un errore di compilazione sotto `strictest`. */
+interface CtaLine {
+  text: string;
+  strong?: boolean;
+}
+const LINES: CtaLine[] = [
+  { text: 'Se sei arrivato a scorrere fin qui sotto, le opzioni sono due:' },
+  { text: 'o ti piace molto come ho fatto questo sito,' },
+  { text: 'o hai seriamente bisogno di una mano con il tuo progetto.' },
+  { text: 'Nel secondo caso, io sono pronto.', strong: true },
+];
 ---
 
+{
+  /* IL CIELO. Interamente decorativo, quindi `aria-hidden`: non porta
+     informazione e annunciarlo sarebbe rumore.
+     Tre strati, e sono tre COSTI diversi, non tre effetti:
+       .cta__core   un bagliore statico  → un paint, una volta
+       .cta__wave×5 le onde in espansione → solo transform/opacity, compositor
+       .cta__scrim  la velatura di leggibilità → un paint, una volta
+       .cta__stars  i puntini statici     → un paint, una volta
+     `--i` è la posizione nella sequenza, e da lì si ricava il ritardo — POSITIVO,
+     vedi la nota sulla partenza: l'onda 0 parte dall'angolo, le altre la seguono a
+     scaglioni. `--s` è la scala dello stato STATICO, quella che si vede con
+     `prefers-reduced-motion` — vedi la nota sul perché lo stato statico non può
+     essere la fine dell'animazione. */
+}
 <section class="cta" id="scrivimi">
+  <div class="cta__sky" aria-hidden="true">
+    <span class="cta__core"></span>
+    <span class="cta__wave" style="--i: 0; --s: 0.45"></span>
+    <span class="cta__wave" style="--i: 1; --s: 0.75"></span>
+    <span class="cta__wave" style="--i: 2; --s: 1.05"></span>
+    <span class="cta__wave" style="--i: 3; --s: 1.4"></span>
+    <span class="cta__wave" style="--i: 4; --s: 1.75"></span>
+    <span class="cta__scrim"></span>
+    <span class="cta__stars"></span>
+  </div>
+
   <div class="cta__wrap">
     <p class="cta__label">Il pezzo che manca</p>
 
-    <h2 class="cta__title" data-split="words">Raccontami cosa ti serve.</h2>
+    {
+      /* `data-activate` (M14) sul WRAPPER, non sull'h2: da qui le classi
+         `is-in`/`is-instant` governano sia la cascata delle righe sia l'ingresso
+         del bottone, che deve arrivare DOPO l'ultima riga — due elementi
+         diversi sotto la stessa soglia, che è esattamente ciò per cui M14 sta su
+         un antenato. */
+    }
+    <div class="cta__say" data-activate>
+      <h2 class="cta__title">
+        {
+          LINES.map((line) => (
+            <span class:list={['cta__line', line.strong && 'cta__line--strong']}>{line.text}</span>
+          ))
+        }
+      </h2>
 
-    <p class="cta__lede">
-      Rispondo io, non un modulo automatico. Anche solo per capire se ha senso
-      lavorare insieme.
-    </p>
+      <div class="cta__actions">
+        {
+          /* Il glow vive su un wrapper e non sul bottone: `Button.astro` usa già
+             `overflow: clip` (contiene lo <span> di riempimento dell'hover), che
+             ritaglierebbe qualunque alone sbordante. Un antenato non ha quel
+             vincolo. */
+        }
+        <span class="cta__glow">
+          {
+            /* `tone="dark"` e non più `accent`: su canvas la variante `filled`
+               dark è una pillola BIANCA con testo near-black, e il riempimento
+               dell'hover è l'accento. Su un campo scuro attraversato da onde
+               viola è la scelta giusta anche di contrasto — il bianco è l'unica
+               cosa in scena che non compete col viola. */
+          }
+          <Button href="/contatti" variant="filled" tone="dark">Parliamone</Button>
+        </span>
 
-    <div class="cta__actions">
-      <Button href="/contatti" variant="filled" tone="accent">Apri il form</Button>
-      {/* Il mailto reale sta sempre in chiaro: la pagina non è mai un vicolo
-          cieco, nemmeno se il form si rompe o il JS non parte. */}
-      <a class="cta__mail" href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>
+        {
+          /* I canali diretti restano in chiaro: la pagina non è mai un vicolo
+             cieco, nemmeno se il form si rompe o il JS non parte. L'email è
+             scritta per esteso perché è l'unico canale copiabile a mano; per
+             WhatsApp e LinkedIn l'etichetta è il nome del canale, dato che
+             l'URL non è qualcosa che si trascrive.
+             ⚠ `target="_blank"` solo su WhatsApp e LinkedIn (lasciano il sito),
+             mai su `mailto:` — lì aprirebbe una scheda vuota oltre al client di
+             posta. */
+        }
+        <p class="cta__direct">
+          <a class="cta__link" href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>
+          <span class="cta__dot" aria-hidden="true">·</span>
+          <a
+            class="cta__link"
+            href={SITE.author.whatsapp.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+          </a>
+          <span class="cta__dot" aria-hidden="true">·</span>
+          <a class="cta__link" href={SITE.author.linkedin} target="_blank" rel="noopener noreferrer">
+            LinkedIn
+          </a>
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -41,6 +176,14 @@ import { SITE } from '../../lib/site';
      l'elemento che DEVE essere opaco per occludere. Metterlo anche qui vorrebbe
      dire due dichiarazioni dello stesso colore che possono divergere. */
   .cta {
+    position: relative;
+    /* ⚠ `clip` e NON `hidden`: le onde sbordano di proposito e vanno ritagliate,
+       ma `hidden` creerebbe un contenitore di SCORRIMENTO, e un contenitore di
+       scorrimento su un antenato romperebbe qualunque `position: sticky`
+       interno. Qui oggi non ce n'è (l'incollaggio M12 vive su `.ho__out`, che è
+       un fratello e non un discendente), ma la regola vale per default in tutto
+       il repo — vedi la stessa nota in Statement.astro. */
+    overflow: clip;
     display: grid;
     /* minmax(0, 1fr) e non la colonna implicita `auto`: una traccia `auto` si
        dimensiona sul max-content del figlio e può superare il contenitore, che è
@@ -48,18 +191,333 @@ import { SITE } from '../../lib/site';
        questa riga il documento andava a 423px su una viewport da 390. */
     grid-template-columns: minmax(0, 1fr);
     align-content: center;
-    min-height: 100svh;
+    /* ⚠ NON GLI ~85vh DEL BRIEF, e non è una svista. Questa sezione è lo
+       `slot="in"` dell'handoff `closing`, e `.ho__in` impone un floor (il
+       vincolo geometrico che fa esistere l'occlusione, vedi Handoff.astro). Una
+       sezione più bassa di quel floor non diventa più bassa: lascia il fondo
+       dell'occlusore VUOTO sotto di sé, che si legge come un errore di layout,
+       non come respiro. Il respiro qui lo dà `align-content: center` su un
+       contenuto corto.
+       ⚠ ERA `100svh` FISSO, ED ERA 4svh TROPPO POCO (2026-08-07). Il floor è
+       104svh, quindi restavano 36px del fondo di `.ho__in` scoperti sotto la
+       CTA: invisibili finché erano nero su nero, ma dal momento in cui il footer
+       ha cominciato a raccogliere la luce di questa sezione sono diventati una
+       BANDA NERA fra i due campi viola — misurata a schermo, non ipotizzata. Ora
+       il valore si legge dall'occlusore stesso (`--ho-in-floor`, vedi lì): il
+       numero esiste in un posto solo e la sezione riempie esattamente ciò che
+       deve riempire. Il fallback serve solo se un domani questa sezione venisse
+       usata fuori da un Handoff. */
+    min-height: var(--ho-in-floor, 100svh);
     /* Come per lo statement: il respiro viene da `min-height` più un contenuto
        corto, non dal padding. Con `--spacing-statement` la sezione arrivava a
        1132px e il titolo restava tagliato dal bordo alto della viewport. */
     padding-block: clamp(3rem, 8vh, 6rem);
   }
 
+  /* Il contenuto sta SOPRA il cielo. Serve uno z-index esplicito e non basta
+     l'ordine nel DOM: il cielo è `position: absolute`, quindi dipinge nel livello
+     dei discendenti posizionati, che sta sopra il contenuto in flusso dei
+     fratelli non posizionati. Stesso ragionamento della parola-fantasma in
+     Statement.astro. */
   .cta__wrap {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 90rem;
     margin-inline: auto;
     padding-inline: var(--spacing-gutter);
+  }
+
+  /* ═══ IL CIELO ═════════════════════════════════════════════════════════
+     Onde concentriche che si espandono dall'angolo in basso a destra.
+
+     ⚠ PERCHÉ SAGOME PIENE **TRASLUCIDE**, e perché non sono né anelli sottili né
+     sagome opache. Le due alternative sono state provate e scartate per ragioni
+     opposte: un anello da 1px era quasi invisibile a schermo; sagome OPACHE che
+     crescono si coprono a vicenda, quindi l'ordine di impilamento dovrebbe
+     cambiare nel tempo e lo z-index non è animabile in modo utile. Il pieno
+     traslucido non ha nessuno dei due problemi — due strati traslucidi si
+     compongono uguale in qualunque ordine — e la gradazione di colore fra le
+     bande, che nella reference è dipinta banda per banda, qui arriva GRATIS da
+     due sorgenti: la SOMMA degli strati dove si sovrappongono, e il bagliore
+     statico sotto (la stessa banda legge brillante sopra il core e si spegne
+     uscendo nel buio). Un solo colore dichiarato, la gradazione la fa la
+     composizione. */
+  .cta__sky {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* `contain: paint` isola il ridisegno degli strati animati al riquadro del
+       cielo: senza, ogni frame di un'onda invaliderebbe l'area dell'intera
+       sezione, testo compreso. */
+    contain: paint;
+  }
+
+  /* Il bagliore statico: la sorgente di luce.
+     ⚠ IL GRADIENTE È POSIZIONATO, non ricavato dalla geometria dell'elemento. La
+     prima stesura era un elemento sbordante con `radial-gradient(closest-side)`:
+     il nucleo finiva dove capitava in base a larghezza/aspect-ratio/offset, e
+     misurato a schermo cadeva verso il CENTRO-destra — leggeva come una macchia
+     posata sopra, non come luce che entra da un angolo. Con `at 95% 105%` il
+     nucleo è dichiarato: appena FUORI dall'angolo in basso a destra, così dentro
+     il riquadro se ne vede solo il decadimento. Le due percentuali di dimensione
+     (115% 85%) rendono l'alone più largo che alto, come nella reference. */
+  .cta__core {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      115% 85% at 95% 105%,
+      var(--color-accent-hi) 0%,
+      var(--color-accent) 20%,
+      var(--color-accent-deep) 42%,
+      transparent 70%
+    );
+    /* Il decadimento del gradiente è già morbido; l'opacità lo porta al livello
+       di FONDO, non di soggetto. La leggibilità del testo NON dipende da questo
+       valore: la garantisce `.cta__scrim`, che è ciò che permette di alzarlo
+       senza rimettere in discussione il contrasto ogni volta. */
+    opacity: 0.72;
+  }
+
+  .cta__wave {
+    position: absolute;
+    /* Ancorata all'angolo e sbordante: l'origine dell'onda coincide con la
+       sorgente di luce del core, non con il bordo della sezione. */
+    right: -8%;
+    bottom: -12%;
+    width: 78%;
+    aspect-ratio: 1.45;
+    /* Raggio in PERCENTUALE: si risolve per asse, quindi su una scatola larga
+       produce lo squircle schiacciato della reference invece di un cerchio. */
+    border-radius: 46%;
+    /* ⚠ SAGOMA PIENA TRASLUCIDA, non un bordo da 1px — la prima stesura usava
+       un anello sottile ed era quasi invisibile a schermo. E il pieno traslucido
+       fa un lavoro in più, gratis: cinque sagome semitrasparenti sovrapposte si
+       SOMMANO, quindi vicino all'angolo (dove si sovrappongono tutte) il campo è
+       chiaro e allontanandosi si spegne — la gradazione a gradini della reference
+       arriva dalla composizione invece di essere dipinta banda per banda. Ed è
+       anche il motivo per cui il pieno non reintroduce il problema di
+       impilamento che aveva fatto scartare le sagome opache: due traslucidi si
+       compongono uguale in qualunque ordine.
+       Il bordo resta, sottile e più chiaro del pieno: è il gradino netto fra una
+       banda e la successiva, che il solo pieno non darebbe. */
+    background-color: color-mix(in oklab, var(--color-accent) 20%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-accent-hi) 38%, transparent);
+    /* ⚠ L'origine è l'ANGOLO IN BASSO A DESTRA dell'elemento, non il centro: è
+       questo che fa espandere l'onda VERSO l'alto a sinistra a partire dalla
+       sorgente. Con `center` le onde crescerebbero in tutte le direzioni e
+       l'effetto "da un angolo" sparirebbe. */
+    transform-origin: 100% 100%;
+
+    /* ⚠ STATO STATICO come valore BASE, e non è un vezzo: è ciò che si vede
+       quando l'animazione NON esiste, cioè senza JS e sotto
+       `prefers-reduced-motion` (dove `html.js-anim` non arriva mai). Metterci
+       invece lo stato "spento" lascerebbe a quei due casi un rettangolo nero:
+       chi chiede meno movimento riceverebbe anche meno design, che non è il
+       patto. La composizione concentrica ferma è il fondo, il movimento è un
+       sovrappiù. */
+    opacity: 0.45;
+    transform: scale(var(--s));
+  }
+
+  /* ═══ LA PARTENZA ══════════════════════════════════════════════════════
+     ⚠ TUTTA L'ANIMAZIONE VIVE SOTTO `html.js-anim`, non nei valori base, e la
+     ragione è la riga qui sopra: i valori base servono al caso senza movimento.
+
+     ⚠ IL DIFETTO CHE QUESTO BLOCCO CORREGGE (2026-08-06). La prima versione
+     distribuiva le onde lungo il ciclo con ritardi NEGATIVI — l'idea era che
+     all'arrivo il campo fosse già pieno invece di costruirsi da zero. Ma un
+     `animation-delay` negativo sposta il tempo di partenza nel PASSATO, quindi
+     un'animazione in pausa non mostra i valori base: mostra il fotogramma a cui
+     quel tempo negativo la colloca. Cioè esattamente ciò che si vedeva a
+     schermo, e con queste parole: "sembra che l'animazione sia già partita e sia
+     in pausa ad aspettare che parta" — cinque bande immobili sparse a mezzo
+     schermo, che poi ripartivano da un punto qualsiasi del proprio ciclo.
+     Con ritardi POSITIVI la pausa coincide invece con lo stato PRIMA del primo
+     fotogramma, e sotto `js-anim` quello stato è `opacity: 0`: prima della
+     partenza il cielo non ha bande, ha solo il bagliore statico e le stelle.
+     Ogni onda comincia quindi dall'inizio, dall'angolo, in ordine.
+
+     ⚠ IL COSTO ACCETTATO: il campo si popola in una durata intera (~18s), non
+     subito. È il rovescio inevitabile di "la prima onda parte dall'inizio" —
+     l'unico modo di avere il campo pieno all'istante è entrare a ciclo già
+     avviato, che è precisamente ciò che si è appena scartato. Nel frattempo la
+     sezione non è vuota: il core e le stelle sono statici e ci sono da subito. */
+  :global(html.js-anim) .cta__wave {
+    /* Prima della partenza non si vede NIENTE dell'animazione. Vedi sopra. */
+    opacity: 0;
+
+    /* `linear` e non un easing: la scala è proporzionale al raggio, quindi una
+       scala che cresce in modo lineare È un fronte a velocità costante — che è
+       come si propaga un'onda vera. Un easing la farebbe leggere come un
+       oggetto che parte e si ferma.
+       ⚠ 18s, ERANO 13: a 13s la corsa leggeva come un movimento, e questo fondo
+       deve essere ambiente — chi guarda deve accorgersi che si muove solo se
+       resta a guardare. Il passo fra un'onda e la successiva è LEGATO alla
+       durata (18 / 5 onde = 3,6s) e non scelto a parte: è il solo valore che, a
+       regime, distribuisce le cinque onde a distanza uguale lungo il ciclo. Un
+       passo più corto le farebbe arrivare a raffica e poi lascerebbe un buco. */
+    animation-name: cta-wave;
+    animation-duration: 18s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+
+    /* Mezzo secondo di ritardo PRIMA della prima onda: la sezione si presenta,
+       poi il cielo comincia. Senza, il movimento parte nello stesso istante in
+       cui arriva il testo e le due cose si calpestano — la cascata delle righe
+       è ancora in corso (900ms) quando la prima banda già cresce. */
+    animation-delay: calc(0.5s + var(--i) * 3.6s);
+
+    /* ⚠ IN PAUSA FINCHÉ LA SEZIONE NON È INQUADRATA, e non è micro-ottimizzazione.
+       Un'animazione CSS gira dal primo paint e per tutta la vita della pagina,
+       anche mentre la sezione è dieci schermate più sotto: cinque strati grandi
+       quanto la viewport terrebbero il compositor occupato durante la finestra
+       dell'LCP, cioè esattamente quando il budget di questo sito è più stretto
+       (vedi `lighthouserc.json`) e per un effetto che nessuno sta guardando.
+       ⚠ E la pausa congela ANCHE il ritardo, non solo la corsa: il mezzo secondo
+       qui sopra si conta da quando lo stato passa a `running`, non dal
+       caricamento della pagina. È ciò che rende quel ritardo un'attesa
+       osservabile invece di un numero già scaduto all'arrivo. */
+    animation-play-state: paused;
+  }
+
+  /* ⚠⚠ PROVA IN CORSO (2026-08-07) — vedi la nota in JourneyTeaser.astro.
+     Il trigger è temporaneamente spostato da questa sezione a §05 Percorso:
+     Vlad vuole vedere l'effetto di un cielo che parte prima, mentre si legge
+     ancora il teaser del percorso, invece che alla propria soglia. Se NON
+     convince, ripristinare così:
+
+       :global(html.js-anim) .cta:has(.cta__say.is-on) .cta__wave {
+         animation-play-state: running;
+       }
+
+     ...e il motivo di quella versione (soglia `is-on` e non `is-in`, per
+     l'angolo di partenza delle onde ancora sotto la piega a `is-in`) resta
+     valido e va rimesso qui insieme al selettore.
+
+     LA VERSIONE IN PROVA usa `.jt.is-in` (§05 Percorso, soglia `top 80%`,
+     "sto entrando in viewport" — la lettura più letterale della richiesta) al
+     posto di `.cta__say.is-on`. `.jt` non è di questo componente, quindi il
+     compound `.jt.is-in` va dentro `:global()` insieme al suo antenato
+     condiviso con `.cta__wave`: `.ho`, il wrapper del Handoff `closing` che
+     contiene SIA `.jt` (dentro `.ho__out`) SIA `.cta` (dentro `.ho__in`) — è
+     lo stesso ruolo di `:has()` della versione precedente, un livello più in
+     alto nell'albero perché ora i due elementi non sono più fratelli diretti
+     di uno stesso genitore locale. */
+  :global(html.js-anim) :global(.ho:has(.jt.is-in)) .cta__wave {
+    animation-play-state: running;
+  }
+
+  /* ⚠ NESSUN `will-change` su questi cinque strati, ed è deliberato: sono grandi
+     quanto la sezione, e cinque layer promossi a vita costerebbero memoria di
+     compositing per tutta la durata della pagina. Un `transform` in animazione
+     viene promosso dal browser da sé, per il tempo che serve — è la stessa
+     ragione per cui in stage.ts il `will-change` si accende in `onToggle` e non
+     staticamente. */
+  /* La corsa parte da 0.3 e non da quasi-zero: sotto quella scala la banda è un
+     puntino nell'angolo, e nella reference la banda più interna è già CHUNKY —
+     è quella grandezza a far leggere il tutto come onde larghe invece che come
+     un radar. Arriva a 2.05 perché a scala 1 la sagoma (78% di larghezza) non ha
+     ancora raggiunto l'angolo opposto: serve superarla per farla uscire di scena
+     dal bordo invece di vederla svanire a mezz'aria. */
+  @keyframes cta-wave {
+    0% {
+      transform: scale(0.3);
+      opacity: 0;
+    }
+    /* Entra in fretta e muore piano: un fronte d'onda nasce definito e si
+       dissolve allontanandosi, non il contrario.
+       ⚠ TRE FERMATE DI OPACITÀ E NON DUE: fra il 9% e il 62% l'onda perde poco
+       (0,5 → 0,3), poi cede nell'ultimo terzo. Con due sole fermate il
+       decadimento era lineare su tutta la corsa, e su 18s significa una banda
+       già mezza spenta a metà schermo — la banda deve essere PRESENTE dove si
+       guarda e sparire ai bordi, non svanire durante il tragitto. */
+    9% {
+      opacity: 0.5;
+    }
+    62% {
+      opacity: 0.3;
+    }
+    100% {
+      transform: scale(2.05);
+      opacity: 0;
+    }
+  }
+
+  /* ═══ LA VELATURA DI LEGGIBILITÀ ═══════════════════════════════════════
+     ⚠ NON È DECORAZIONE, È LA GARANZIA DI CONTRASTO, e serve perché qui c'è del
+     testo sopra un fondo VARIABILE nel tempo. Senza, il contrasto delle tre
+     righe smorzate (`--color-text-2`, #a1a1a5) dipenderebbe da quanto è
+     luminosa l'onda che in quel momento passa sotto di loro: su nero è ~9:1,
+     su accento pieno scenderebbe a ~1,4:1. Un contrasto che dipende dal
+     fotogramma non è conforme, è fortunato — è la stessa obiezione già scritta
+     sulla lede di questa sezione quando dipendeva dalla larghezza della
+     finestra.
+     Un gradiente da `--color-canvas` pieno a trasparente tiene la COLONNA DEL
+     TESTO sempre sul nero e lascia libera la metà destra, dove il bagliore può
+     essere intenso quanto serve. È anche il motivo per cui il core sopra può
+     stare a 0.72 senza dover rimisurare niente.
+     ⚠ Sta PRIMA delle stelle nel markup, non dopo: dopo le coprirebbe, e le
+     stelle nella metà buia sono metà dell'effetto. */
+  .cta__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      var(--color-canvas) 0%,
+      var(--color-canvas) 26%,
+      color-mix(in oklab, var(--color-canvas) 55%, transparent) 46%,
+      transparent 66%
+    );
+  }
+
+  /* I puntini. Statici e in un solo strato: 14 gradienti radiali costano UN
+     paint all'ingresso e zero dopo. Un twinkle li avrebbe resi una sesta
+     animazione in loop, e la reference non ne ha bisogno — servono a dare
+     profondità al buio, non a muoversi. Le posizioni sono a mano e irregolari:
+     una griglia si riconosce subito come generata. */
+  .cta__stars {
+    position: absolute;
+    inset: 0;
+    opacity: 0.55;
+    background-image:
+      radial-gradient(1.5px 1.5px at 7% 18%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 15% 62%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 23% 34%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 31% 79%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 39% 11%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 47% 51%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 56% 88%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 63% 27%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 71% 66%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 78% 8%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 84% 44%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 90% 73%, var(--color-text-1), transparent),
+      radial-gradient(1.5px 1.5px at 95% 22%, var(--color-text-1), transparent),
+      radial-gradient(1px 1px at 68% 95%, var(--color-text-1), transparent);
+    background-repeat: no-repeat;
+  }
+
+  /* ⚠ SECONDA SERRATURA sullo stesso invariante ("il cielo non collassa a nero
+     con movimento ridotto"), e la prima è che l'intera animazione vive sotto
+     `html.js-anim` — classe che lo script inline in <head> NON aggiunge quando
+     `prefers-reduced-motion` è attivo. Questo blocco copre il caso in cui la
+     preferenza cambi a pagina già caricata, dove `js-anim` è già nel DOM.
+     Perché serva spegnere il NOME e non basti la regola globale di global.css:
+     quella porta `animation-iteration-count` a 1, cioè fermerebbe le onde
+     sull'ULTIMO fotogramma, che è `opacity: 0` — un rettangolo nero. Senza un
+     nome, ogni onda ricade sui propri valori base: la composizione ferma. */
+  @media (prefers-reduced-motion: reduce) {
+    /* ⚠ IL SELETTORE DEVE RIPETERE `html.js-anim`, e non è ridondanza: una media
+       query non aggiunge specificità: `.cta__wave` da solo perderebbe contro
+       `html.js-anim .cta__wave` (due classi in più) e l'animazione resterebbe
+       accesa. Va spento anche il pre-hide dell'opacità, che sotto `js-anim` è lo
+       stato "prima della partenza" di un'animazione che qui non partirà mai. */
+    :global(html.js-anim) .cta__wave {
+      animation-name: none;
+      opacity: 0.45;
+    }
   }
 
   .cta__label {
@@ -68,61 +526,303 @@ import { SITE } from '../../lib/site';
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-accent-text-2);
+    /* ⚠ `--color-text-2` e non `text-3`: è mono da 11-12px, quindi il pavimento
+       è 4.5:1 e non 3:1, e il `--color-text-3` di `:root` è 4.19:1 sul canvas
+       (difetto noto, documentato in CLAUDE.md). Non lo si eredita qui. */
+    color: var(--color-text-2);
   }
 
+  /* ⚠ IL CORPO È RICAVATO DALLA RIGA PIÙ LUNGA, non scelto. Il brief chiedeva
+     "20-24ch per riga" E interruzioni di riga controllate: le due cose sono
+     incompatibili, perché la terza riga ("o hai seriamente bisogno...") è di 56
+     caratteri e a 24ch andrebbe a capo da sola — cioè le interruzioni non
+     sarebbero più controllate. Vince la riga: la misura deve contenerla.
+     Il conto, con Geist a ~0.5em di larghezza media per carattere: 56 caratteri
+     ≈ 28em, quindi a 34px la riga misura ~905px (misurato) su ~1307px di colonna
+     disponibile a 1440. Oltre i 34px la riga tocca il bordo e il respiro
+     sparisce; sotto i 20px non è più tipografia d'impatto. Da qui il clamp.
+
+     ⚠ IL BIANCO A DESTRA LO PRODUCE LA LUNGHEZZA DEL TESTO, NON QUESTO
+     `max-width`: 58ch a 34px fa 1307px, cioè esattamente la colonna disponibile,
+     quindi la regola qui sotto non morde mai sui quattro testi attuali (~400px
+     restano liberi da soli). È una RETE, non il meccanismo: serve solo se un
+     domani una riga si allunga oltre i 58 caratteri, e in quel caso andrà a capo
+     invece di sfondare — cioè si romperanno le interruzioni controllate, ed è il
+     segnale che il copy va riscritto o il corpo abbassato.
+     Su viewport strette le righe vanno a capo dentro sé stesse, ed è inevitabile
+     (56 caratteri non stanno in 390px a nessun corpo leggibile): il
+     raggruppamento semantico delle quattro frasi resta comunque. */
   .cta__title {
-    margin-top: clamp(1.5rem, 4vw, 3rem);
-    /* 14 caratteri: la misura più corta del sito. */
-    max-width: 14ch;
-    font-size: var(--text-mega);
-    line-height: 0.84;
-    letter-spacing: -0.045em;
-    font-weight: 500;
+    margin-top: clamp(1.5rem, 4vw, 2.5rem);
+    max-width: 58ch;
+    font-size: clamp(1.25rem, 2.5vw, 2.125rem); /* 20 → 34px */
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    /* Le righe non enfatizzate stanno sul secondario: è il registro "detto
+       piano" già usato dalla premessa dello statement e dal titolo di §04.
+       L'enfasi la porta `.cta__line--strong`, vedi lì. */
+    color: var(--color-text-2);
   }
 
-  .cta__lede {
-    margin-top: clamp(1.5rem, 3vw, 2.5rem);
-    max-width: 34ch;
-    font-size: var(--text-lede);
-    /* Stesso token del label, e non un alpha più alto: la lede scende a 19px sui
-       viewport stretti, quindi NON è "testo grande" e le serve 4.5:1 pieni.
-       A 0.75 di alpha erano 4.20:1 — passava solo perché a 1440px il corpo
-       arriva a 26px e rientra nella soglia del testo grande. Un contrasto che
-       dipende dalla larghezza della finestra non è conforme, è fortunato. */
-    color: var(--color-accent-text-2);
+  /* `display: block` e non `<br>`: le righe sono unità semantiche che portano
+     anche la cascata, quindi devono essere elementi. Un `<br>` non può ricevere
+     una `transition-delay`. */
+  .cta__line {
+    display: block;
+  }
+
+  /* ⚠ L'ENFASI È BIANCO PIENO + PESO, NON L'ACCENTO — e ora che il fondo è
+     scuro l'accento SAREBBE disponibile, quindi la scelta va motivata invece di
+     essere ereditata. Il campo dietro è già attraversato da onde viola: mettere
+     viola anche sulla riga più importante la farebbe competere col proprio
+     sfondo, cioè la cosa che un'enfasi non deve mai fare. Il bianco è l'unico
+     tono in scena che il viola non tocca, quindi è lì che va il picco di
+     attenzione. L'accento resta speso dove serve — le onde e il glow del
+     bottone — e non tre volte. */
+  .cta__line--strong {
+    margin-top: 0.5em;
+    font-weight: 600;
+    color: var(--color-text-1);
   }
 
   .cta__actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 1.5rem;
-    margin-top: clamp(2.5rem, 5vw, 4rem);
+    gap: 1.5rem 2rem;
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
   }
 
-  .cta__mail {
+  /* -- IL GLOW CHE RESPIRA ------------------------------------------------
+     ⚠ QUARTA ECCEZIONE DICHIARATA alla regola "ogni animazione una volta sola",
+     dopo il word-carousel della hero, l'anello di scroll (`ring-spin`) e il
+     respiro di "in corso" nella timeline. Vale la stessa giustificazione: il
+     loop non annuncia un ingresso, descrive uno STATO tuttora vero — "questo
+     bottone è vivo, premilo" — quindi il ripetersi è il senso e non un vizio.
+
+     ⚠ ORA È VIOLA — cioè quello che il brief chiedeva dall'inizio, e che finché
+     il fondo era `--color-accent` era letteralmente impossibile (viola su viola
+     non esiste). È il guadagno concreto del passaggio a fondo scuro: `--color-
+     accent-hi` e non `--color-accent`, perché su nero serve il tono più luminoso
+     della famiglia — un alone deve leggersi come LUCE, e la luce è più chiara del
+     suo colore di riposo.
+
+     ⚠ NON COMPETE COL CIELO, e ci sono due ragioni per cui non lo fa pur essendo
+     dello stesso colore: opera su una SCALA diversa (34px di raggio contro
+     un'onda larga quanto la sezione) e su un TEMPO diverso (4,6s contro 13s). Due
+     movimenti viola che condividessero anche scala o tempo si sarebbero sommati
+     in un unico battito confuso.
+
+     ⚠ UNA PILLOLA SFOCATA, NON UN `radial-gradient`, e la prima stesura usava il
+     gradiente. Motivo, visto a schermo: un `radial-gradient(closest-side)` su una
+     scatola larga 218px e alta 96px è un'ELLISSE che raggiunge la trasparenza sul
+     lato più vicino (i 48px verticali), quindi orizzontalmente sfuma molto prima
+     dei bordi — il risultato non era un'aura attorno alla pillola, era una
+     macchia schiacciata dietro di lei. Una pillola con lo stesso `border-radius`
+     del bottone, sfocata, segue invece la sua forma.
+
+     ⚠ IL BLUR È STATICO E SI ANIMA SOLO L'OPACITÀ, e la distinzione è la ragione
+     per cui il blur qui è ammissibile: un `filter` viene rasterizzato UNA volta
+     sul layer, e da lì in poi una variazione di `opacity` è puro compositing —
+     zero paint per frame. È lo `scale` in loop che avrebbe potuto forzare una
+     ri-rasterizzazione ad ogni frame, e per questo il respiro NON scala: la scala
+     resta solo sull'hover, dove succede una volta e non sessanta volte al
+     secondo.
+
+     ⚠ `z-index: -1` e non un `z-index: 1` sul bottone: `Button.astro` è un altro
+     componente, quindi una classe scopata scritta qui non lo raggiungerebbe (la
+     trappola già costata due volte in questo repo con `.sp__logo-svg` e
+     `.sp__letter`), e `:global()` per un solo z-index sarebbe sproporzionato. Il
+     negativo è sicuro perché `.ho__in` è `position: relative; z-index: 1`, cioè
+     un contesto di impilamento: l'alone non può scendere sotto il suo fondo e
+     sparire. Stesso ragionamento di `.ho__backdrop`.
+     ⚠ E `.cta__wrap` è a `z-index: 1` sopra il cielo, quindi il -1 dell'alone
+     resta comunque SOPRA le onde: scende sotto il bottone, non sotto la sezione. */
+  .cta__glow {
     position: relative;
+    display: inline-flex;
+    isolation: isolate;
+  }
+  .cta__glow::before {
+    content: '';
+    position: absolute;
+    /* Sborda in LUNGHEZZE e non in percentuali: una percentuale si risolverebbe
+       sulla larghezza del contenitore, quindi l'alone sarebbe più spesso ai lati
+       che sopra e sotto pur essendo scritto "uguale" — è lo stesso difetto già
+       costato una cornice cinque volte troppo spessa nella vetrina di §30. Un
+       alone è uno spessore, non una proporzione. */
+    inset: -14px;
+    z-index: -1;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-hi);
+    filter: blur(18px);
+    /* Stato di riposo, valido anche senza JS e con reduced-motion: l'alone c'è,
+       fermo. Un CTA senza JS non deve perdere la sua presenza. */
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /* Il respiro. Ampiezza deliberatamente stretta (0.3 → 0.7 di opacità): deve
+     SUGGERIRE, non lampeggiare — se si nota il singolo ciclo è troppo. 4.6s è
+     sopra la soglia in cui un pulsare si legge come un allarme.
+     ⚠ SOLO `opacity`, nessuno `scale`: vedi la nota sul blur statico qui sopra.
+     ⚠ Nessun gate su `html.js-anim`: è `animation` CSS pura, quindi funziona
+     anche senza JS, e la regola globale in global.css
+     (`animation-iteration-count: 1 !important` sotto `prefers-reduced-motion:
+     reduce`) la ferma già da sola — non serve una dichiarazione per componente.
+     Stesso trattamento di `.tli__now`. */
+  @keyframes cta-breathe {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  .cta__glow::before {
+    animation: cta-breathe 4600ms ease-in-out infinite;
+  }
+
+  /* Hover: l'alone si intensifica e si allarga. `animation-play-state: paused`
+     ferma il respiro sul posto invece di lasciarlo litigare con l'hover — due
+     sorgenti che scrivono la stessa `opacity` produrrebbero uno sfarfallio, e
+     l'animazione vince sempre sulla transizione (le animazioni stanno più in
+     alto nella cascata). Fermarla è l'unico modo di far valere l'hover.
+     Sotto `(hover: hover)`: su touch non esiste uno stato di passaggio, e senza
+     il gate resterebbe appiccicato dopo il tap. */
+  @media (hover: hover) {
+    .cta__glow::before {
+      transition:
+        opacity 300ms var(--ease-out-expo),
+        transform 300ms var(--ease-out-expo);
+    }
+    .cta__glow:hover::before,
+    .cta__glow:focus-within::before {
+      animation-play-state: paused;
+      opacity: 0.9;
+      transform: scale(1.08);
+    }
+  }
+
+  /* -- I canali diretti --------------------------------------------------- */
+  .cta__direct {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 0.75rem;
     font-family: var(--font-mono);
     font-size: var(--text-label);
     letter-spacing: 0.05em;
-    color: var(--color-canvas);
+  }
+  .cta__dot {
+    color: var(--color-hairline-strong);
+  }
+
+  .cta__link {
+    position: relative;
+    color: var(--color-text-1);
     text-decoration: none;
   }
-  .cta__mail::after {
+  .cta__link::after {
     content: '';
     position: absolute;
     left: 0;
     right: 0;
     bottom: -0.25em;
     height: 1px;
-    background-color: rgb(11 11 12 / 0.45);
+    background-color: var(--color-hairline-strong);
     transform-origin: left;
-    transition: transform 280ms var(--ease-out-expo);
+    transition:
+      transform 280ms var(--ease-out-expo),
+      background-color 280ms var(--ease-out-expo);
   }
   @media (hover: hover) {
-    .cta__mail:hover::after {
+    .cta__link:hover::after {
       transform: scaleY(2);
+      /* Il filetto passa all'accento in hover: ora che il fondo è scuro l'accento
+         si vede, e i tre canali sono l'unico punto della sezione dove serve un
+         riscontro al passaggio del mouse (sono link veri — l'eccezione dichiarata
+         alla regola "niente hover come trigger", la stessa dei loghi di §02). */
+      background-color: var(--color-accent);
     }
+  }
+
+  /* ═══ IL REVEAL (M14) ══════════════════════════════════════════════════
+     `reveal.ts` commuta solo le classi; tutta l'animazione è qui. Lo stato
+     spento vive ESCLUSIVAMENTE sotto `html.js-anim`, che uno script inline in
+     <head> aggiunge solo se il JS gira e `prefers-reduced-motion` lo permette:
+     senza JS, con JS rotto, per un crawler o con movimento ridotto, il contenuto
+     è visibile e completo dal primo paint. È la stessa garanzia di tutto il
+     sito, non una precauzione locale.
+
+     ⚠ NESSUN LAYOUT SHIFT: si animano solo `opacity`, `translate` e `filter`.
+     Lo spazio delle righe è occupato dal primo paint anche a opacità zero,
+     perché nessuna delle tre proprietà partecipa al layout. */
+  :global(html.js-anim) .cta__say .cta__line {
+    opacity: 0;
+    translate: 0 24px;
+    transition:
+      opacity 900ms var(--ease-out-expo),
+      translate 900ms var(--ease-out-expo),
+      filter 700ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .cta__say.is-in .cta__line {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* Il blur solo da 900px in su, ed è la stessa scelta già fatta per
+     `.wid__clauses`: è l'unica proprietà del lotto che costa un paint per frame
+     invece di stare sul compositor, e sotto quella soglia il sito spegne
+     comunque la coreografia più pesante. Opacità e translate restano su ogni
+     viewport, quindi il reveal esiste anche là. */
+  @media (min-width: 56.25rem) {
+    :global(html.js-anim) .cta__say .cta__line {
+      filter: blur(12px);
+    }
+    :global(html.js-anim) .cta__say.is-in .cta__line {
+      filter: blur(0);
+    }
+  }
+
+  /* La cascata: ~120ms fra le righe, come da brief. `nth-child` conta solo gli
+     ELEMENTI, quindi i nodi di testo che Astro lascia fra gli span non spostano
+     la numerazione. */
+  :global(html.js-anim) .cta__say .cta__line:nth-child(2) {
+    transition-delay: 120ms;
+  }
+  :global(html.js-anim) .cta__say .cta__line:nth-child(3) {
+    transition-delay: 240ms;
+  }
+  :global(html.js-anim) .cta__say .cta__line:nth-child(4) {
+    transition-delay: 360ms;
+  }
+
+  /* Il bottone e i canali entrano DOPO l'ultima riga: 360ms di ritardo della
+     quarta riga + 200ms di respiro = 560ms. Nessun blur qui — un bersaglio
+     cliccabile sfocato è un bersaglio che non si sa se è pronto. */
+  :global(html.js-anim) .cta__say .cta__actions {
+    opacity: 0;
+    translate: 0 24px;
+    transition:
+      opacity 900ms var(--ease-out-expo) 560ms,
+      translate 900ms var(--ease-out-expo) 560ms;
+  }
+  :global(html.js-anim) .cta__say.is-in .cta__actions {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* Salto in un colpo (tasto Fine, link ancora, ripristino dello scroll al
+     reload): stato finale netto, durata E ritardo azzerati. Un reveal di cui
+     nessuno ha visto l'inizio non deve impiegare tempo a finire — e qui il conto
+     sarebbe pesante: 900ms di durata sopra 560ms di ritardo lascerebbero il
+     bottone mezzo trasparente per un secondo e mezzo dopo il salto. */
+  :global(html.js-anim) .cta__say.is-instant .cta__line,
+  :global(html.js-anim) .cta__say.is-instant .cta__actions {
+    transition-duration: 0s;
+    transition-delay: 0s;
   }
 </style>

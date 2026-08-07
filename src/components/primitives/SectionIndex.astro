@@ -13,11 +13,16 @@ interface Props {
   /** Passi di 10. L'hero è '00'. */
   n: string;
   label: string;
+  /** Su fondo paper i token canvas (`text-3`/`accent`) sono sotto contrasto:
+   *  vedi lo stesso ragionamento in Statement.astro (`--color-accent-deep`).
+   *  `| undefined` esplicito: con `exactOptionalPropertyTypes` (tsconfig
+   *  strictest) un `tone={variabileForsePriva}` non passerebbe senza. */
+  tone?: 'paper' | undefined;
 }
-const { n, label } = Astro.props;
+const { n, label, tone } = Astro.props;
 ---
 
-<div class="idx" data-section-index>
+<div class:list={['idx', tone === 'paper' && 'idx--paper']} data-section-index>
   <div class="idx__line"></div>
   <div class="idx__content">
     <span class="idx__n">{n}</span>
@@ -54,6 +59,16 @@ const { n, label } = Astro.props;
 
   :global([data-section].is-active) .idx {
     color: var(--color-accent);
+  }
+
+  /* Stessa coppia di token di `.st--paper .st__text`/`.st__label`: il pavimento
+     di contrasto sul paper è diverso da quello sul canvas, non un'estetica a
+     parte. Dopo le regole base per specificità pari e ordine nel foglio. */
+  .idx--paper {
+    color: var(--color-paper-text-2);
+  }
+  :global([data-section].is-active) .idx--paper {
+    color: var(--color-accent-deep);
   }
 
   .idx__line {

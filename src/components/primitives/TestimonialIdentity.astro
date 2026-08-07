@@ -1,0 +1,331 @@
+---
+/**
+ * CHI PARLA: ritratto (o monogramma), nome, ruolo, social.
+ *
+ * ⚠ ESISTE PER NON ESSERE DUPLICATO. §04 ha due impianti — le card del muro
+ * (`TestimonialCard`) e le righe editoriali per poche citazioni
+ * (`TestimonialsFocus`) — e in entrambi l'attribuzione contiene le stesse cose,
+ * con gli stessi vincoli di accessibilità: il monogramma quando manca la foto,
+ * l'`aria-label` che include il nome della persona, il bersaglio da 34px, il
+ * `tabindex` negativo sulle copie del loop. Duplicare quel blocco avrebbe
+ * significato correggere due volte ogni difetto, e scoprire di averne corretto
+ * uno solo per caso.
+ *
+ * TRE COSE CHE PORTANO IL PESO, e vanno difese:
+ *
+ * 1. IL MONOGRAMMA NON È UN FALLBACK TRISTE. Senza `avatar` compone le iniziali
+ *    in mono dentro lo stesso cerchio: un ritratto mancante è normale (non tutti
+ *    mandano una foto) e uno slot vuoto si legge come un difetto, mentre due
+ *    lettere composte si leggono come una scelta. ⚠ Lo strip `\p{L}` non è
+ *    paranoia: i segnaposto hanno le parentesi quadre nel nome, e senza filtro
+ *    le iniziali diventerebbero "[N". Vedi anche il vincolo sui nomi in
+ *    data/testimonials.ts — nomi tutti uguali danno monogrammi tutti uguali.
+ * 2. GLI SVG SONO MARKUP ASTRO, non `set:html`. Un nodo che arriva da `set:html`
+ *    non riceve l'attributo di scope, quindi ogni regola che lo tocca andrebbe
+ *    messa in `:global()` — la trappola già costata due volte in questo repo
+ *    (`.sp__logo-svg`, `.sp__letter`). Qui lo scope arriva gratis.
+ * 3. L'`aria-label` INCLUDE IL NOME. Con nove testimonianze, nove link chiamati
+ *    tutti "LinkedIn" sono indistinguibili nell'elenco dei link di uno screen
+ *    reader — cioè inutilizzabili proprio per chi quell'elenco lo usa per
+ *    navigare.
+ *
+ * L'hover sui social è LEGITTIMO e non viola la regola "niente hover come
+ * trigger": quella riguarda le ANIMAZIONI di ingresso, e l'eccezione dichiarata
+ * sono i link (stessa concessione dei loghi cliccabili di §02).
+ */
+import type { Testimonial } from '../../lib/types';
+
+interface Props {
+  item: Testimonial;
+  /**
+   * `card`   — riga compatta col filetto sopra: avatar, nome/ruolo, social
+   *            spinti a destra. È il piede di una card del muro.
+   * `blocco` — impilata e allineata a sinistra, senza filetto: è una colonna
+   *            stretta accanto alla citazione, dove spingere i social a destra
+   *            li lascerebbe orfani in fondo a uno spazio vuoto.
+   * `riga`   — tutto su una linea, senza filetto e senza spinte: serve dove
+   *            l'ALTEZZA è la risorsa scarsa. ⚠ Non è una preferenza estetica:
+   *            `blocco` misura ~88px (ritratto 40 + stacco 14 + social 34) e con
+   *            cinque righe in un viewport basso è LUI a non entrare, non il
+   *            testo — misurato, era la causa di un ritaglio che sembrava un
+   *            problema di corpo tipografico. In linea scende a ~40px.
+   */
+  variant?: 'card' | 'blocco' | 'riga';
+  /**
+   * Su fondo paper i token tarati sul canvas (`--color-text-*`,
+   * `--color-hairline`) vanno da sotto contrasto a invisibili.
+   * `| undefined` esplicito: con `exactOptionalPropertyTypes` (tsconfig
+   * strictest) un `tone={variabileForsePriva}` non passerebbe senza.
+   */
+  tone?: 'paper' | undefined;
+  /**
+   * La copia decorativa di un marquee. Vedi TestimonialsWall: un loop senza
+   * giunture ha bisogno del proprio contenuto due volte, e la seconda copia non
+   * deve esistere né per lo screen reader né per la tastiera.
+   */
+  decorative?: boolean | undefined;
+}
+const { item, variant = 'card', tone, decorative } = Astro.props;
+
+const initials =
+  item.name
+    .replace(/[^\p{L}\s]/gu, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase() || '—';
+
+const SOCIAL_LABEL = {
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+  instagram: 'Instagram',
+  sito: 'Sito web',
+} as const;
+---
+
+<div class:list={['ti', `ti--${variant}`, tone === 'paper' && 'ti--paper']}>
+  <span class="ti__who">
+    <span class="ti__avatar">
+      {
+        item.avatar ? (
+          /* `alt=""` e non "Foto di X": il nome è già scritto accanto, in testo
+             vero. Un alt che lo ripete fa annunciare due volte la stessa
+             persona, ed è la definizione di immagine decorativa. */
+          <img src={item.avatar} alt="" width="56" height="56" loading="lazy" decoding="async" />
+        ) : (
+          <span class="ti__mono" aria-hidden="true">
+            {initials}
+          </span>
+        )
+      }
+    </span>
+
+    <span class="ti__id">
+      <cite class="ti__name">{item.name}</cite>
+      <span class="ti__role">{item.role}</span>
+    </span>
+  </span>
+
+  {
+    item.socials && item.socials.length > 0 && (
+      <span class="ti__socials">
+        {item.socials.map((s) => (
+          <a
+            class="ti__social"
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${SOCIAL_LABEL[s.kind]} di ${item.name}`}
+            tabindex={decorative ? -1 : undefined}
+          >
+            {s.kind === 'linkedin' && (
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm6 0h3.8v1.65h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.3c0-1.27-.02-2.9-1.77-2.9-1.77 0-2.04 1.38-2.04 2.81V21H9V9Z" />
+              </svg>
+            )}
+            {s.kind === 'github' && (
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
+              </svg>
+            )}
+            {s.kind === 'instagram' && (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+                <circle cx="12" cy="12" r="3.9" />
+                <circle cx="17.1" cy="6.9" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            )}
+            {s.kind === 'sito' && (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="8.75" />
+                <path d="M3.4 9.4h17.2M3.4 14.6h17.2" />
+                <path d="M12 3.25c2.2 2.4 3.3 5.3 3.3 8.75S14.2 18.35 12 20.75c-2.2-2.4-3.3-5.3-3.3-8.75S9.8 5.65 12 3.25Z" />
+              </svg>
+            )}
+          </a>
+        ))}
+      </span>
+    )
+  }
+</div>
+
+<style>
+  /* `flex-wrap` e non colonne fisse: con un nome reale lungo e tre social, una
+     riga a colonne rigide si stringerebbe fino a spezzare il nome. Qui i social
+     vanno a capo interi. */
+  .ti {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.875rem 1rem;
+  }
+
+  /* La variante del muro: filetto sopra e social spinti a destra. Il filetto è
+     ciò che separa la citazione dall'attribuzione dentro la card. */
+  .ti--card {
+    padding-top: clamp(1rem, 1.6vw, 1.25rem);
+    border-top: 1px solid var(--color-hairline);
+  }
+  .ti--card.ti--paper {
+    border-top-color: var(--color-paper-hairline);
+  }
+  .ti--card .ti__socials {
+    margin-inline-start: auto;
+  }
+
+  /* La variante delle righe editoriali: impilata, tutto a sinistra.
+     ⚠ Niente `margin-inline-start: auto` sui social qui: in una colonna stretta
+     spingerli a destra li lascerebbe soli in fondo a uno spazio vuoto, staccati
+     dal nome a cui appartengono. */
+  .ti--blocco {
+    flex-direction: column;
+    align-items: start;
+    gap: 0.875rem;
+  }
+
+  /* `riga` è quasi la base (flex in riga, con `flex-wrap` che manda i social a
+     capo solo se davvero non ci stanno) e cambia solo lo stacco fra le due linee
+     quando l'a capo succede. La classe esiste comunque, perché un `variant` che
+     non produce nessuna regola è il modo più veloce di far credere a chi legge
+     che l'abbia scritto per sbaglio.
+     ⚠ I social finiscono comunque allineati a destra, ma NON per un
+     `margin-inline-start: auto` come in `card`: lo fa `flex: 1 1 auto` su
+     `.ti__who`, che cresce e li spinge. La differenza conta il giorno in cui
+     qualcuno vuole cambiarli di posto — la leva è la crescita del blocco nome,
+     non un margine sui social. */
+  .ti--riga {
+    row-gap: 0.5rem;
+  }
+
+  .ti__who {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* `min-width: 0` su un flex item è ciò che gli permette di RESTRINGERSI sotto
+       la larghezza del proprio contenuto: senza, un nome lungo sfonda il
+       contenitore invece di andare a capo. */
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /* `place-items` (allineamento DENTRO la traccia), non `place-content`
+     (allineamento DELLE tracce): con `justify-content` la traccia si
+     dimensionerebbe sul contenuto e la larghezza diventerebbe circolare — il
+     difetto già misurato sulla vetrina di §30. Qui la larghezza è dichiarata,
+     quindi è al sicuro.
+     ⚠ La dimensione è una custom property perché è l'unica cosa che cambia
+     davvero fra un piede di card e una riga editoriale, dove il ritratto può
+     permettersi di essere più grande. */
+  .ti__avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: var(--ti-avatar, clamp(2.5rem, 2.9vw, 3rem));
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 1px solid var(--color-hairline);
+    border-radius: 50%;
+    background-color: color-mix(in oklab, var(--color-hairline) 55%, var(--color-canvas));
+  }
+  .ti--paper .ti__avatar {
+    border-color: var(--color-paper-hairline);
+    background-color: color-mix(in oklab, var(--color-paper-hairline) 55%, var(--color-paper));
+  }
+  .ti__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .ti__mono {
+    font-family: var(--font-mono);
+    font-size: var(--ti-mono, var(--text-micro));
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--color-text-2);
+  }
+  .ti--paper .ti__mono {
+    color: var(--color-paper-text-2);
+  }
+
+  .ti__id {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ti__name {
+    font-style: normal;
+    color: var(--color-text-1);
+  }
+  .ti--paper .ti__name {
+    color: var(--color-paper-text-1);
+  }
+  /* ⚠ `--color-text-2` e non `text-3`: il ruolo è mono da 11-12px, dove il
+     pavimento è 4.5:1 e non 3:1, e il `--color-text-3` di `:root` è 4.19:1 sul
+     canvas (difetto noto, documentato in CLAUDE.md). Non lo si eredita qui. */
+  .ti__role {
+    color: var(--color-text-2);
+  }
+  .ti--paper .ti__role {
+    color: var(--color-paper-text-2);
+  }
+
+  .ti__socials {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+  }
+
+  /* 34px di bersaglio con un'icona da 18: sopra il minimo di 24×24 CSS px
+     richiesto da WCAG 2.5.8, senza che tre cerchi diventino il peso visivo
+     dominante dell'attribuzione. */
+  .ti__social {
+    display: grid;
+    place-items: center;
+    width: 2.125rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    color: var(--color-text-2);
+    transition:
+      color 240ms var(--ease-snappy),
+      background-color 240ms var(--ease-snappy);
+  }
+  .ti--paper .ti__social {
+    color: var(--color-paper-text-2);
+  }
+  .ti__social svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  @media (hover: hover) {
+    .ti__social:hover {
+      color: var(--color-accent);
+      background-color: color-mix(in oklab, var(--color-hairline) 70%, transparent);
+    }
+    .ti--paper .ti__social:hover {
+      color: var(--color-accent-deep);
+      background-color: color-mix(in oklab, var(--color-paper-hairline) 70%, transparent);
+    }
+  }
+</style>

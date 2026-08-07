@@ -1,88 +1,128 @@
 ---
 /**
- * Una testimonianza.
- *
- * Esiste già ma non è ancora usata da nessuno: TESTIMONIALS è vuoto di proposito
- * (vedi src/data/testimonials.ts). Sta qui perché il giorno in cui arriva una
- * citazione vera il lavoro sia zero — non perché serva adesso.
+ * Una testimonianza, come card. È il mattone del MURO (`TestimonialsWall`),
+ * l'impianto di §04 per quando le citazioni sono tante.
  *
  * <blockquote> + <cite> e non due <p>: la citazione ha una semantica propria, ed
  * è anche la forma che un motore di risposta riconosce come attribuita a
- * qualcuno invece che come testo dell'autore del sito.
+ * qualcuno invece che come testo dell'autore del sito. Il <cite> vive dentro
+ * `TestimonialIdentity`, che è condiviso con le righe editoriali dell'altro
+ * impianto — lì stanno anche il monogramma, i social e le loro etichette.
+ *
+ * ⚠ RISCRITTA IL 2026-08-06 PER IL MURO CHE SCORRE. La versione precedente era
+ * pensata per UNA RIGA di tre card affiancate, e due delle sue tre decisioni
+ * portanti esistevano solo per quel contesto. Cosa è cambiato e perché:
+ *
+ * - L'INDICE MONO `01/02/03` NON C'È PIÙ. Era il dispositivo di enumerazione del
+ *   resto del sito, riusato qui invece di importarne uno nuovo, e per tre card
+ *   ferme funzionava. In una colonna che scorre in loop un ordinale è una
+ *   promessa che il layout non può mantenere: quale è la "01" quando la stessa
+ *   card ripassa? Un numero che non conta niente è peggio di nessun numero.
+ * - LA CITAZIONE NON È PIÙ L'UNICA COSA ELASTICA. Il `grid-template-rows: auto
+ *   1fr auto` serviva ad ancorare l'attribuzione in fondo, così che tre card
+ *   AFFIANCATE avessero i nomi sulla stessa linea. In una colonna VERTICALE non
+ *   esiste nessuna linea condivisa da rispettare: le card hanno l'altezza del
+ *   loro contenuto, ed è giusto che una citazione breve produca una card bassa —
+ *   è la disparità che dà ritmo al muro.
+ * - LA SUPERFICIE ORA HA UN RIEMPIMENTO E UN ALONE. La nota precedente diceva
+ *   "nessun riempimento e nessuna ombra, solo un filetto". Cambiato di
+ *   proposito, su richiesta di una grafica di riferimento che ha entrambi. Ma
+ *   NON copiati alla lettera: `shadow-lg` è un'ombra NERA, e un'ombra nera su un
+ *   canvas #050505 non esiste — l'unica parte traducibile di quel riferimento è
+ *   la sua tinta (`shadow-primary/10`, cioè un alone del colore d'accento).
+ *
+ * COSA RESTA INVARIATO, e va difeso: nessuna virgoletta decorativa gigante e
+ * nessuna stella. Il glifo « in corpo 120 è il cliché della sezione
+ * testimonianze, e le stelle trasformerebbero una persona in un punteggio
+ * (esplicitamente escluse da Vlad).
+ *
+ * ⚠ LA CARD NON PORTA NESSUN INGRESSO PROPRIO. Nel muro l'ingresso è della
+ * COLONNA (tre ritardi invece di diciotto, vedi `.ts__col` in
+ * TestimonialsWall), e lasciare qui anche il fade per card avrebbe animato due
+ * volte la stessa cosa. Una card è quindi sempre visibile: se il contenitore la
+ * sta nascondendo, è lui a dirlo.
  */
 import type { Testimonial } from '../../lib/types';
+import TestimonialIdentity from './TestimonialIdentity.astro';
 
 interface Props {
   item: Testimonial;
+  tone?: 'paper' | undefined;
+  /**
+   * COPIA DECORATIVA — la card esiste solo per far tornare il conto di un loop.
+   *
+   * ⚠ Un marquee senza giunture ha bisogno del proprio contenuto DUE VOLTE
+   * (vedi TestimonialsWall). Senza questo flag ogni citazione finirebbe due
+   * volte anche nell'albero di accessibilità: uno screen reader leggerebbe nove
+   * testimonianze e ne annuncerebbe diciotto, in coppie identiche. È il difetto
+   * che la grafica di riferimento da cui viene questo muro ha (duplica senza
+   * marcare), e costa una parola risolverlo.
+   */
+  decorative?: boolean | undefined;
 }
-const { item } = Astro.props;
+const { item, tone, decorative } = Astro.props;
 ---
 
-<figure class="tc" data-reveal>
-  <blockquote class="tc__quote" data-split="lines">
-    {item.quote}
-  </blockquote>
+<figure
+  class:list={['tc', tone === 'paper' && 'tc--paper']}
+  aria-hidden={decorative ? 'true' : undefined}
+>
+  <blockquote class="tc__quote">{item.quote}</blockquote>
 
-  <figcaption class="tc__by">
-    <cite class="tc__name">
-      {
-        item.linkedin ? (
-          <a href={item.linkedin} rel="noopener" target="_blank">
-            {item.name}
-          </a>
-        ) : (
-          item.name
-        )
-      }
-    </cite>
-    <span class="tc__role">{item.role}</span>
+  <figcaption>
+    <TestimonialIdentity item={item} variant="card" tone={tone} decorative={decorative} />
   </figcaption>
 </figure>
 
 <style>
+  /* LA SUPERFICIE — vedi la nota in testa al file per cosa è cambiato.
+     Tre valori e ognuno risolve un problema diverso:
+
+     `--color-surface-1` (#0e0e0e) è il token che esiste esattamente per le card.
+     Su #050505 è una differenza minima e voluta: la card si deve STACCARE dal
+     fondo, non diventare un pannello. Il filetto fa il resto del lavoro.
+
+     `--radius-frame` (14→24px) e non `--radius-panel` (24→40px): a 40px un
+     rettangolo da 450px comincia a leggere come una pillola, e la grafica di
+     riferimento sta a 24px — che è esattamente il tetto di questo token.
+
+     L'ALONE è l'unica parte traducibile dello `shadow-lg shadow-primary/10` del
+     riferimento: `shadow-lg` è un'ombra NERA, e un'ombra nera su un canvas nero
+     assoluto non esiste — non è una scelta di gusto, è che non produce nessun
+     pixel diverso. Quello che si vede in quel riferimento è la TINTA.
+     ⚠ Non costa un paint per frame nel muro che scorre: l'ombra viene
+     rasterizzata nel layer della colonna una volta, e la colonna poi si limita a
+     traslare. È lo stesso ragionamento del blur statico del glow della CTA. */
   .tc {
+    display: grid;
+    gap: clamp(1.25rem, 2vw, 1.75rem);
     margin: 0;
+    padding: clamp(1.5rem, 2.2vw, 2rem);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-frame);
+    background-color: var(--color-surface-1);
+    box-shadow: 0 1.5rem 3rem -2rem color-mix(in oklab, var(--color-accent) 26%, transparent);
+  }
+  /* Sul paper l'alone d'accento non ha senso (un alone è LUCE, e la luce si vede
+     solo su fondo scuro): resta il filetto e un riempimento appena più chiaro
+     del foglio. Nessun utente in Home oggi — la Home è tutta su canvas — ma il
+     componente non deve rompersi se un domani finisce su una pagina chiara. */
+  .tc--paper {
+    border-color: var(--color-paper-hairline);
+    background-color: color-mix(in oklab, var(--color-paper-text-1) 3%, var(--color-paper));
+    box-shadow: none;
   }
 
+  /* 17 → 22px: in una card larga un terzo di pagina il `--text-h2` della
+     versione a card unica diventava tre parole per riga. La misura corta la dà
+     già la colonna, quindi qui NON serve `max-width` — sarebbe un secondo
+     vincolo libero di litigare col primo. */
   .tc__quote {
     margin: 0;
-    /* Nessuna virgoletta decorativa gigante: è il cliché della sezione
-       testimonianze. Il rientro e la misura corta dicono già che è una
-       citazione. */
-    max-width: 30ch;
-    font-size: var(--text-h2);
-    line-height: 1.05;
-    letter-spacing: -0.025em;
-    font-weight: 500;
-  }
-
-  .tc__by {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem 1rem;
-    margin-top: clamp(1.5rem, 3vw, 2.5rem);
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  .tc__name {
-    font-style: normal;
-    color: var(--color-text-1);
-  }
-  .tc__name a {
-    color: inherit;
-    text-decoration: none;
-    border-bottom: 1px solid var(--color-hairline-strong);
-  }
-  .tc__name a:hover {
-    border-bottom-color: var(--color-accent);
-  }
-
-  .tc__role {
-    color: var(--color-text-3);
+    font-size: clamp(1.0625rem, 1.35vw, 1.375rem);
+    line-height: 1.45;
+    letter-spacing: -0.012em;
+    font-weight: 400;
+    text-wrap: pretty;
   }
 </style>
