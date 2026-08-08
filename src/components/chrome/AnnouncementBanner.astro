@@ -59,24 +59,40 @@ import { SITE } from '../../lib/site';
 
 {/* `role="status"` e NON `aria-live`: il contenuto sta nel DOM fin dal primo
     byte (è solo traslato fuori vista), quindi uno screen reader lo incontra già
-    in ordine di documento — che per un avviso "questo sito è un cantiere" è
-    esattamente il momento giusto. Un `aria-live` lo farebbe annunciare una
-    SECONDA volta all'ingresso, 2,6 secondi dopo, interrompendo la lettura. */}
+    in ordine di documento — che per un avviso "questo sito è ancora un
+    cantiere" è esattamente il momento giusto. Un `aria-live` lo farebbe
+    annunciare una SECONDA volta all'ingresso, 2,6 secondi dopo, interrompendo
+    la lettura. */}
 <aside class="ab" data-banner role="status" aria-labelledby="ab-title">
   <div class="ab__inner">
     <span class="ab__dot" aria-hidden="true"></span>
 
-    <p class="ab__title" id="ab-title">Ciao, sono il sito. Non ho ancora finito.</p>
+    {/* ⚠ TESTO DETTATO DA VLAD (2026-08-08), parola per parola — non riscrivere
+        senza chiedere. La sola libertà presa è tipografica: dove va il grassetto
+        e dove l'accento, non le parole. */}
+    <p class="ab__title" id="ab-title">
+      Ciao, sono il sito. Spoiler: sono ancora un <strong>cantiere aperto 🚧</strong>.
+    </p>
 
     {/* ⚠ Il link al CV sta DENTRO il paragrafo, non su una riga propria. Su una
         riga sua costava 28px di banda (misurato: 127px invece di ~99) per una
         sola parola, e su una banda che spinge giù la navbar ogni riga si paga
         due volte — in altezza della chrome e in viewport rubata alla hero.
         In linea è anche la composizione dello snippet di partenza, dove
-        "Learn more" chiudeva la descrizione. */}
+        "Learn more" chiudeva la descrizione.
+
+        ⚠ `.ab__true` sulle due frasi "vere" (definitiva/il CV) e sul link
+        stesso: STESSO COLORE (`--color-accent-hi`), non tre scelte diverse.
+        È lo stesso principio dei tre registri di Statement.astro (quiet/loud/
+        accent) applicato qui in miniatura — ciò che è finto resta nel grigio
+        del corpo, ciò che è vero si accende tutto della stessa tinta, e il
+        link ne è la conclusione naturale invece di un colore in più da
+        spiegare. */}
     <p class="ab__text">
-      Qualche testo me lo sono inventato per provare la grafica e un paio di progetti sono
-      segnaposto. Il CV, invece, è vero e aggiornato: <a class="ab__cv" href={SITE.cv.path} download
+      Qualche testo è qui solo per fare scena e un paio di progetti sono segnaposto per i test
+      grafici. L'unica cosa <strong class="ab__true">definitiva</strong> (e vera al 100%) è il <strong
+        class="ab__true">CV del mio creatore</strong
+      >: <a class="ab__cv ab__true" href={SITE.cv.path} download
         >scaricalo qui<svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path
             d="M3 11L11 3M11 3H5M11 3V9"
@@ -85,7 +101,7 @@ import { SITE } from '../../lib/site';
             stroke-linecap="round"
             stroke-linejoin="round"></path>
         </svg></a
-      >. Buon scroll.
+      >. Buon scroll!
     </p>
 
     {/* Bersaglio 40px: sopra il minimo WCAG 2.5.8 (24px), che su una chiusura
@@ -141,6 +157,14 @@ import { SITE } from '../../lib/site';
     line-height: 1.35;
     color: var(--color-text-1);
   }
+  /* Solo "cantiere aperto" nel titolo: un grassetto neutro, NON accento — quel
+     colore è riservato a ciò che nella frase è vero (vedi `.ab__true` sotto),
+     e "cantiere aperto" è la battuta, non la parte seria. Marcarlo con lo
+     stesso colore del CV confonderebbe esattamente la distinzione che il
+     testo fa. */
+  .ab__title strong {
+    font-weight: 700;
+  }
 
   .ab__text {
     grid-column: 2;
@@ -157,6 +181,15 @@ import { SITE } from '../../lib/site';
     color: var(--color-text-2);
   }
 
+  /* Il registro "vero" — la stessa tinta su "definitiva", "il CV del mio
+     creatore" e il link che ne è la conclusione. `accent-hi` e non `accent`:
+     è testo da 12-14px su `surface-1`, appena più chiaro del canvas su cui
+     `accent` è tarato (5.16:1). 7.93:1 non lascia margini da discutere. */
+  .ab__true {
+    font-weight: 600;
+    color: var(--color-accent-hi);
+  }
+
   /* In linea dentro `.ab__text` (vedi la nota nel markup). `inline-flex` e non
      `inline`: tiene la freccina attaccata alla parola senza che possa restare
      orfana a capo, ed è lo stesso motivo per cui `.btn__label` è inline-flex —
@@ -166,10 +199,6 @@ import { SITE } from '../../lib/site';
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    /* `accent-hi` e non `accent`: è un link dentro testo da 12-14px su
-       `surface-1`, appena più chiaro del canvas su cui `accent` è tarato
-       (5.16:1). 7.93:1 non lascia margini da discutere. */
-    color: var(--color-accent-hi);
     text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
     text-underline-offset: 0.22em;
     transition: text-decoration-color 240ms var(--ease-snappy);
