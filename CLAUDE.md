@@ -132,6 +132,24 @@ Tre lavori indipendenti, tutti verificati (`check`/`build`/`verify:stage` 34/34/
 - **`Button.astro` mandava a capo qualunque icona nello slot**, su TUTTI i bottoni del sito (anche "Scarica il CV"), non solo quello nuovo. Causa: `.btn__label` è un flex item di `.btn`, quindi il browser lo blockifica (inline→block, da specifica), e la preflight di Tailwind dichiara `svg { display: block }` — un blocco dentro un blocco prende riga propria, e `white-space: nowrap` non può risolverlo perché non è un problema di ritorno a capo del testo. Fix: `.btn__label { display: inline-flex; align-items: center; gap: 0.5rem }`.
 - **Il dev server può servire CSS vecchio in modo silenzioso** — successo più volte in questa sessione, sempre con lo stesso sintomo: una sezione misura alto il triplo/quadruplo di quanto dovrebbe (`docH`/altezza di una riga moltiplicati per un fattore assurdo), pur essendo il codice sorgente corretto. Causa verificata: cache di Vite (`node_modules/.vite`) incoerente con un processo `astro dev` rimasto in piedi da prima di molte modifiche al CSS. **Prima di dire che una sezione "si è rotta", confrontare `npm run build` + `npm run preview` con `npm run dev` sullo stesso identico markup** (stessa `docH`, stesse altezze via CDP) — se divergono, il colpevole è quasi sempre il dev server, non il codice. Il fix è terminare il processo, `rm -rf node_modules/.vite`, e riavviare — non editare nulla finché non si è confermata la divergenza.
 
+### Sessione 2026-08-07 (seconda) — i segnaposto nascosti, e cosa si è rotto nascondendoli
+
+Vlad ha chiesto di **nascondere momentaneamente tre blocchi di contenuto finto**, ognuno finché non arriva quello vero. Tutti e tre sono reversibili a vista e i dati restano nei rispettivi file:
+
+| cosa | dove | come |
+|---|---|---|
+| sezione testimonianze | `lib/site.ts` | `features.testimonials: false` |
+| progetti 02 e 03 | `FeaturedProjects.astro` | `VISIBLE_SHOWCASE = SHOWCASE.slice(0, 1)` |
+| loghi 2 e 3 (ALSI, Reggiana) | `SocialProof.astro` | `VISIBLE_LOGOS = LOGOS.slice(0, 1)` |
+
+⚠ **Nessuno dei tre va ripristinato di propria iniziativa.** Il logo è esplicito: Vlad ha detto "finché non chiedo il consenso".
+
+⚠ **Nascondere contenuto ha ROTTO due cose, e nessuna era nel contenuto.** Entrambe meritano di essere lette prima di toccare un conteggio di elementi in questo repo:
+1. **§03 è diventata nera e vuota** con una card sola — vedi la sezione dedicata più sotto. La sezione era scritta per tre card e trattava "meno di due" come un caso da non gestire.
+2. **Nove assert di `verify:anim` e cinque di `verify:stage` sono diventati rossi** senza che si fosse rotto niente, e uno **crashava** invece di fallire. Entrambi gli strumenti davano per scontato il contenuto (tre card, una chiamata in vetrina, la sezione Dicono in pagina). Ora si biforcano — vedi §03.
+
+⚠ **PRIMA DI DIRE "non hai fatto niente, vedo ancora tutto": il server sulla 4321 può essere un `astro preview`, che serve `dist/` e NON si aggiorna da solo.** Successo in questa sessione: le tre modifiche erano corrette nel sorgente e invisibili nel browser perché nessuno aveva ricostruito. È una variante della trappola già documentata più sotto (dev server con cache stantia / zombie `astro dev`), con un sintomo diverso: qui il server è quello giusto, è il *build* a essere vecchio. `netstat -ano | grep ":4321.*LISTENING"` + `Get-CimInstance Win32_Process` per leggere il comando REALE, poi `npm run build`.
+
 ### §01/§02 — Fatto in questo giro:
 
 - il blocco è passato da superficie chiara a `.theme-slate` (vedi la tabella delle superfici sopra);
@@ -216,7 +234,9 @@ Vincoli che hanno determinato l'architettura, non gusto:
 - **Un `<span>` decorativo dentro un `<em>` non sopravvive a `data-split="lines"` (M1).** M1 spacca e ricostruisce il DOM del titolo per creare le righe mascherate; un vero elemento figlio agganciato da un `ScrollTrigger` a caricamento perde il riferimento dopo lo split asincrono di SplitText e il suo trigger non scatta mai (misurato: restava a `scaleX(0)` per sempre). Un `::after` non ha questo problema perché non è un nodo del DOM leggero — è generato sull'elemento che lo porta, e SplitText quell'elemento lo SPOSTA, non lo distrugge. È il motivo per cui il filetto sotto "per loro" in §03 è un `::after`, non `data-rule`.
 - **In una sezione sticky, le due soglie di M14 (80%/40%) non producono una pausa**, perché il titolo resta fermo in cima alla viewport mentre la si attraversa: le soglie vengono superate quasi nello stesso istante. L'unica pausa disponibile lì è un `transition-delay` esplicito, tarato sulla durata del reveal che lo precede.
 
-⚠ **Entrambi i punti sopra sono risolti**, non più aperti: `verify-anim.mjs` non confronta più una stringa di copy (misura invece che SplitText non perda né duplichi caratteri, indipendente dal testo), e la flakiness storica del primo campione di §30 era `scrollTo` che usciva dal loop leggendo `window.scrollY` — la posizione ANIMATA da Lenis, non il suo bersaglio interno — quindi campionava mentre l'interpolazione era ancora in corso. Riscritto per attendere la QUIETE (due letture consecutive identiche) e riconvergere se deriva. **`verify:stage` è oggi 34/34 stabile su esecuzioni ripetute**, `verify:anim` 23/23 (era 18/18 — le nuove asserzioni sono sul manifesto §04, vedi sotto).
+⚠ **Entrambi i punti sopra sono risolti**, non più aperti: `verify-anim.mjs` non confronta più una stringa di copy (misura invece che SplitText non perda né duplichi caratteri, indipendente dal testo), e la flakiness storica del primo campione di §30 era `scrollTo` che usciva dal loop leggendo `window.scrollY` — la posizione ANIMATA da Lenis, non il suo bersaglio interno — quindi campionava mentre l'interpolazione era ancora in corso. Riscritto per attendere la QUIETE (due letture consecutive identiche) e riconvergere se deriva. **Entrambi gli strumenti sono stabili su esecuzioni ripetute.**
+
+⚠ **NON citare un totale del tipo "34/34": dal 2026-08-07 il NUMERO di assert dipende da cosa c'è in scena** e non è più una costante del repo. `verify:stage` ne salta tre (più uno nel ramo senza JS) se in vetrina non c'è nessuna card `kind: 'call'`, e ne scambia due con le loro gemelle opposte quando le card sono meno di due; `verify:anim` ne salta nove se §04 Dicono è spenta dal feature flag. Misurato: 35 assert con tre progetti in vetrina, 30 con uno. **L'esito da leggere è "Tutti i controlli superati", non il conteggio** — e le righe che cominciano con `·` dicono a voce alta cosa è stato saltato e perché, apposta perché nessuno scambi il silenzio per un verde.
 
 ⚠ **`tools/measure.mjs` non emula il touch.** Restringe solo la viewport (`Emulation.setDeviceMetricsOverride`), senza `Emulation.setTouchEmulationEnabled`: per il CSS resta `hover: hover` anche a 390px, quindi non è uno strumento valido per verificare regole gated su `(hover: hover)` / `(hover: none)` — serve un CDP a mano con quel comando in più (o un browser reale).
 
@@ -235,6 +255,28 @@ Il segnaposto tipografico ("REGGIANA PACK" composto in Geist) è stato sostituit
 `LEAD` (la frazione di corsa in cui la prima card sta sola in scena, `stage.ts`) e `travel` del Handoff `featured` (`index.astro`) sono stati alzati **in coppia**, tre volte, su richieste successive dell'utente che ogni giro trovava ancora insufficiente: 220svh/0.12 → 320svh/0.2 → 360svh/0.32 → **440svh/0.45**. Da soli i due numeri si annullano quasi a vicenda — un `LEAD` più alto su una corsa uguale sposta solo la proporzione fra le fasi, non i pixel reali di scroll — vanno mossi insieme. La formula in pixel (viewport 900): `scoperto = LEAD × (travel_px − 1 schermo) / (0.89 + 0.11 × LEAD)`.
 
 ⚠ **Il vero difetto non era la quantità di corsa, era DOVE finiva la finestra del reel della prima card.** `inFocus(0)` chiudeva a `LEAD + dur` (cioè dentro la salita della seconda card, non al suo inizio): il reel arrivava solo al ~55% della propria pagina nell'istante in cui la seconda card cominciava a coprire la prima, quindi il fondo del sito del Network Day non si vedeva mai, a prescindere da quanto si allungasse `LEAD`. Corretto chiudendo `inFocus(0)` esattamente a `LEAD`: la pagina scorre il 100% di sé stessa mentre è ancora completamente scoperta. Le altre card non hanno questo problema (la loro finestra si estende apposta oltre l'inizio della copertura, per una pausa scoperta troppo breve altrimenti) — l'asimmetria in `inFocus()` è voluta, non un'incoerenza.
+
+### §03 — il numero di card è una VARIABILE, e per mesi non lo è stato (2026-08-07)
+
+Vlad ha chiesto di nascondere i progetti 02 e 03 (segnaposto) finché non ne ha di veri. Con **una sola card la sezione è diventata un rettangolo nero e vuoto.** Non un difetto di taratura: un guasto completo, e la catena è istruttiva.
+
+⚠ **La causa: `if (cards.length < 2) return` in `stage.ts`, con un commento che dichiarava il contrario di quel che faceva** ("con una card sola non c'è mazzo: la sezione resta l'elenco statico"). L'elenco statico è il ramo **senza** `html.js-anim`; dentro quel ramo le card partono a `opacity: 0` in CSS e ad accenderle è il `gsap.set` più sotto — l'unico. Uscire prima lo saltava, e le card restavano posizionate, misurabili, al posto giusto e **invisibili**. È il difetto peggiore possibile per questa sezione e nessuno dei 34 assert di `verify:stage` lo vedeva: tutti misuravano DOVE stanno le card, e una card invisibile sta esattamente dove deve stare.
+
+Fix in `stage.ts`, con `const solo = cards.length === 1`:
+- `if (!cards.length) return` — si degrada, non si esce;
+- `LEAD = solo ? 0` — `LEAD` esiste per dare alla prima card un tratto tutto suo PRIMA che la seconda salga; senza seconda card quel tratto è l'intera corsa, e 0.45 avrebbe solo tagliato fuori il 45% della corsa dal reel;
+- `span = solo ? 1 : …` — il divisore è `cards.length - 1`, cioè **0**: `span` diventava `Infinity`. Oggi non se ne accorgerebbe nessuno (il ciclo delle salite è vuoto), ed è esattamente perché va chiuso adesso;
+- **un tween vuoto di durata 1 quando `solo`**: senza le salite la timeline nasce a durata 0, e tutto ciò che sotto è una frazione di `tl.duration()` (coda ferma, `total`, finestra del reel, soglia del trascritto) diventa 0 o 0/0;
+- `callAt` per la PRIMA card non è più `0` ma `total * 0.06`: con `0` netto la soglia era superata al primo frame, quindi `seenBefore` restava falso e il trascritto scattava a `is-instant` — completo, senza mai animare. Non si vedeva perché la chiamata è la terza card; con un progetto solo, o con la chiamata in testa, sarebbe l'unico comportamento visibile.
+
+**Verificato a 1, 2 e 3 card** (`verify:stage` verde su tutte e tre, `verify:anim` verde, `check` 0 errori, screenshot CDP a 1 card). `travel={440}` NON è stato toccato: con una card sola l'intera corsa va al reel di quella card, cioè il massimo di "scoperto" che Vlad aveva chiesto tre volte. Se un giorno sembrasse troppo lunga, è quella riga in `index.astro` — non `LEAD`.
+
+⚠ **Gli strumenti si biforcano sul CONTENUTO, non solo sul comportamento** — stessa regola già scritta per il dispatcher di §04, qui applicata dove mancava. Un assert che diventa rosso perché è cambiato quanto c'è in scena insegna a ignorare l'esito dello strumento:
+- `verify-stage`: le invarianti del mazzo ("incompleto all'inizio", "le sepolte sono rientrate") valgono solo da 2 card in su, e con 1 hanno un'invariante **opposta** da asserire (in scena da subito, scala piena). `rest.cards > 1` è diventato `>= 1`: portava di straforo un requisito mai dichiarato ("devono essercene almeno due").
+- I tre assert del trascritto + quello senza JS sono gated sulla PRESENZA di una card `kind: 'call'`. Uno di loro non falliva, **crashava** (`querySelector` null → `.classList`), portandosi giù l'intero strumento prima di stampare i risultati già raccolti.
+- `verify-anim`: §04 aveva **tre** stati e non due — muro, righe, e **assente** (feature flag spento). Con la sezione spenta nove controlli diventavano rossi in una volta. Nel ramo assente c'è ora l'assert **speculare**: quel contenuto non deve stare nell'HTML, o il flag nasconderebbe via CSS qualcosa che continua a essere servito e indicizzato.
+
+⚠ **Nuovo assert da non indebolire**: `verify-stage` misura ora l'**opacità dipinta** di ogni card a ogni campione della corsa. Sembra ridondante (nessun tween la anima) ed è l'unica sonda che vede questa classe di guasto.
 
 ### §04 Statement — da riga singola a manifesto editoriale
 
@@ -288,7 +330,13 @@ Il problema è **l'opposto** di quello del muro: un muro che scorre dice "ce ne 
 
 #### Contenuti e posizione (valgono per entrambi gli impianti)
 
-**⏳ Lo stato dei CONTENUTI è temporaneo e va cambiato SOLO su richiesta di Vlad.** `SITE.features.testimonials` è a `true` e `data/testimonials.ts` porta **nove citazioni segnaposto**, accese su sua richiesta esplicita per lavorare sulla grafica. Non rispegnere il flag né svuotare l'array di propria iniziativa — è già stato fatto una volta appellandosi alla policy anti-testimonianze-finte, ed era sbagliato: quella policy vale per ciò che finisce **pubblicato**, non per un segnaposto locale che lui ha chiesto di tenere acceso. **Vanno sostituite con citazioni vere prima di qualunque deploy.** ⚠ Nove segnaposto significano che la Home rende oggi il MURO: per guardare l'impianto focus si usa la pagina di prova (vedi sotto) o si abbassa il conteggio.
+**⏳ Lo stato dei CONTENUTI è temporaneo e va cambiato SOLO su richiesta di Vlad.**
+
+⚠ **DAL 2026-08-07 LA SEZIONE È SPENTA**: `SITE.features.testimonials` è a `false`, su richiesta esplicita di Vlad ("nascondi la sezione testimonianze finché non aggiungerò delle testimonianze vere"). `data/testimonials.ts` NON è stato toccato — le nove citazioni segnaposto sono ancora lì, pronte: si riaccende cambiando il flag, niente da ricostruire.
+
+⚠ **Non riaccenderlo di propria iniziativa, e non rispegnerlo se lo trovi acceso.** Questo flag è stato mosso nelle due direzioni per iniziativa sbagliata: prima rispento appellandosi alla policy anti-testimonianze-finte (errore — quella policy vale per ciò che finisce **pubblicato**, non per un segnaposto locale che lui aveva chiesto di tenere acceso), oggi spento **perché l'ha chiesto lui**. La regola stabile non è "acceso" né "spento": è **decide Vlad**. **Vanno comunque sostituite con citazioni vere prima di qualunque deploy.**
+
+Con nove segnaposto la Home renderebbe il MURO; per guardare l'impianto focus si abbassa il conteggio con le props `force`/`limit` (documentate come "solo per anteprima" in `Testimonials.astro`).
 
 ⚠ **Erano tre, sono nove dal 2026-08-06, e il motivo è geometrico.** Il muro ha tre colonne, e una colonna che scorre in loop deve contenere abbastanza card da essere **più alta della finestra che la mostra**, altrimenti ad ogni giro passa un buco. I nomi sono coppie dell'alfabeto NATO fra parentesi quadre (`[Alfa Bravo]`, `[Charlie Delta]`, …) e **anche questa è una scelta funzionale**: le iniziali alimentano il monogramma, e nove card marcate tutte `[Nome Cognome]` producevano nove cerchi identici con dentro "NC" — in un muro si legge come un errore di rendering, non come un segnaposto. ⚠ **L'ordine dell'array è editoriale**: nel muro le colonne si riempiono a fette e quelle oltre la prima spariscono sotto i breakpoint, quindi su telefono si legge **solo la prima fetta** — le citazioni più forti vanno in testa.
 
@@ -328,7 +376,7 @@ Riscritta con il muro. **Cosa è cambiato**: via l'indice mono `01/02/03` (in un
 
 ⚠ **Nuovo assert da non indebolire**: `verify-anim` misura che **mezza traccia copra tutta la finestra** del muro. È l'unico difetto di questa sezione che non si vede guardandola per dieci secondi — quindi è esattamente quello che deve controllare uno strumento e non un paio d'occhi. Misura il rapporto, non un'altezza attesa: card e viewport cambiano, la relazione no.
 
-`verify-anim.mjs` è passato da 23 a **29 asserzioni**: riposo (cancellatura non tirata, card a opacità 0), dopo-scroll, salto in fondo, reduce, HTML senza JS, più un **assert di contrasto** sull'accento del titolo — misurato sul fondo reale risalito nel DOM (5.47:1), non confrontato con un hex, per la regola "mai un token duplicato in un assert".
+`verify-anim.mjs` ha guadagnato con §04 sei asserzioni (vedi però la nota sopra sul perché un TOTALE non va più citato): riposo (cancellatura non tirata, card a opacità 0), dopo-scroll, salto in fondo, reduce, HTML senza JS, più un **assert di contrasto** sull'accento del titolo — misurato sul fondo reale risalito nel DOM (5.47:1), non confrontato con un hex, per la regola "mai un token duplicato in un assert".
 
 ⚠ **Il dev server ha servito CSS stantio anche in questa sessione**, con lo stesso sintomo già documentato più sotto: HTML fresco (le classi nuove c'erano) e foglio di stile del componente ancora con una classe CANCELLATA (`ts__body`), quindi la griglia a 12 colonne auto-piazzava titolo e card in colonne singole e la sezione misurava 2259px invece di 900. Diagnosi rapida che evita di andare a caccia nel CSS: `curl` del modulo di stile del componente (`/src/components/.../X.astro?astro&type=style&index=0&lang.css`) e cercarci dentro una classe che non esiste più nel sorgente. Se c'è, il colpevole è il server.
 

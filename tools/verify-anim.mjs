@@ -329,11 +329,29 @@ ok(
    appena caricata la cancellatura non può essere già tirata e le card non
    possono essere già entrate. Senza questo, i due controlli "dopo lo scroll"
    sarebbero verdi senza aver misurato nessuna animazione. */
-ok(
-  '§04 Dicono: a riposo la cancellatura NON è tirata',
-  /^matrix\(0,/.test(p.tsCutTransform || ''),
-  p.tsCutTransform
-);
+/* ⚠ TRE STATI, NON DUE. La biforcazione muro/righe (sotto) presupponeva che §04
+   fosse comunque IN PAGINA, e i due impianti erano le uniche alternative. Ma la
+   sezione ha anche un interruttore a monte — `SITE.features.testimonials` — che
+   la toglie del tutto, ed è uno stato legittimo e previsto: è la posizione in cui
+   sta finché non esistono citazioni vere da pubblicare. Con la sezione spenta
+   ogni sonda `.ts__*` tornava `null`/vuoto e NOVE controlli diventavano rossi in
+   una volta, senza che si fosse rotto niente — esattamente il difetto che la nota
+   qui sotto dichiarava di voler evitare, applicato però solo a metà.
+   `assente` non è quindi un fallimento da segnalare: è un ramo da saltare, e da
+   dichiarare a voce alta perché nessuno scambi il silenzio per un verde. */
+const dicono = p.tsImpianto !== 'assente';
+
+if (dicono) {
+  ok(
+    '§04 Dicono: a riposo la cancellatura NON è tirata',
+    /^matrix\(0,/.test(p.tsCutTransform || ''),
+    p.tsCutTransform
+  );
+} else {
+  console.log(
+    '  ·  §04 Dicono: sezione spenta (SITE.features.testimonials), 9 assert non applicabili'
+  );
+}
 /* ⚠ DA QUI IN POI §04 SI BIFORCA. Quale impianto sia in scena lo decide il numero
    di citazioni (vedi Testimonials.astro), quindi lo strumento lo LEGGE invece di
    darlo per scontato: asserire le invarianti del muro su una pagina che rende le
@@ -341,13 +359,17 @@ ok(
    L'impianto viene comunque stampato: un controllo che cambia forma in silenzio
    è peggio di uno che manca. */
 const muro = p.tsImpianto === 'muro';
-ok(
-  `§04 Dicono: impianto in scena — ${p.tsImpianto}`,
-  p.tsImpianto === 'muro' || p.tsImpianto === 'focus',
-  muro ? 'muro che scorre (≥6 citazioni)' : 'righe editoriali (1-5 citazioni)'
-);
+if (dicono) {
+  ok(
+    `§04 Dicono: impianto in scena — ${p.tsImpianto}`,
+    true,
+    muro ? 'muro che scorre (≥6 citazioni)' : 'righe editoriali (1-5 citazioni)'
+  );
+}
 
-if (muro) {
+if (!dicono) {
+  /* niente da asserire: la sezione non è in pagina */
+} else if (muro) {
   ok(
     '§04 muro: a riposo le colonne non sono entrate',
     p.tsColOpacities.length > 0 && p.tsColOpacities.every((o) => Number(o) < 0.1),
@@ -499,11 +521,13 @@ ok(
   `filetto ${after.stRuleTransform} · timbro ${after.stStampOpacity} · fantasma ${after.stGhostOpacity}`
 );
 const entrati = muro ? after.tsColOpacities : after.tsItemOpacities;
-ok(
-  `§04 Dicono: cancellatura tirata e ${muro ? 'colonne' : 'righe'} entrate dopo lo scroll`,
-  steso(after.tsCutTransform) && entrati.length > 0 && entrati.every((o) => Number(o) > 0.9),
-  `cancellatura ${after.tsCutTransform} · ${entrati.join(',')}`
-);
+if (dicono) {
+  ok(
+    `§04 Dicono: cancellatura tirata e ${muro ? 'colonne' : 'righe'} entrate dopo lo scroll`,
+    steso(after.tsCutTransform) && entrati.length > 0 && entrati.every((o) => Number(o) > 0.9),
+    `cancellatura ${after.tsCutTransform} · ${entrati.join(',')}`
+  );
+}
 /* ...e ORA il muro deve scorrere: raggiunta la sezione, `is-in` è arrivata e
    `animation-play-state` è passata a `running`. Come per il cielo della CTA, è
    un'animazione che non dipende né dallo scroll né da un tween: senza questo
@@ -513,7 +537,9 @@ ok(
    ⚠ Solo per il muro: il registro a righe non ha NIENTE in loop, ed è una
    decisione dichiarata (vedi TestimonialsFocus) — lì il movimento non avrebbe
    niente da dire e sarebbe decorazione. */
-if (muro) {
+if (!dicono) {
+  /* sezione spenta: né muro da far scorrere né righe da misurare */
+} else if (muro) {
   const wallMotion = await evaluate(`(async () => {
     const el = document.querySelector('.ts__track');
     if (!el) return 'elemento assente';
@@ -565,13 +591,15 @@ const tsLum = after.tsLoud ? relLum(after.tsLoud.color) : null;
 const tsBgLum = after.tsLoud ? relLum(after.tsLoud.bg) : null;
 const tsRatio =
   tsLum === null ? 0 : (Math.max(tsLum, tsBgLum) + 0.05) / (Math.min(tsLum, tsBgLum) + 0.05);
-ok(
-  "§04 Dicono: l'accento del titolo passa AA sulla superficie che ha davvero",
-  tsRatio >= 4.5,
-  after.tsLoud
-    ? `${after.tsLoud.color} su ${after.tsLoud.bg} — ${tsRatio.toFixed(2)}:1`
-    : 'elemento assente'
-);
+if (dicono) {
+  ok(
+    "§04 Dicono: l'accento del titolo passa AA sulla superficie che ha davvero",
+    tsRatio >= 4.5,
+    after.tsLoud
+      ? `${after.tsLoud.color} su ${after.tsLoud.bg} — ${tsRatio.toFixed(2)}:1`
+      : 'elemento assente'
+  );
+}
 
 /* Scenario del SALTO, su una pagina appena caricata (Lenis a riposo, altrimenti
    sovrascrive la posizione). Tasto Fine, link ancora, ripristino dello scroll al
@@ -605,13 +633,15 @@ ok(
    tarati per arrivare DOPO che le 16 parole di M2 si sono posate: senza
    `is-instant` che azzera durata E ritardo, dopo un salto la frase resterebbe
    mezza barrata per due secondi, e le card mezze trasparenti. */
-ok(
-  '§04 Dicono: salto in fondo, cancellatura e colonne già allo stato finale',
-  steso(jumped.tsCutTransform) &&
-    (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).length > 0 &&
-    (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).every((o) => Number(o) > 0.9),
-  `cancellatura ${jumped.tsCutTransform} · ${(muro ? jumped.tsColOpacities : jumped.tsItemOpacities).join(',')}`
-);
+if (dicono) {
+  ok(
+    '§04 Dicono: salto in fondo, cancellatura e colonne già allo stato finale',
+    steso(jumped.tsCutTransform) &&
+      (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).length > 0 &&
+      (muro ? jumped.tsColOpacities : jumped.tsItemOpacities).every((o) => Number(o) > 0.9),
+    `cancellatura ${jumped.tsCutTransform} · ${(muro ? jumped.tsColOpacities : jumped.tsItemOpacities).join(',')}`
+  );
+}
 /* §70 CTA sul salto, ed è lo scenario che conta di più per questa sezione: è
    l'ULTIMA della pagina, quindi "salto in fondo" è esattamente dove atterra chi
    premé Fine o ricarica con lo scroll ripristinato. Il conto senza `is-instant`
@@ -678,11 +708,13 @@ ok(
   `filetto ${r.stRuleTransform} · timbro ${r.stStampOpacity} · fantasma ${r.stGhostOpacity}`
 );
 const rVis = muro ? r.tsColOpacities : r.tsItemOpacities;
-ok(
-  `§04 Dicono: reduce, cancellatura già tirata e ${muro ? 'colonne' : 'righe'} visibili`,
-  steso(r.tsCutTransform) && rVis.length > 0 && rVis.every((o) => Number(o) > 0.9),
-  `cancellatura ${r.tsCutTransform} · ${rVis.join(',')}`
-);
+if (dicono) {
+  ok(
+    `§04 Dicono: reduce, cancellatura già tirata e ${muro ? 'colonne' : 'righe'} visibili`,
+    steso(r.tsCutTransform) && rVis.length > 0 && rVis.every((o) => Number(o) > 0.9),
+    `cancellatura ${r.tsCutTransform} · ${rVis.join(',')}`
+  );
+}
 /* ⚠ L'INVARIANTE CHE IL BLOCCO REDUCE DEDICATO IN Testimonials.astro ESISTE PER
    GARANTIRE, e va provato perché la regola globale di global.css NON basta: quella
    porta `animation-iteration-count` a 1, che per un marquee non è uno stop — è
@@ -769,14 +801,26 @@ ok('senza JS: il titolo hero è nell\'HTML', html.includes('Ciao.') && html.incl
    La frase è l'unica cosa che passa la parola alle testimonianze, quindi se un
    crawler (o un browser con JS rotto) vede le card senza la frase che le
    introduce, la sezione ha perso il suo senso e non solo la sua animazione. */
-ok(
-  "senza JS: §04 Dicono è tutto nell'HTML",
-  html.includes('Se ancora non ti ho convinto') &&
-    html.includes('non ascoltare me.') &&
-    html.includes('Ascolta loro:') &&
-    html.includes('Gli ho descritto il problema male'),
-  'titolo (3 registri) + citazione'
-);
+if (dicono) {
+  ok(
+    "senza JS: §04 Dicono è tutto nell'HTML",
+    html.includes('Se ancora non ti ho convinto') &&
+      html.includes('non ascoltare me.') &&
+      html.includes('Ascolta loro:') &&
+      html.includes('Gli ho descritto il problema male'),
+    'titolo (3 registri) + citazione'
+  );
+} else {
+  /* ⚠ L'assert SPECULARE, e non è una formalità: con la sezione spenta il
+     requisito si capovolge — quel contenuto non deve stare NELL'HTML, o
+     vorrebbe dire che il feature flag nasconde solo via CSS ciò che continua a
+     essere servito (e quindi indicizzato, e letto da uno screen reader). */
+  ok(
+    "senza JS: §04 Dicono spenta non lascia contenuto nell'HTML",
+    !html.includes('Ascolta loro:') && !html.includes('Gli ho descritto il problema male'),
+    'nessun residuo di testimonianze nel markup servito'
+  );
+}
 /* §70 CTA senza JS: TUTTE E QUATTRO le righe più i quattro canali. La CTA è il
    solo punto della Home da cui si può agire: se il JS non parte e resta un muro
    di testo senza modi di rispondere, la pagina è un vicolo cieco — che è il

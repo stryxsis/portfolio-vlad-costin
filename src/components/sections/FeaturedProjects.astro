@@ -149,6 +149,12 @@ const SHOWCASE: Showcase[] = [
   },
 ];
 
+/* ⚠ Nascosti su richiesta di Vlad (2026-08-07): il 2° e 3° progetto sono
+   ancora segnaposto, non progetti veri. Tolti dalla vetrina finché non li
+   sostituisce — riportare a `SHOWCASE.length` (o a uno slice più ampio)
+   quando arrivano i contenuti reali. */
+const VISIBLE_SHOWCASE = SHOWCASE.slice(0, 1);
+
 /* ---- Il reel: il wireframe di una pagina, alto ~2,6 schermate -------------
    ⚠ RITAGLIATO A ~2,6 SCHERMATE, NON ALLA PAGINA INTERA, e vale anche per gli
    screenshot veri che lo sostituiranno: una home da 9000px scalata a 600px di
@@ -253,9 +259,9 @@ const TURNS = [
     {/* `--fp-cards` serve al CSS per calcolare l'altezza della card lasciando
        spazio agli scalini del mazzo: prima era `height: 96%` inchiodato, cioè
        giusto solo con TRE card. Vedi la nota su `.fp__card` nel ramo stage. */}
-    <div class="fp__stack" style={`--fp-cards: ${SHOWCASE.length}`}>
+    <div class="fp__stack" style={`--fp-cards: ${VISIBLE_SHOWCASE.length}`}>
       {
-        SHOWCASE.map((p, i) => (
+        VISIBLE_SHOWCASE.map((p, i) => (
           <article class="fp__card" data-stack-card data-kind={p.kind} style={`--i: ${i}`}>
             <div class="fp__copy">
               <p class="fp__n">{String(i + 1).padStart(2, '0')}</p>

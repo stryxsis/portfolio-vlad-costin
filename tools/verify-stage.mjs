@@ -224,8 +224,14 @@ check(
   'schermi uscenti in position:sticky',
   rest.positions.join(', ')
 );
+/* ⚠ `>= 1`, ERA `> 1`. L'invariante e' "tutte le card tranne la prima sono
+   parcheggiate fuori dal contenitore", e con una card sola dice zero
+   parcheggiate su zero attese — che e' VERO, non degenere. Il `> 1` ci
+   aggiungeva di straforo un secondo requisito mai dichiarato ("devono essercene
+   almeno due"), e faceva fallire una vetrina a un progetto sola senza che
+   niente fosse rotto. */
 check(
-  rest.cards > 1 && rest.parked === rest.cards - 1,
+  rest.cards >= 1 && rest.parked === rest.cards - 1,
   'a riposo il mazzo e\' chiuso: solo la prima card in scena',
   `${rest.parked} parcheggiate / ${rest.cards - 1} attese`
 );
@@ -353,6 +359,14 @@ for (const frac of [0.05, 0.2, 0.4, 0.55, 0.75, 0.98]) {
       // Le card sepolte devono essere RIENTRATE: scale < 1 su tutte tranne
       // l'ultima arrivata, o la sovrapposizione non legge come profondità.
       scales: cs.map(c => +(new DOMMatrixReadOnly(getComputedStyle(c).transform).a).toFixed(3)),
+      /* L'OPACITA' DIPINTA di ogni card. Sembra ridondante (nessun tween la
+         anima) ed e' invece l'unica sonda che vede il guasto piu' grave che
+         questa sezione abbia avuto: le card partono a 'opacity: 0' in CSS e le
+         accende 'gsap.set' in stage.ts, quindi QUALUNQUE uscita anticipata di
+         quel blocco lascia la sezione nera e vuota. E' successo davvero, con un
+         solo progetto in vetrina, e nessun altro assert qui dentro se n'e'
+         accorto: le card c'erano, erano posizionate, erano solo invisibili. */
+      op: cs.map(c => +(+getComputedStyle(c).opacity).toFixed(2)),
       // Firma completa della posa del mazzo (scala + traslazione di ogni card).
       // Serve per la CODA FERMA: due campioni con la stessa firma = niente si e'
       // mosso fra i due.
@@ -380,11 +394,29 @@ const arrived = seen.map((s) => s.arrived);
    abbastanza da far partire la seconda card — test rosso senza che il sito
    abbia niente di sbagliato. L'invariante vero e' piu' debole e piu' utile: a
    inizio corsa il mazzo NON e' ancora completo, a fine corsa lo e'. */
-check(
-  arrived[0] < rest.cards && arrived[arrived.length - 1] === rest.cards,
-  'il mazzo si compone lungo la corsa (incompleto all inizio, completo alla fine)',
-  arrived.join(' -> ')
-);
+/* ⚠ SI BIFORCA SUL NUMERO DI CARD, come verify-anim fa col dispatcher di §04.
+   "Il mazzo e' incompleto all'inizio" e' un invariante che ESISTE SOLO da due
+   card in su: con una sola, l'unica card e' in scena dal primo frame e
+   `arrived[0] < 1` sarebbe falso su una sezione perfettamente sana. Un assert
+   che diventa rosso perche' e' cambiato il CONTENUTO, non il comportamento,
+   insegna a ignorare l'esito dello strumento — stessa regola per cui qui non si
+   duplica mai il valore di un design token. */
+if (rest.cards >= 2) {
+  check(
+    arrived[0] < rest.cards && arrived[arrived.length - 1] === rest.cards,
+    'il mazzo si compone lungo la corsa (incompleto all inizio, completo alla fine)',
+    arrived.join(' -> ')
+  );
+} else {
+  /* Con una card sola l'invariante equivalente e' il suo opposto: non deve
+     succedere NIENTE di simile a un mazzo — la card e' arrivata da subito e ci
+     resta, senza parcheggio e senza scalini. */
+  check(
+    arrived.every((v) => v === rest.cards),
+    'card unica: in scena da subito e per tutta la corsa (nessun parcheggio)',
+    arrived.join(' -> ')
+  );
+}
 check(
   arrived.every((v, i) => i === 0 || v >= arrived[i - 1]),
   'le card si accatastano e non tornano indietro',
@@ -395,15 +427,38 @@ check(
   'lo schermo §30 resta incollato per tutta la corsa',
   seen.map((s) => s.scrTop).join(', ')
 );
+/* ⚠ OGNI CARD E' DIPINTA, a ogni campione della corsa. Vale per qualunque
+   numero di card ed e' la rete che mancava: vedi la nota su `op` nel campione.
+   Non e' un doppione dei controlli di posa qui sotto — quelli misurano DOVE
+   sta una card, e una card invisibile sta esattamente dove deve stare. */
+const dark = seen.flatMap((s, i) => s.op.map((o, c) => ({ i, c, o })).filter((x) => x.o < 0.99));
+check(
+  dark.length === 0,
+  'ogni card e dipinta lungo tutta la corsa (gsap.set ha acceso il mazzo)',
+  dark.length ? dark.map((x) => `campione ${x.i} / card ${x.c + 1}: opacity ${x.o}`).join(' | ') : 'tutte a 1'
+);
+
 /* A mazzo composto la profondità deve esistere: le card sotto sono rientrate e
    in ordine (la prima è la più piccola). Senza questo, una sovrapposizione
-   piatta passerebbe il controllo qui sopra senza leggersi come mazzo. */
+   piatta passerebbe il controllo qui sopra senza leggersi come mazzo.
+   ⚠ Gated come sopra: "le card sepolte" non esistono sotto le due card, e
+   `last[0] < last[0]` sarebbe falso per definizione. */
 const last = seen[seen.length - 1].scales;
-check(
-  last.every((s, i) => i === 0 || s >= last[i - 1]) && last[0] < last[last.length - 1],
-  'a mazzo composto le card sepolte sono rientrate, in ordine',
-  last.join(' < ')
-);
+if (rest.cards >= 2) {
+  check(
+    last.every((s, i) => i === 0 || s >= last[i - 1]) && last[0] < last[last.length - 1],
+    'a mazzo composto le card sepolte sono rientrate, in ordine',
+    last.join(' < ')
+  );
+} else {
+  /* Nessuna card le sale sopra, quindi non deve rientrare: resta a scala piena.
+     Una card unica rimpicciolita sarebbe un rientro senza nulla che lo motiva. */
+  check(
+    last.every((s) => Math.abs(s - 1) < 0.005),
+    'card unica: resta a scala piena (nessun rientro senza occlusore)',
+    last.join(' / ')
+  );
+}
 
 /* LA CODA FERMA — l'ultimo schermo di corsa in cui il mazzo e' composto e NON si
    muove piu', mentre la sezione resta incollata. Senza, l'ultima card si posava
@@ -477,33 +532,47 @@ check(
 );
 /* Il trascritto: spento all'inizio della corsa, acceso e completo in fondo. È
    l'invariante di M14 riusata — la classe si aggiunge e non si toglie mai. */
-check(
-  seen[0].callIn === false && seen[seen.length - 1].callIn === true,
-  'M17: il trascritto della chiamata parte spento e si accende lungo la corsa',
-  `inizio ${seen[0].callIn} -> fine ${seen[seen.length - 1].callIn}`
-);
-check(
-  seen[seen.length - 1].turnsOn === rest.turns,
-  'M17: a fine corsa tutte le battute della conversazione sono leggibili',
-  `${seen[seen.length - 1].turnsOn}/${rest.turns} battute`
-);
-/* E RISALENDO NON SI DIS-DICE. È il motivo per cui il trascritto non è
-   scrubbato: una conversazione che si riavvolge annulla l'appuntamento e
-   rientra le parole. Costava un bug reale in M14 (lo squiggle e i loghi gated
-   su `.is-active`), quindi qui si controlla. */
-await scrollTo(geo.featTop + Math.round(geo.travelH * 0.12));
-const rewound = await evalJson(`
-  const k = document.querySelector('[data-call]');
-  return {
-    isIn: k.classList.contains('is-in'),
-    turnsOn: [...k.querySelectorAll('.fp__turn')].filter(t => +getComputedStyle(t).opacity > 0.9).length,
-  };
-`);
-check(
-  rewound.isIn === true && rewound.turnsOn === rest.turns,
-  'M17: risalendo la pagina la conversazione NON si dis-dice',
-  `is-in ${rewound.isIn}, ${rewound.turnsOn}/${rest.turns} battute leggibili`
-);
+/* ⚠ SOLO SE la chiamata e' in scena. `[data-call]` vive su UNA delle card
+   (`kind: 'call'`), quindi con una vetrina di soli siti non esiste: `callIn`
+   torna `null` e `turnsOn` pure, e i due assert sotto diventerebbero rossi su
+   una sezione che non ha nessun trascritto da accendere. Stessa biforcazione
+   del mazzo qui sopra — si verifica cio' che c'e', non cio' che c'era. */
+if (rest.turns > 0) {
+  check(
+    seen[0].callIn === false && seen[seen.length - 1].callIn === true,
+    'M17: il trascritto della chiamata parte spento e si accende lungo la corsa',
+    `inizio ${seen[0].callIn} -> fine ${seen[seen.length - 1].callIn}`
+  );
+  check(
+    seen[seen.length - 1].turnsOn === rest.turns,
+    'M17: a fine corsa tutte le battute della conversazione sono leggibili',
+    `${seen[seen.length - 1].turnsOn}/${rest.turns} battute`
+  );
+  /* E RISALENDO NON SI DIS-DICE. È il motivo per cui il trascritto non è
+     scrubbato: una conversazione che si riavvolge annulla l'appuntamento e
+     rientra le parole. Costava un bug reale in M14 (lo squiggle e i loghi gated
+     su `.is-active`), quindi qui si controlla.
+     ⚠ DENTRO il gate insieme agli altri due: senza `[data-call]` in pagina
+     questo blocco non falliva, CRASHAVA (`querySelector` torna null e si legge
+     `.classList` su null), portandosi giù l'intero strumento prima ancora di
+     stampare i risultati gia' raccolti. Un assert non applicabile deve saltare,
+     non far esplodere la verifica di tutto il resto della pagina. */
+  await scrollTo(geo.featTop + Math.round(geo.travelH * 0.12));
+  const rewound = await evalJson(`
+    const k = document.querySelector('[data-call]');
+    return {
+      isIn: k.classList.contains('is-in'),
+      turnsOn: [...k.querySelectorAll('.fp__turn')].filter(t => +getComputedStyle(t).opacity > 0.9).length,
+    };
+  `);
+  check(
+    rewound.isIn === true && rewound.turnsOn === rest.turns,
+    'M17: risalendo la pagina la conversazione NON si dis-dice',
+    `is-in ${rewound.isIn}, ${rewound.turnsOn}/${rest.turns} battute leggibili`
+  );
+} else {
+  console.log('  · M17 trascritto: nessuna card `kind: call` in vetrina, 3 assert non applicabili');
+}
 
 /* ---- 4. fondo della pagina: la CTA copre il teaser ---------------------
    Un po' OLTRE il bordo: la tolleranza di scrollTo più il residuo di easing di
@@ -634,11 +703,19 @@ check(
   'senza JS: i reel restano in cima, senza transform',
   `${noJs.reelsUntouched}/${noJs.reels}`
 );
-check(
-  noJs.turnsOn === noJs.turns && noJs.turns > 0,
-  'senza JS: il trascritto della chiamata e\' gia\' completo',
-  `${noJs.turnsOn}/${noJs.turns} battute`
-);
+/* ⚠ Gated sulla PRESENZA della chiamata, come i tre assert di M17 piu' sopra:
+   `turns > 0` dentro la condizione trasformava "non c'e' nessun trascritto da
+   controllare" in "il trascritto e' rotto". Con la chiamata in scena il
+   requisito e' invariato — senza JS le battute sono TUTTE gia' leggibili. */
+if (noJs.turns > 0) {
+  check(
+    noJs.turnsOn === noJs.turns,
+    'senza JS: il trascritto della chiamata e\' gia\' completo',
+    `${noJs.turnsOn}/${noJs.turns} battute`
+  );
+} else {
+  console.log('  · senza JS: nessuna card `kind: call` in vetrina, 1 assert non applicabile');
+}
 await send('Emulation.setScriptExecutionDisabled', { value: false }, sid);
 
 console.log('\n================ ESITO ================');

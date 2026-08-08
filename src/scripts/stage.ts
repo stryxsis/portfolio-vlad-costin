@@ -108,9 +108,20 @@ export function initStages(): void {
     document.querySelectorAll<HTMLElement>('[data-stack]').forEach((stageEl) => {
       const name = stageEl.dataset.stack;
       const cards = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-stack-card]'));
-      // Con una card sola non c'è mazzo: la sezione resta l'elenco statico che
-      // è già nel suo stato di default.
-      if (cards.length < 2) return;
+      /* ⚠ ERA `if (cards.length < 2) return`, e NON era la degradazione gentile
+         che il suo commento dichiarava ("con una card sola resta l'elenco
+         statico"). L'elenco statico è il ramo SENZA `html.js-anim`; qui dentro
+         le card partono a `opacity: 0` in CSS e ad accenderle è il `gsap.set`
+         una ventina di righe più sotto. Uscire prima lo saltava, quindi la
+         sezione restava un rettangolo NERO E VUOTO — misurato via CDP con un
+         solo progetto in vetrina: `.fp__card` a `opacity: 0`, `transform: none`.
+         Con una card non c'è un mazzo, ma c'è ancora una card da mostrare e un
+         reel da far scorrere: si degrada, non si esce. */
+      if (!cards.length) return;
+      /* Una card sola: niente scalini, niente parcheggio, niente rientri — e
+         tutta la corsa disponibile al reel di quell'unica card. È il caso vero
+         ogni volta che i progetti in vetrina scendono a uno, non un'ipotesi. */
+      const solo = cards.length === 1;
 
       const screen = document.querySelector<HTMLElement>(`[data-screen="${name}"]`);
       const travel = document.querySelector<HTMLElement>(`[data-travel="${name}"]`);
@@ -195,8 +206,19 @@ export function initStages(): void {
              scoperto = LEAD × (travel_px − 1 schermo) / (0.89 + 0.11 × LEAD)
          cioè 810px con 0.32/360svh e 1466px con 0.45/440svh — da 0.9 a 1.6
          schermi di rotellina in cui la prima card sta sola in scena. */
-      const LEAD = 0.45;
-      const span = (1 - LEAD) / (cards.length - 1);
+      /* ⚠ Con UNA card `LEAD` non ha più niente da proteggere: esiste per dare
+         alla prima card un tratto in cui sta sola in scena PRIMA che la seconda
+         salga, e senza seconda card quel tratto è tutta la corsa. A 0.45 avrebbe
+         solo tagliato fuori il 45% della corsa dal reel, cioè l'opposto di quel
+         che serve. */
+      const LEAD = solo ? 0 : 0.45;
+      /* ⚠ `solo ? 1 : ...` non è una precauzione teorica: con una card sola il
+         divisore è `cards.length - 1`, cioè 0, e `span` diventerebbe `Infinity`.
+         Oggi non se ne accorgerebbe nessuno (il ciclo delle salite qui sotto è
+         vuoto e `inFocus(0)` non lo tocca), ed è esattamente il motivo per cui
+         va chiuso adesso: un Infinity che gira per la funzione è un difetto che
+         aspetta il prossimo che ci scrive dentro. */
+      const span = solo ? 1 : (1 - LEAD) / (cards.length - 1);
       const dur = span * 0.78; // il resto è la pausa fra un arrivo e il successivo
 
       // `slice(1).forEach` invece di un `for` con indice: sotto `strictest`
@@ -212,6 +234,15 @@ export function initStages(): void {
           tl.to(below, { scale: 1 - (i - j) * RECEDE, duration: dur }, at);
         });
       });
+
+      /* ⚠ Con una card sola il ciclo qui sopra non aggiunge NESSUN tween, quindi
+         la timeline nascerebbe a durata 0 — e tutto ciò che sotto è espresso come
+         frazione di `tl.duration()` (la coda ferma, `total`, la finestra del
+         reel, la soglia del trascritto) diventerebbe 0 o 0/0. Un tween vuoto le
+         dà la corsa. L'1 non è un numero magico: con lo scrub GSAP mappa il
+         progresso 0..1 sulla durata totale, quindi conta solo la PROPORZIONE fra
+         i tween, ed è la stessa unità in cui sono già espressi LEAD e span. */
+      if (solo) tl.to({}, { duration: 1 });
 
       /* ---- La coda ferma: uno schermo di scroll che non muove niente --------
          Un tween vuoto in fondo alla timeline. Non anima nulla: OCCUPA TEMPO, e
@@ -314,7 +345,16 @@ export function initStages(): void {
       if (call && total > 0) {
         const owner = call.closest<HTMLElement>('[data-stack-card]');
         const idx = owner ? cards.indexOf(owner) : cards.length - 1;
-        const callAt = (idx <= 0 ? 0 : LEAD + (idx - 1) * span + dur * 0.85) / total;
+        /* ⚠ La PRIMA card non ha una salita di cui prendere l'85%: è già in scena
+           quando lo schermo si incolla. Con `0` netto la soglia risultava
+           superata al primo frame, quindi `seenBefore` restava falso e il
+           trascritto scattava dritto a `is-instant` — completo, senza mai
+           animare. Finora non si vedeva perché la chiamata è l'ULTIMA delle tre
+           card; con un solo progetto in vetrina, o con la chiamata spostata in
+           testa, diventa l'unico comportamento visibile. Una frazione piccola ma
+           POSITIVA della corsa le dà lo stesso "parte mentre stai già guardando"
+           che ha in fondo al mazzo. */
+        const callAt = (idx <= 0 ? total * 0.06 : LEAD + (idx - 1) * span + dur * 0.85) / total;
 
         /* `seenBefore` distingue "ci sono arrivato scorrendo" da "ci sono nato
            dentro". Nel secondo caso l'animazione è già stata persa, quindi si

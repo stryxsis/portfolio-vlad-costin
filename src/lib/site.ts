@@ -128,8 +128,9 @@ export const SITE = {
    * sono ancora. Il componente e i dati esistono già: cambia solo il flag.
    */
   features: {
-    /** ⚠ Placeholder attivo su richiesta esplicita — vedi src/data/testimonials.ts. */
-    testimonials: true,
+    /** ⚠ Spento su richiesta di Vlad (2026-08-07): riaccendere solo quando
+     *  arrivano testimonianze vere in src/data/testimonials.ts. */
+    testimonials: false,
     /** Il blog arriva in fase 2, quando esisterà il primo articolo. */
     blog: false,
   },

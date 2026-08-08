@@ -137,6 +137,12 @@ const LOGOS = [
 </svg>`
   }
 ];
+
+/* ⚠ Nascosti su richiesta di Vlad (2026-08-07): 2° e 3° logo (ALSI Gluten
+   Free, Reggiana Packaging) tolti dalla riga finché non dà il consenso a
+   mostrarli di nuovo. Riportare a `LOGOS` (o a uno slice più ampio) quando
+   arriva l'ok. */
+const VISIBLE_LOGOS = LOGOS.slice(0, 1);
 ---
 
 <section class="sp theme-slate" data-section id="dove">
@@ -207,7 +213,7 @@ const LOGOS = [
       }
       <div class="sp__logos" data-activate>
         {
-          LOGOS.map((logo) => {
+          VISIBLE_LOGOS.map((logo) => {
             const Tag = logo.url ? 'a' : 'div';
             const props = logo.url ? { href: logo.url, target: "_blank", rel: "noopener noreferrer" } : {};
             return (
