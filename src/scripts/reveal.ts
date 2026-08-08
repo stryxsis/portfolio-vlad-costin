@@ -74,6 +74,30 @@ export function initReveal(): void {
     const splits: SplitText[] = [];
     const cleanupsM14: Array<() => void> = [];
 
+    /* ⚠ `splitPlayed` esiste per un difetto reale, non per prudenza teorica:
+       "il titolo despawna scorrendo su, poi rifà l'animazione scorrendo giù di
+       nuovo" — riprodotto sia su `.wid__title` (M1) sia su `.st__text` (M2).
+       Causa: `autoSplit: true` (sotto) ririaggancia SplitText a
+       `document.fonts` — l'evento `loadingdone` del FontFaceSet, NON solo il
+       resize — e quell'evento può scattare più di una volta per sessione (ogni
+       weight/variante caricata in ritardo per testo più in basso nella pagina
+       ne emette uno). Ogni `loadingdone` fa RE-SPLITTARE tutti gli elementi
+       autoSplit sulla pagina, a prescindere da dove si trovi lo scroll: un
+       titolo già animato e visibile viene rimesso silenziosamente nello stato
+       nascosto (mask + yPercent), con un ScrollTrigger `once` NUOVO che non è
+       ancora scattato. Non si vede finché non si torna a scorrere su quel
+       titolo — lì "despawna" (è di nuovo nella posa di partenza) e la
+       ri-attraversa la soglia gli fa ripetere l'ingresso da capo.
+
+       `autoSplit` in sé resta necessario (senza, un vero resize di finestra
+       lascia i wrapper-riga con i ritorni a capo vecchi). Il fix è quindi non
+       disabilitarlo, ma impedire che un RE-split ripeta un'animazione già
+       vista: `splitPlayed` marca l'elemento ORIGINALE (che il re-split non
+       ricrea) quando la sua animazione ha finito una volta; se `onSplit` gira
+       di nuovo dopo quel momento, applica lo stato finale con `gsap.set`
+       invece di rifare `gsap.from` con un nuovo trigger. */
+    const splitPlayed = new WeakSet<Element>();
+
     // M1 — reveal riga per riga.
     // `mask: 'lines'` avvolge ogni riga in un contenitore con overflow clippato,
     // così l'animazione è una translateY sulla riga interna: interamente
@@ -98,11 +122,19 @@ export function initReveal(): void {
           // lascia intatto dentro i wrapper.
           aria: 'none',
           onSplit(self) {
+            // Re-split dopo che l'ingresso è già stato visto: stato finale
+            // diretto, nessun nuovo ScrollTrigger da far scattare una seconda
+            // volta — vedi la nota su `splitPlayed` qui sopra.
+            if (splitPlayed.has(el)) {
+              gsap.set(self.lines, { yPercent: 0 });
+              return;
+            }
             return gsap.from(self.lines, {
               yPercent: 110,
               duration: 0.9,
               stagger: 0.08,
               ease: 'power3.out',
+              onComplete: () => splitPlayed.add(el),
               scrollTrigger: {
                 trigger: el,
                 // clamp() evita il salto quando il trigger è già oltre lo start
@@ -127,11 +159,18 @@ export function initReveal(): void {
           autoSplit: true,
           aria: 'none', // vedi la nota su aria-prohibited-attr sopra
           onSplit(self) {
+            // Stessa rete di `splitPlayed` di M1 qui sopra: un re-split dopo
+            // l'ingresso già visto va dritto allo stato finale.
+            if (splitPlayed.has(el)) {
+              gsap.set(self.words, { yPercent: 0 });
+              return;
+            }
             return gsap.from(self.words, {
               yPercent: 105,
               duration: 0.7,
               stagger: 0.035,
               ease: 'expo.out',
+              onComplete: () => splitPlayed.add(el),
               scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true, fastScrollEnd: true },
             });
           },

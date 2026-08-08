@@ -118,9 +118,8 @@ export const SITE = {
   cv: {
     path: '/cv/vlad-costin-cv.pdf',
     label: 'Scarica il CV (PDF)',
-    // [placeholder] Aggiornare quando il PDF viene sostituito.
-    updated: '[mese anno]',
-    sizeLabel: '[--] KB',
+    updated: 'agosto 2026',
+    sizeLabel: '189 KB',
   },
 
   /**

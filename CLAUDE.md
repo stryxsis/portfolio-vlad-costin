@@ -181,6 +181,16 @@ Verificato via CDP in tutti gli stati (riposo 0px, ingresso pieno 98px a 1440/17
 - **2600ms non è un numero tondo**: l'ultima entrata della hero finisce a 1650ms e il word-carousel parte a 2200ms. Ritoccando la coreografia della hero, va ritoccato con lei.
 - Contrasti misurati sui pixel reali (`sample:px`): 18,98:1 titolo, 7,50:1 testo, 8,32:1 link. `verify:stage` e `verify:anim` verdi dopo la ristrutturazione della chrome.
 
+### M1/M2 — il re-split silenzioso, e perché un titolo già entrato "despawnava" (2026-08-08)
+
+Segnalato da Vlad su §01 Cosa faccio, poi riprodotto anche sullo Statement: "il titolo fa la sua animazione e ok, ma quando torno su mi capita per 2/3 volte che il titolo despauna e poi quando ritorno giu ri fa l'animazione". Nessuna delle due sezioni condivide meccanismi propri (una ha lo squiggle di M14, l'altra no) — il denominatore comune era `data-split` stesso (M1 su `.wid__title`, M2 su `.st__text`), quindi il difetto era in `reveal.ts`, non nei componenti.
+
+⚠ **Causa: `autoSplit: true` non risplitta solo al resize — si riaggancia anche a `document.fonts` (`loadingdone`), ed è quell'evento il colpevole.** Verificato in `node_modules/gsap/SplitText.js`: con `type:'lines'`/`'words'` e `autoSplit`, SplitText registra `_fonts.addEventListener('loadingdone', this._split)` — un evento del FontFaceSet che può scattare più di una volta per sessione (ogni weight/variante caricata più avanti nella pagina ne emette uno), e quando scatta fa un revert+resplit di TUTTI gli elementi autoSplit del documento, indipendentemente da dove si trovi lo scroll. Un titolo già animato e fermo alla posa finale viene rimesso silenziosamente nella posa di partenza (mascherato, `yPercent` diverso da zero), con un `ScrollTrigger` **nuovo** che non è mai scattato. Non si vede finché non si torna a scorrere su quel titolo — lì sembra "sparito", e attraversare di nuovo la soglia rifà l'ingresso da capo. Non è un problema di resize della finestra (`autoSplit` in sé resta corretto e necessario: senza, un vero resize lascia i wrapper-riga con i ritorni a capo vecchi).
+
+Fix in `reveal.ts`: un `WeakSet` (`splitPlayed`) marca l'elemento ORIGINALE quando la sua animazione d'ingresso ha finito una volta (`onComplete` del tween). Se `onSplit` gira di nuovo dopo quel momento — per qualunque motivo, resize vero o `loadingdone` fantasma — controlla il WeakSet e applica lo stato finale con `gsap.set` invece di ripartire con un `gsap.from` e un nuovo trigger. Stessa filosofia già stabilita per M14 (`data-activate`): un'animazione già vista non deve poter tornare indietro. Applicato a entrambi M1 e M2 — sono gli unici due vocabolari che attaccano un tween proprio dentro `onSplit`; M15 (`data-split="chars"`) non ne ha bisogno perché non anima nulla lì, lascia l'accensione a `data-activate`.
+
+Verificato via CDP simulando esattamente l'evento sospetto (`document.fonts.dispatchEvent(new Event('loadingdone'))`) dopo che il titolo era già entrato, poi risalendo e riscendendo sopra la soglia: sia `.wid__title` sia `.st__text` restano a trasform identità in tutti i passaggi — nessun ritorno alla posa nascosta.
+
 ### §01/§02 — Fatto in questo giro:
 
 - il blocco è passato da superficie chiara a `.theme-slate` (vedi la tabella delle superfici sopra);
