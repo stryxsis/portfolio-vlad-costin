@@ -601,6 +601,90 @@ if (dicono) {
   );
 }
 
+/* ⚠ LA RISALITA, e nessun altro controllo di questo strumento la vedeva.
+   Difetto reale (2026-08-08, segnalato da Vlad su §01 e sullo Statement):
+   tornando SU sopra un titolo già entrato, righe e parole tornavano di scatto
+   nella posa nascosta di partenza, e ripassandoci in discesa l'ingresso si
+   rigiocava da capo. Causa: `once: true` uccide uno ScrollTrigger quando si
+   raggiunge la sua FINE, non quando l'animazione finisce — e dentro un handoff
+   sticky quella fine può non arrivare mai, lasciando vivo un trigger che
+   rirende il `from` a progress 0 appena si risale prima del suo start.
+
+   Ogni assert esistente qui misura lo stato SCENDENDO, quindi restava verde
+   mentre il difetto era in pagina: è esattamente la classe di guasto che uno
+   strumento deve vedere al posto di un paio d'occhi.
+
+   ⚠ Si misura la POSA DIPINTA, non il transform inline. Il fix ripulisce il
+   transform (`clearProps`), ma asserire "l'attributo style è vuoto" legherebbe
+   il controllo a COME è stato risolto invece che a cosa deve essere vero — e
+   diventerebbe rosso al primo modo diverso di ottenere lo stesso risultato.
+   L'invariante vera: ogni frammento di SplitText deve stare allineato al
+   proprio wrapper mascherato. Se è spinto giù di una frazione sensibile della
+   propria altezza, o è nascosto o sta rianimando; in entrambi i casi è il
+   difetto. */
+const SPLIT_POSE = `
+  (() => {
+    const out = {};
+    for (const [key, sel] of [['widTitle', '.wid__title'], ['stText', '.st__text']]) {
+      const el = document.querySelector(sel);
+      if (!el) { out[key] = null; continue; }
+      const frammenti = Array.from(el.querySelectorAll('div > div'));
+      if (!frammenti.length) { out[key] = null; continue; }
+      let peggiore = 0;
+      for (const f of frammenti) {
+        const w = f.parentElement.getBoundingClientRect();
+        const r = f.getBoundingClientRect();
+        const scarto = Math.abs(r.top - w.top) / Math.max(1, w.height);
+        if (scarto > peggiore) peggiore = scarto;
+      }
+      out[key] = Math.round(peggiore * 1000) / 1000;
+    }
+    return out;
+  })()
+`;
+
+/* ⚠ E SERVE UNA PAGINA FRESCA, FERMANDOSI A META'. La prima stesura di questo
+   controllo riusava lo stato lasciato da `wheelTo(26)` qui sopra — cioè il
+   fondo pagina — ed era verde ANCHE con il difetto in produzione, verificato
+   disattivando il fix e ricostruendo. Motivo: arrivare in fondo fa superare
+   anche la posizione di FINE dei due trigger, che a quel punto `once` uccide
+   davvero; il difetto sparisce da solo proprio perché si è scorso troppo.
+   Va riprodotto il gesto vero — scendere QUANTO BASTA a far entrare il titolo,
+   fermarsi mentre è ancora in vista, e risalire. Un controllo che non diventa
+   rosso sul codice rotto non è un controllo. */
+await load(URL_);
+
+const topDi = (sel) =>
+  evaluate(
+    `(() => { const e = document.querySelector('${sel}'); return e ? Math.round(e.getBoundingClientRect().top) : 99999; })()`
+  );
+
+// Si scende a misura, non a numero di tick: la posizione dello statement
+// dipende da quante sezioni ci sono sopra, che cambia di continuo.
+for (let i = 0; i < 24; i++) {
+  await wheelTo(3);
+  if ((await topDi('.st__text')) < 400) break;
+}
+await sleep(1600); // l'ingresso delle parole finisce (0.7s + stagger)
+
+const posaIntegra = (v) => v !== null && v < 0.15;
+const entrato = await evaluate(SPLIT_POSE);
+ok(
+  'M1/M2: fermandosi a meta pagina, gli ingressi sono giocati',
+  posaIntegra(entrato.widTitle) && posaIntegra(entrato.stText),
+  `scarto max — §01 ${entrato.widTitle} · statement ${entrato.stText}`
+);
+
+// Ora il gesto del difetto: tornare su, sopra lo start dei due trigger.
+await wheelTo(30, -600);
+await sleep(1200);
+const risalito = await evaluate(SPLIT_POSE);
+ok(
+  'M1/M2: risalendo, un ingresso già giocato NON torna alla posa nascosta',
+  posaIntegra(risalito.widTitle) && posaIntegra(risalito.stText),
+  `scarto max — §01 ${risalito.widTitle} · statement ${risalito.stText} (nascosto ≈ 1.0)`
+);
+
 /* Scenario del SALTO, su una pagina appena caricata (Lenis a riposo, altrimenti
    sovrascrive la posizione). Tasto Fine, link ancora, ripristino dello scroll al
    reload: la fascia d'ingresso viene attraversata in un solo update, quindi

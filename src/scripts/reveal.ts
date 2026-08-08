@@ -74,29 +74,53 @@ export function initReveal(): void {
     const splits: SplitText[] = [];
     const cleanupsM14: Array<() => void> = [];
 
-    /* ⚠ `splitPlayed` esiste per un difetto reale, non per prudenza teorica:
-       "il titolo despawna scorrendo su, poi rifà l'animazione scorrendo giù di
-       nuovo" — riprodotto sia su `.wid__title` (M1) sia su `.st__text` (M2).
-       Causa: `autoSplit: true` (sotto) ririaggancia SplitText a
-       `document.fonts` — l'evento `loadingdone` del FontFaceSet, NON solo il
-       resize — e quell'evento può scattare più di una volta per sessione (ogni
-       weight/variante caricata in ritardo per testo più in basso nella pagina
-       ne emette uno). Ogni `loadingdone` fa RE-SPLITTARE tutti gli elementi
-       autoSplit sulla pagina, a prescindere da dove si trovi lo scroll: un
-       titolo già animato e visibile viene rimesso silenziosamente nello stato
-       nascosto (mask + yPercent), con un ScrollTrigger `once` NUOVO che non è
-       ancora scattato. Non si vede finché non si torna a scorrere su quel
-       titolo — lì "despawna" (è di nuovo nella posa di partenza) e la
-       ri-attraversa la soglia gli fa ripetere l'ingresso da capo.
+    /* ---- Perché un ingresso già visto tornava indietro (2026-08-08) --------
+       Difetto segnalato da Vlad su `.wid__title` (M1) e su `.st__text` (M2):
+       "appena torno su si bugga e ri parte l'animazione". Scorrendo verso
+       l'alto sopra il titolo, le righe/parole tornavano di scatto nella posa
+       di partenza (mascherate, `yPercent` pieno); ripassandoci sopra in
+       discesa l'ingresso si rigiocava da capo.
 
-       `autoSplit` in sé resta necessario (senza, un vero resize di finestra
-       lascia i wrapper-riga con i ritorni a capo vecchi). Il fix è quindi non
-       disabilitarlo, ma impedire che un RE-split ripeta un'animazione già
-       vista: `splitPlayed` marca l'elemento ORIGINALE (che il re-split non
-       ricrea) quando la sua animazione ha finito una volta; se `onSplit` gira
-       di nuovo dopo quel momento, applica lo stato finale con `gsap.set`
-       invece di rifare `gsap.from` con un nuovo trigger. */
+       ⚠ NON È UN RE-SPLIT, e la prima diagnosi (l'evento `loadingdone` del
+       FontFaceSet che fa risplittare gli elementi `autoSplit`) era SBAGLIATA:
+       verificata via CDP con un MutationObserver sull'elemento durante tutta
+       l'oscillazione, ZERO ristrutturazioni del DOM — mentre il transform
+       della parola tornava esattamente al valore `from` (`translate(0%,
+       105%)`). Quindi non è il DOM a essere ricostruito: è il PLAYHEAD del
+       tween a essere riportato a zero.
+
+       ⚠ LA CAUSA VERA È CHE `once: true` NON BASTA A FAR MORIRE IL TRIGGER.
+       `once` uccide lo ScrollTrigger quando si raggiunge la sua posizione di
+       FINE, non quando l'animazione finisce — e il default di `end` è `bottom
+       top`, cioè "il fondo del titolo ha superato il bordo alto della
+       viewport". Questi titoli vivono dentro un handoff sticky (M12): il loro
+       schermo resta incollato, quindi quel fondo può non superare mai davvero
+       il bordo alto, e il trigger resta VIVO a tempo indeterminato. Finché è
+       vivo, riportarsi con lo scroll prima del suo `start` rirende il tween a
+       progress 0 — che per un `gsap.from()` è la posa nascosta.
+
+       Il fix è quindi togliere di mezzo il trigger appena l'ingresso è
+       finito, invece di sperare che si tolga da solo: `finishEntrance()`
+       uccide lo ScrollTrigger E ripulisce il transform inline, così non resta
+       in giro NIENTE che possa riportare indietro l'elemento. È la stessa
+       regola già valida per M14 (`data-activate`, classi additive che non si
+       tolgono mai): un'animazione one-shot, una volta giocata, non deve avere
+       nessuna strada per tornare allo stato di partenza.
+
+       `splitPlayed` resta, e copre il caso RESTANTE e diverso: un re-split
+       vero (un resize di finestra vero rispezza le righe, ed è il motivo per
+       cui `autoSplit` serve). Senza, quel re-split ricostruirebbe un
+       `gsap.from` nuovo su un titolo già entrato. Marca l'elemento ORIGINALE,
+       che il re-split non ricrea. */
     const splitPlayed = new WeakSet<Element>();
+
+    const finishEntrance = (el: Element, tween: gsap.core.Tween, targets: Element[]): void => {
+      splitPlayed.add(el);
+      tween.scrollTrigger?.kill();
+      // Via anche il transform inline: lo stato finale è la posizione naturale
+      // dentro il wrapper mascherato, non un valore da mantenere scritto.
+      gsap.set(targets, { clearProps: 'transform' });
+    };
 
     // M1 — reveal riga per riga.
     // `mask: 'lines'` avvolge ogni riga in un contenitore con overflow clippato,
@@ -129,12 +153,12 @@ export function initReveal(): void {
               gsap.set(self.lines, { yPercent: 0 });
               return;
             }
-            return gsap.from(self.lines, {
+            const tween: gsap.core.Tween = gsap.from(self.lines, {
               yPercent: 110,
               duration: 0.9,
               stagger: 0.08,
               ease: 'power3.out',
-              onComplete: () => splitPlayed.add(el),
+              onComplete: () => finishEntrance(el, tween, self.lines),
               scrollTrigger: {
                 trigger: el,
                 // clamp() evita il salto quando il trigger è già oltre lo start
@@ -144,6 +168,7 @@ export function initReveal(): void {
                 fastScrollEnd: true,
               },
             });
+            return tween;
           },
         })
       );
@@ -165,14 +190,15 @@ export function initReveal(): void {
               gsap.set(self.words, { yPercent: 0 });
               return;
             }
-            return gsap.from(self.words, {
+            const tween: gsap.core.Tween = gsap.from(self.words, {
               yPercent: 105,
               duration: 0.7,
               stagger: 0.035,
               ease: 'expo.out',
-              onComplete: () => splitPlayed.add(el),
+              onComplete: () => finishEntrance(el, tween, self.words),
               scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true, fastScrollEnd: true },
             });
+            return tween;
           },
         })
       );
