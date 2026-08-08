@@ -285,19 +285,13 @@ import { SITE } from '../../lib/site';
     transition: height var(--chrome-t) var(--chrome-e);
   }
 
-  /* ⚠ Attiva SOLO per la durata della misura in banner.ts, mai a riposo:
-     forza l'altezza reale (non quella imposta sopra) perché `offsetHeight`
-     possa leggerla. Vedi la nota lunga in banner.ts sul perché la sequenza
-     "misura → rimuovi QUESTA classe → forza un reflow → riabilita le
-     transizioni" è in quattro passi e non in uno solo — stessa tecnica, e
-     stesso motivo, di `nav-measuring` in nav.ts. */
-  :global(html.ab-measuring) .ab {
-    height: auto !important;
-  }
-  :global(html.ab-no-transition) .ab {
-    transition: none !important;
-  }
-
+  /* ⚠ NIENTE classe "ab-measuring"/"ab-no-transition" qui, e non per pigrizia:
+     una prima versione le aveva, per forzare temporaneamente `height: auto` e
+     leggere `.ab.offsetHeight`. Ma banner.ts oggi misura `.ab__inner` (il
+     figlio, mai vincolato da questa regola), quindi non serve più forzare né
+     ripristinare NIENTE per leggere l'altezza vera — vedi la nota lunga lì sul
+     bug che questo ha risolto (un ResizeObserver che osservava l'elemento
+     stesso in transizione, interrompendola a ripetizione). */
   :global(html.banner-in) .ab {
     /* `auto` di fallback e non un numero: se per qualunque motivo questa
        regola si applicasse prima che banner.ts abbia scritto `--ab-h` (non

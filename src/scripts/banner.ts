@@ -46,36 +46,32 @@ export function initBanner(): void {
      essere una LUNGHEZZA VERA: `height: auto` non è interpolabile. Stesso
      problema, e stessa soluzione, di `--nav-compact-w` in nav.ts.
 
-     ⚠ MA QUI `.ab` a riposo è FORZATA a `height: 0` (vedi il CSS): misurare
-     `offsetHeight` direttamente restituirebbe sempre 0, non l'altezza
-     naturale del contenuto. Serve lo stesso trucco di `measure()` in nav.ts —
-     forzare temporaneamente lo stato "vero" (qui: `height: auto`), leggere, e
-     tornare indietro — ma in QUATTRO passi e non due, perché qui la
-     transizione è dichiarata sulla stessa proprietà che va forzata:
+     ⚠ SI MISURA `.ab__inner` (il figlio), NON `.ab` (la banda stessa) — ed è
+     il fix di un difetto vero, non una preferenza di stile. `.ab` è quella a
+     cui questo file forza `height: 0`/`var(--ab-h)`: misurarla richiederebbe
+     un trucco a quattro passi per leggere la sua altezza "vera" mentre è
+     forzata (prima versione di questo file, ora rimossa). `.ab__inner` invece
+     non ha MAI un'altezza propria dichiarata da nessuna regola: dimensiona
+     sempre e solo sul proprio contenuto (dot, titolo, testo, chiusura),
+     comunque sia vincolato l'antenato — è già, sempre, la misura che serve,
+     senza bisogno di forzare né ripristinare niente.
 
-       1. `ab-measuring` (height:auto!important) + `ab-no-transition`
-          (transition:none!important): ora `.ab` è alla sua altezza naturale,
-          e non sta animando.
-       2. `offsetHeight`: legge quell'altezza. Forza anche il reflow che rende
-          la lettura affidabile.
-       3. Si rimuove SOLO `ab-measuring`: `.ab` torna all'altezza "vera" del
-          momento (0 se non ancora entrata, `--ab-h` se già in scena) — ma
-          `ab-no-transition` è ancora lì, quindi il ritorno non anima.
-       4. Un altro `offsetHeight` (scartato, serve solo a forzare il reflow di
-          quel ritorno) PRIMA di rimuovere `ab-no-transition`.
+     ⚠ IL VERO BUG CHE HA COSTRETTO A QUESTO CAMBIO: la versione precedente
+     osservava `banner` (cioè `.ab`) con un `ResizeObserver` — LO STESSO
+     elemento la cui `height` questo file anima con una transizione CSS. Ogni
+     fotogramma della transizione È un cambiamento delle dimensioni di quel
+     elemento, quindi l'observer scattava a ripetizione DURANTE la propria
+     stessa animazione, interrompendola per rimisurare — decine di volte nei
+     suoi 520ms. Risultato osservato: "non c'è più l'animazione fluida, ora
+     compare e scompare". `.ab__inner` non soffre di questo: la sua altezza
+     NON cambia mai per effetto della transizione del genitore (`overflow:
+     clip` sul genitore taglia la resa, non ridimensiona il figlio), quindi
+     osservarlo non si autoalimenta mai. */
+  const inner = banner.querySelector<HTMLElement>('.ab__inner');
+  if (!inner) return;
 
-     ⚠ Il passo 3+4 non si possono accorpare in un solo "rimuovi tutto insieme"
-     — è la stessa lezione di `void bar.offsetWidth` in nav.ts: se si
-     riabilitano le transizioni nello stesso movimento in cui si cambia il
-     valore, il motore di rendering rischia di animare quel cambio, cioè
-     esattamente il rientro/uscita di scatto che questa riscrittura elimina. */
   const measure = (): void => {
-    root.classList.add('ab-measuring', 'ab-no-transition');
-    const h = banner.offsetHeight;
-    root.classList.remove('ab-measuring');
-    void banner.offsetHeight;
-    root.classList.remove('ab-no-transition');
-    root.style.setProperty('--ab-h', `${h}px`);
+    root.style.setProperty('--ab-h', `${inner.offsetHeight}px`);
   };
   measure();
   /* I font metric-matched cambiano di poco l'altezza del testo, ma la banda è
@@ -86,7 +82,7 @@ export function initBanner(): void {
      l'altezza cambia. `ResizeObserver` e non l'evento `resize`: l'altezza può
      cambiare anche senza che la finestra si ridimensioni (i font che
      arrivano), e osservare l'elemento è più diretto che indovinare le cause. */
-  new ResizeObserver(measure).observe(banner);
+  new ResizeObserver(measure).observe(inner);
 
   let retired = false;
   const retire = (dismissed: boolean): void => {
