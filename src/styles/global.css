@@ -312,6 +312,33 @@ html.js-anim [data-reveal] {
   transform: translate3d(0, 8%, 0);
 }
 
+/* =========================================================================
+   IL VELO TRATTIENE LA COREOGRAFIA DELLA HERO (vedi Loader.astro).
+
+   ⚠ Senza questa regola il velo sarebbe PEGGIO del difetto che copre. Gli
+   ingressi della hero sono `animation` CSS con `both`: partono da soli appena
+   il CSS arriva, cioè MENTRE il velo è ancora sopra. Con un velo da ~1,5s e
+   una coreografia da 900ms, alzando il velo si scoprirebbe una hero già
+   ferma — l'animazione ci sarebbe stata, e non l'avrebbe vista nessuno.
+
+   `animation-play-state: paused` la congela sul primo fotogramma; `loader.ts`
+   toglie `ld-on` nell'istante in cui la dissolvenza comincia, e da lì la
+   coreografia parte davvero, correndo sotto il velo che se ne va.
+
+   ⚠ Congelare è sicuro QUI perché tutti i ritardi della hero sono POSITIVI:
+   una pausa su un `animation-delay` negativo mostrerebbe un fotogramma
+   qualsiasi a metà corsa invece dello stato iniziale (difetto vero già
+   costato le onde della CTA — vedi CLAUDE.md).
+
+   ⚠ Nessun `!important`: `html.ld-on .hero *` pesa (0,2,1) contro lo (0,1,0)
+   di `.hero__img`, quindi vince da sola. Un `!important` qui sarebbe anche
+   irreversibile dal componente, che è il contrario di quello che serve.
+   ========================================================================= */
+html.ld-on .hero,
+html.ld-on .hero * {
+  animation-play-state: paused;
+}
+
 /* ============================================================================
    UTILITY DI PROGETTO
    ========================================================================= */

@@ -96,7 +96,10 @@ import { SITE } from '../lib/site';
 const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
 ---
 
-<BaseLayout description={SITE.description}>
+{/* `loader`: il velo di prima visita, che questa pagina chiede e nessun'altra
+    — è l'unica con un ritratto a tutto schermo e una coreografia d'ingresso da
+    proteggere. Vedi Loader.astro per il difetto misurato che lo motiva. */}
+<BaseLayout description={SITE.description} loader>
   <Handoff name="intro" tone="canvas">
     <HeroHome slot="out" />
     <div slot="in">

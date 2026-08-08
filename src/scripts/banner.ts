@@ -10,6 +10,7 @@
  */
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { whenRevealed } from './loader';
 
 /** Una volta per sessione, non per sempre: chi torna domani lo rivede — il
  *  sito domani sarà ancora un cantiere, ma diverso. `sessionStorage` e non
@@ -149,9 +150,21 @@ export function initBanner(): void {
      ⚠ Chi arriva con lo scroll già ripristinato oltre la soglia (ricarica a
      metà pagina, o un link con ancora) non deve vedersi comparire un avviso
      che nello stesso istante ha già l'ordine di ritirarsi: sarebbe un lampo.
-     `ScrollTrigger.isInViewport` non serve — basta guardare dove siamo. */
-  gsap.delayedCall(ENTER_DELAY / 1000, () => {
-    if (retired || window.scrollY > window.innerHeight * 0.9) return;
-    root.classList.add('banner-in');
+     `ScrollTrigger.isInViewport` non serve — basta guardare dove siamo.
+
+     ⚠ IL CONTO PARTE DALLA RIVELAZIONE, NON DAL BOOT. `ENTER_DELAY` è tarato
+     sulla coreografia della hero (vedi la nota in cima), ma alla prima visita
+     quella coreografia è TRATTENUTA dal velo (Loader.astro): sotto al velo il
+     boot è già avvenuto e la hero non è ancora cominciata. Contando dal boot,
+     l'avviso sarebbe comparso pochi decimi dopo aver scoperto la hero —
+     addosso al titolo che stava ancora salendo, cioè esattamente il difetto
+     che quel numero esiste per evitare. `whenRevealed()` risolve subito dove
+     il velo non c'è (seconda visita, reduced-motion, altre pagine), quindi
+     questo ramo non ha bisogno di sapere se il velo esista. */
+  void whenRevealed().then(() => {
+    gsap.delayedCall(ENTER_DELAY / 1000, () => {
+      if (retired || window.scrollY > window.innerHeight * 0.9) return;
+      root.classList.add('banner-in');
+    });
   });
 }

@@ -12,6 +12,7 @@ import { initReveal, initSectionState, showEverything } from './reveal';
 import { initStages } from './stage';
 import { initNav } from './nav';
 import { initBanner } from './banner';
+import { initLoader } from './loader';
 
 declare global {
   interface Window {
@@ -29,6 +30,13 @@ function boot(): void {
     // Segnala al watchdog inline che il JS delle animazioni è partito, così
     // non rimuove la classe che tiene nascosti gli elementi da rivelare.
     document.documentElement.dataset.animReady = '1';
+
+    /* PRIMO DI TUTTI, e non per gerarchia: il velo è già dipinto sopra la
+       pagina (lo script inline in <head> lo ha acceso prima del paint), quindi
+       da questo momento c'è un conto alla rovescia vero davanti agli occhi di
+       chi guarda. Tutto ciò che segue succede sotto al velo e può prendersi il
+       tempo che serve. */
+    initLoader();
 
     initScroll();
     initReveal();

@@ -1,0 +1,186 @@
+---
+/**
+ * §-1 — Il velo di prima visita.
+ *
+ * Copre il primo caricamento della Home e se ne va quando il ritratto della
+ * hero è DECODIFICATO, non quando la pagina è "pronta". Poi non torna più su
+ * quel browser.
+ *
+ * ⚠ PERCHÉ ESISTE, misurato e non supposto (CDP, cache vuota, ~1,6 Mbps,
+ * CPU 4×): per 3,5s non veniva dipinto NIENTE; a 3,55s navbar e testo della
+ * hero cominciavano la loro coreografia d'ingresso — con la foto ancora
+ * assente, cioè su un fondo nero vuoto; e solo a ~4,2s il ritratto compariva
+ * di colpo, a coreografia già a metà. Il difetto non è il peso della foto
+ * (27 KB in AVIF): è che l'ingresso parte da solo appena arriva il CSS
+ * bloccante (~90 KB) senza aspettare l'immagine che dovrebbe accompagnare.
+ *
+ * ⚠ ORIGINE: uno snippet React portato da Vlad (`TextMorph` + shadcn +
+ * `motion/react`). NESSUNA delle dipendenze è stata installata — stessa
+ * decisione già presa per il muro di §04 e per l'avviso §00: si porta il
+ * DISEGNO, non l'implementazione. Qui il morph è una griglia sovrapposta e
+ * una transizione CSS, guidate da un indice che cambia in `loader.ts`.
+ *
+ * ⚠ E LE PAROLE NON SONO QUELLE DEL CAROSELLO DELLA HERO, deliberatamente.
+ * Il bottone della hero ha già un carosello ("Entra, Scopri, Esplora…"): due
+ * cicli di parole nei primi cinque secondi si leggerebbero come lo stesso
+ * gesto ripetuto, e il secondo toglierebbe forza al primo. Questo sta su un
+ * registro diverso — che cosa costruisce, non un invito a entrare — ed è lo
+ * stesso principio per cui §04 non riusa il dispositivo `01/02/03` di §01.
+ *
+ * ⚠ IL COSTO DICHIARATO: un velo che copre la pagina RITARDA L'LCP per
+ * costruzione, perché l'elemento più grande diventa visibile solo quando il
+ * velo se ne va. È il prezzo di questo effetto, accettato sapendolo (con
+ * Lighthouse in pausa); chi un giorno dovesse rientrare nel budget di
+ * `lighthouserc.json` sappia che è QUI che va cercato il ritardo, non nella
+ * hero. Per limitarlo, il velo aspetta l'immagine della hero e non
+ * `window.load` (che aspetterebbe anche tutto il resto della pagina).
+ */
+---
+
+{/* `aria-hidden`: è decorativo, e il contenuto vero è già nel DOM sotto. Un
+    velo annunciato sarebbe rumore per chi non lo vede — e non trattiene il
+    fuoco, così chi naviga da tastiera non resta chiuso fuori. */}
+<div class="ld" data-loader aria-hidden="true">
+  <div class="ld__inner">
+    <span class="ld__mark">VC</span>
+
+    <p class="ld__line">
+      <span class="ld__static">Costruisco</span>
+      <span class="ld__morph" data-loader-morph>
+        <span class="ld__w is-on">interfacce</span>
+        <span class="ld__w">applicazioni</span>
+        <span class="ld__w">strumenti</span>
+        <span class="ld__w">esperienze</span>
+      </span>
+    </p>
+
+    <span class="ld__rule"><i class="ld__fill" data-loader-fill></i></span>
+  </div>
+</div>
+
+<style>
+  /* ⚠ `display: none` È IL DEFAULT, e non un dettaglio: senza `html.ld-on` il
+     velo non esiste proprio. Vale per il ramo senza JS, per un crawler, per
+     chi ha chiesto meno movimento e per chi è già stato qui — nessuno di loro
+     deve vedere (né tantomeno restare sotto) una schermata che solo il JS sa
+     togliere. La classe la mette lo script inline in <head>, sincrono e prima
+     del primo paint, con il suo watchdog. */
+  .ld {
+    display: none;
+  }
+
+  :global(html.ld-on) .ld {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    display: grid;
+    place-content: center;
+    /* Lo STESSO fondo della hero: quando il velo sfuma non si attraversa un
+       colore diverso, si scopre la stessa superficie. */
+    background: var(--color-canvas);
+    transition: opacity 520ms var(--ease-morph);
+  }
+
+  :global(html.ld-on) .ld.is-out {
+    opacity: 0;
+    /* Il velo che sta uscendo non deve più intercettare un click che ormai
+       appartiene alla pagina sotto. */
+    pointer-events: none;
+  }
+
+  .ld__inner {
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.25rem, 3vh, 2rem);
+    padding-inline: var(--spacing-gutter);
+    text-align: center;
+  }
+
+  /* Il monogramma della navbar, ripreso identico: il velo non introduce un
+     segno nuovo, anticipa quello che si troverà in cima fra un istante. */
+  .ld__mark {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 50%;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.12em;
+    color: var(--color-text-1);
+  }
+
+  .ld__line {
+    display: grid;
+    justify-items: center;
+    gap: 0.15em;
+    font-size: var(--text-h3);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .ld__static {
+    color: var(--color-text-2);
+    font-weight: 400;
+  }
+
+  /* ⚠ GRIGLIA SOVRAPPOSTA, NON POSIZIONI ASSOLUTE. Le parole stanno tutte
+     nella stessa cella (`grid-area: 1/1`), quindi il contenitore si dimensiona
+     da solo sulla PIÙ LARGA e la riga non cambia larghezza ad ogni morph —
+     con gli assoluti il contenitore collasserebbe a zero e il filetto sotto
+     ballerebbe ad ogni parola. */
+  .ld__morph {
+    display: inline-grid;
+    justify-items: center;
+    font-weight: 600;
+    color: var(--color-accent-hi);
+  }
+
+  .ld__w {
+    grid-area: 1 / 1;
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(0.3em);
+    transition:
+      opacity 420ms var(--ease-out-expo),
+      filter 420ms var(--ease-out-expo),
+      transform 420ms var(--ease-out-expo);
+  }
+
+  .ld__w.is-on {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+
+  /* Il filetto è una STIMA, e per questo non porta una percentuale: un numero
+     dichiarerebbe una precisione che non c'è (il progresso vero di un
+     `<picture>` con srcset non è osservabile). Una barra che avanza e si
+     completa dice la stessa cosa senza mentire. */
+  .ld__rule {
+    display: block;
+    width: min(9.25rem, 40vw);
+    height: 1px;
+    background: var(--color-hairline);
+    overflow: clip;
+  }
+
+  .ld__fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--color-accent);
+  }
+
+  /* Il velo non è un posto dove aspettare a lungo: se qualcuno ha chiesto meno
+     movimento non arriva mai qui (lo script inline non aggiunge `ld-on`), ma
+     la regola resta come rete se un domani quella condizione cambia. */
+  @media (prefers-reduced-motion: reduce) {
+    .ld,
+    .ld__w,
+    .ld__fill {
+      transition: none;
+    }
+  }
+</style>

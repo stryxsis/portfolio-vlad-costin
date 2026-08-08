@@ -9,6 +9,7 @@ import Seo from '../components/head/Seo.astro';
 import Fonts from '../components/head/Fonts.astro';
 import Navbar from '../components/chrome/Navbar.astro';
 import AnnouncementBanner from '../components/chrome/AnnouncementBanner.astro';
+import Loader from '../components/chrome/Loader.astro';
 import Footer from '../components/chrome/Footer.astro';
 import { SITE } from '../lib/site';
 
@@ -23,9 +24,16 @@ interface Props {
   jsonLd?: unknown;
   /** Classe extra sul <body>, per le pagine che partono su fondo diverso. */
   bodyClass?: string;
+  /**
+   * Il velo di prima visita (vedi Loader.astro). Solo la Home lo chiede: è
+   * l'unica pagina con un ritratto a tutto schermo e una coreografia
+   * d'ingresso da proteggere. Altrove sarebbe attesa costruita davanti a una
+   * pagina che si dipinge già bene.
+   */
+  loader?: boolean;
 }
 
-const { bodyClass, ...seo } = Astro.props;
+const { bodyClass, loader = false, ...seo } = Astro.props;
 ---
 
 <!doctype html>
@@ -64,6 +72,46 @@ const { bodyClass, ...seo } = Astro.props;
       }
     </script>
 
+    {
+      loader && (
+        <script is:inline>
+          {/*
+            GATE DEL VELO DI PRIMA VISITA — inline e SINCRONO, come quello del
+            pre-hiding qui sopra e per lo stesso identico motivo: la decisione
+            deve essere presa prima del primo paint. Delegarla al bundle (che è
+            `defer`) vorrebbe dire dipingere la pagina e POI coprirla, cioè
+            esattamente il lampo che il velo esiste per evitare.
+
+            Tre condizioni, tutte necessarie: movimento consentito, storage
+            leggibile, e non essere già stati qui. `localStorage` in modalità
+            privata può LANCIARE al solo accesso, non restituire null: senza il
+            try/catch un'eccezione qui dentro fermerebbe lo script inline.
+
+            ⚠ IL WATCHDOG NON È PRUDENZA. `ld-on` rende visibile un velo a
+            schermo intero che solo il JS sa togliere: se il bundle non arriva
+            (rete che cade, errore di parsing, estensione che lo blocca) la
+            pagina resterebbe coperta PER SEMPRE. Stessa assicurazione del
+            watchdog di `js-anim`, con un tetto più alto del MAX_WAIT di
+            loader.ts (4s) così scatta solo se quel modulo è davvero assente.
+            ⚠ La chiave è la stessa di `KEY` in loader.ts: cambiarne una sola
+            significa mostrare il velo a ogni visita, per sempre.
+          */}
+          try {
+            if (
+              matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+              !localStorage.getItem('vc:seen')
+            ) {
+              var lr = document.documentElement;
+              lr.classList.add('ld-on');
+              setTimeout(function () {
+                lr.classList.remove('ld-on');
+              }, 6000);
+            }
+          } catch (e) {}
+        </script>
+      )
+    }
+
     {/*
       L'UNICO <script> del sito. Astro lo processa: TypeScript compilato,
       import npm risolti, bundle unico e deduplicato fra le pagine.
@@ -76,6 +124,8 @@ const { bodyClass, ...seo } = Astro.props;
   </head>
 
   <body class={bodyClass}>
+    {loader && <Loader />}
+
     <a href="#contenuto" class="skip-link">Vai al contenuto</a>
 
     {/* ⚠ LA CHROME È UN CONTENITORE SOLO, ed è ciò che fa funzionare la spinta

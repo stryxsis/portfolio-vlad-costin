@@ -774,13 +774,105 @@ ok(
   waveMotion
 );
 
+/* ---- §-1 IL VELO DI PRIMA VISITA (Loader.astro) --------------------------
+   Tre invarianti, e la prima è l'unica che conta davvero: UN VELO CHE NON SE
+   NE VA È UN SITO INACCESSIBILE. È l'unico elemento del sito che copre tutto
+   e che solo il JS sa togliere — la classe di guasto peggiore che questo
+   repo possa produrre, molto più di un'animazione che non parte.
+
+   ⚠ Si azzera `vc:seen` e si ricarica, invece di fidarsi di essere al primo
+   caricamento della sessione: il velo si mostra UNA VOLTA PER DISPOSITIVO,
+   quindi in un profilo già usato dai controlli precedenti non comparirebbe e
+   questi assert diventerebbero verdi per assenza di bersaglio — cioè inutili,
+   che è il difetto contro cui esiste metà di questo file. */
+await evaluate(`try { localStorage.removeItem('vc:seen'); } catch (e) {} true`);
+
+/* ⚠ NON si usa `load()` qui, ed è il punto: quell'aiutante aspetta 2600ms dopo
+   la navigazione, mentre il velo su una cache calda vive ~1,8s (DOMContentLoaded
+   + MIN_SHOW 1100ms + dissolvenza 520ms). Sondando dopo `load()` il velo se n'è
+   già andato e l'assert diventa verde per assenza di bersaglio — successo
+   davvero, alla prima stesura. Qui serve guardare MENTRE è in vita. */
+await send('Page.navigate', { url: URL_ }, sid);
+await sleep(700);
+
+const veloDurante = await evaluate(`
+  (() => {
+    const v = document.querySelector('[data-loader]');
+    const img = document.querySelector('.hero__img');
+    return {
+      inScena: !!v && getComputedStyle(v).display !== 'none',
+      ldOn: document.documentElement.classList.contains('ld-on'),
+      heroPlay: img ? getComputedStyle(img).animationPlayState : null,
+    };
+  })()
+`);
+ok(
+  '§-1 velo: alla prima visita è in scena e TRATTIENE la coreografia della hero',
+  veloDurante.inScena && veloDurante.ldOn && veloDurante.heroPlay === 'paused',
+  `in scena ${veloDurante.inScena} · ld-on ${veloDurante.ldOn} · hero ${veloDurante.heroPlay}`
+);
+
+/* Oltre il MAX_WAIT di loader.ts (4s) più la dissolvenza: da qui in poi non
+   esiste nessuno scenario in cui il velo sia ancora legittimamente in piedi. */
+await sleep(5200);
+const veloDopo = await evaluate(`
+  (() => {
+    const v = document.querySelector('[data-loader]');
+    const img = document.querySelector('.hero__img');
+    return {
+      nelDom: !!v,
+      ldOn: document.documentElement.classList.contains('ld-on'),
+      heroPlay: img ? getComputedStyle(img).animationPlayState : null,
+      seen: (() => { try { return localStorage.getItem('vc:seen'); } catch (e) { return null; } })(),
+    };
+  })()
+`);
+ok(
+  '§-1 velo: se ne va, esce dal DOM e LIBERA la coreografia',
+  !veloDopo.nelDom && !veloDopo.ldOn && veloDopo.heroPlay === 'running',
+  `nel DOM ${veloDopo.nelDom} · ld-on ${veloDopo.ldOn} · hero ${veloDopo.heroPlay}`
+);
+
+// Seconda visita: gli asset sono in cache, non c'è più niente da coprire.
+await load(URL_);
+const veloSeconda = await evaluate(`
+  (() => {
+    const v = document.querySelector('[data-loader]');
+    return {
+      visibile: !!v && getComputedStyle(v).display !== 'none',
+      ldOn: document.documentElement.classList.contains('ld-on'),
+    };
+  })()
+`);
+ok(
+  '§-1 velo: alla seconda visita non si rivede (una volta per dispositivo)',
+  !veloSeconda.visibile && !veloSeconda.ldOn,
+  `visibile ${veloSeconda.visibile} · ld-on ${veloSeconda.ldOn} · seen=${veloDopo.seen}`
+);
+
 /* ---- 2. Reduced motion -------------------------------------------------- */
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sid);
+/* ⚠ `vc:seen` va azzerato di nuovo QUI: lo scenario del velo qui sopra l'ha
+   riscritto uscendo di scena, e senza questo l'assert sul velo nel ramo reduce
+   sarebbe verde perché "già visto" invece che perché il movimento è ridotto —
+   verde per il motivo sbagliato, cioè un controllo che non controlla niente. */
+await evaluate(`try { localStorage.removeItem('vc:seen'); } catch (e) {} true`);
 await load(URL_);
 const r = await evaluate(PROBE);
 console.log('\n--- prefers-reduced-motion: reduce ---');
 console.log(JSON.stringify({ jsAnimClass: r.jsAnimClass, lenisSmooth: r.lenisSmooth, splitLineDivs: r.splitLineDivs, revealOpacities: r.revealOpacities }, null, 2));
 ok('reduce: nessuna classe js-anim', r.jsAnimClass === false);
+/* Il velo è tempo di attesa costruito, e chi chiede meno movimento non deve
+   attraversarlo: lo script inline in <head> non aggiunge `ld-on` in questo
+   ramo. `vc:seen` è stato azzerato apposta appena sopra, quindi qui si misura
+   davvero il gate del movimento e non il ricordo di una visita precedente. */
+const veloReduce = await evaluate(`
+  (() => {
+    const v = document.querySelector('[data-loader]');
+    return !!v && getComputedStyle(v).display !== 'none';
+  })()
+`);
+ok('reduce: il velo di prima visita non compare mai', veloReduce === false, `visibile ${veloReduce}`);
 ok('reduce: Lenis NON istanziato', r.lenisSmooth === false);
 ok('reduce: nessuno split', r.splitLineDivs === 0 || r.splitLineDivs === -1, `${r.splitLineDivs}`);
 ok('reduce: contenuto tutto visibile', r.revealOpacities.every((o) => Number(o) > 0.9), r.revealOpacities.join(','));
