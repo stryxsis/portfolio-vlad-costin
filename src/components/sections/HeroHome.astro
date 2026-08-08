@@ -197,11 +197,24 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
   @media (min-width: 56.25rem) {
     .hero__idx {
       position: absolute;
-      top: calc(var(--nav-h) + 1.25rem);
+      /* ⚠ `--chrome-shift`: quanto la chrome fissa è cresciuta in cima, cioè
+         l'altezza dell'avviso "cantiere aperto" quando è in scena (il token lo
+         dichiara AnnouncementBanner.astro, e vale 0px ovunque non ci sia).
+         Senza, la navbar spinta giù copriva questo indice — misurato: l'indice
+         a 92px con la navbar da 98 a 170, "00 · INIZIO" sparito dietro la
+         pillola. È QUI e non in SectionIndex perché questo è l'unico indice
+         del sito ancorato in alto pur non essendo agganciato: da lì si può
+         correggere solo lo sticky, che a scroll 0 non è ancora in presa.
+         ⚠ `top` e non `transform`: `hero-in-fade` qui sopra anima già il
+         transform di questo elemento, e un'animazione con `fill: both` che ha
+         finito continua ad applicare il proprio valore finale — vincerebbe
+         sulla transizione, facendo saltare l'indice invece di accompagnarlo. */
+      top: calc(var(--nav-h) + var(--chrome-shift, 0px) + 1.25rem);
       right: var(--spacing-gutter);
       left: auto;
       z-index: 2;
       padding: 0;
+      transition: top var(--chrome-t, 0ms) var(--chrome-e, linear);
     }
   }
 

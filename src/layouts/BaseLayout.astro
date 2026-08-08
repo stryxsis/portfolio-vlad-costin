@@ -8,6 +8,7 @@ import '../styles/global.css';
 import Seo from '../components/head/Seo.astro';
 import Fonts from '../components/head/Fonts.astro';
 import Navbar from '../components/chrome/Navbar.astro';
+import AnnouncementBanner from '../components/chrome/AnnouncementBanner.astro';
 import Footer from '../components/chrome/Footer.astro';
 import { SITE } from '../lib/site';
 
@@ -77,7 +78,23 @@ const { bodyClass, ...seo } = Astro.props;
   <body class={bodyClass}>
     <a href="#contenuto" class="skip-link">Vai al contenuto</a>
 
-    <Navbar />
+    {/* ⚠ LA CHROME È UN CONTENITORE SOLO, ed è ciò che fa funzionare la spinta
+        dell'avviso senza sincronizzare due transform.
+        Prima era la `.nav` stessa a essere `position: fixed`. Ora il fisso è
+        questo wrapper e i suoi due figli stanno in FLUSSO NORMALE: quando la
+        banda dell'avviso compare sopra, la navbar scende perché sopra di lei
+        c'è un blocco alto — geometria vera, non due animazioni che si devono
+        dare appuntamento sullo stesso fotogramma. Il vantaggio che conta di
+        più: senza JS non c'è niente da misurare né da coordinare, la banda è
+        già lì e la navbar è già più in basso.
+        ⚠ NIENTE `overflow` né `contain` qui, per la stessa ragione scritta in
+        testa a Handoff.astro: renderebbero il wrapper un contenitore di scroll
+        o di paint, e il pannello mobile del menu (che esce da questo box) ne
+        verrebbe ritagliato. */}
+    <div class="chrome">
+      <AnnouncementBanner />
+      <Navbar />
+    </div>
 
     <main id="contenuto">
       <slot />
@@ -88,6 +105,15 @@ const { bodyClass, ...seo } = Astro.props;
 </html>
 
 <style>
+  /* Vedi la nota nel markup: il fisso è QUI, non più sulla navbar. */
+  .chrome {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: var(--z-nav);
+  }
+
   /* Il link di salto è invisibile finché non riceve il focus da tastiera.
      Non usare display:none: lo rimuoverebbe dall'ordine di tabulazione. */
   .skip-link {

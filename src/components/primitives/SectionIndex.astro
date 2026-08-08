@@ -35,14 +35,30 @@ const { n, label, tone } = Astro.props;
 <style>
   .idx {
     position: sticky;
-    top: calc(var(--nav-h) + 1.5rem);
+    /* ⚠ `--chrome-shift` è di quanto la chrome fissa è cresciuta in cima
+       (oggi: l'avviso "cantiere aperto" che spinge giù la navbar — lo dichiara
+       AnnouncementBanner.astro). Qui somma all'ancora dello STICKY, quindi
+       agisce solo quando l'indice è davvero agganciato sotto la chrome: è
+       esattamente il caso in cui la navbar spinta giù gli finirebbe sopra.
+
+       ⚠ E SOLO SU `top`, MAI un `transform` su questo elemento. Un transform
+       avrebbe spostato l'indice anche quando NON è agganciato — e sotto i
+       900px l'indice della hero non è ancorato affatto, sta in flusso normale
+       fra la foto e il testo (vedi `.hero__idx` in HeroHome). Provato e
+       misurato a 390px: i 120px di banda lo spingevano dritto sopra il titolo
+       "Ciao. Sono Vlad". Il caso non-agganciato che serviva davvero era uno
+       solo — l'indice ASSOLUTO della hero desktop — ed è risolto lì, dove il
+       contesto è noto, invece che da qui per tutti. */
+    top: calc(var(--nav-h) + var(--chrome-shift, 0px) + 1.5rem);
     display: flex;
     align-items: center;
     gap: 1rem;
     color: var(--color-text-3);
     /* Il numero passa ad accento quando la sezione è attiva: UN paint su
        toggle di classe, non un'animazione di colore per frame. */
-    transition: color 260ms var(--ease-snappy);
+    transition:
+      color 260ms var(--ease-snappy),
+      top var(--chrome-t, 0ms) var(--chrome-e, linear);
   }
 
   .idx__content {

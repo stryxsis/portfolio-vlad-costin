@@ -11,6 +11,7 @@ import { initScroll } from './scroll';
 import { initReveal, initSectionState, showEverything } from './reveal';
 import { initStages } from './stage';
 import { initNav } from './nav';
+import { initBanner } from './banner';
 
 declare global {
   interface Window {
@@ -33,6 +34,9 @@ function boot(): void {
     initReveal();
     initStages();
     initNav();
+    /* Dopo initNav: la banda spinge la navbar, quindi la navbar deve esistere
+       e aver già misurato la propria pillola prima che qualcosa la sposti. */
+    initBanner();
 
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).

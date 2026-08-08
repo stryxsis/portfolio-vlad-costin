@@ -1,0 +1,262 @@
+---
+/**
+ * AVVISO "cantiere aperto" — la banda che scende dall'alto e spinge giù la navbar.
+ *
+ * ⚠ ORIGINE E COSA NON È STATO INSTALLATO. Nasce da uno snippet shadcn/React
+ * portato da Vlad (`Alert` + `Button` + `lucide-react`, con le dipendenze
+ * `@radix-ui/react-slot` e `class-variance-authority`). NESSUNA delle cinque è
+ * stata installata, ed è la regola architetturale del repo e non una
+ * preferenza: React + Radix + CVA + lucide costano decine di KB gzip di runtime
+ * per un pannello che qui è markup statico, tre transizioni CSS e ~60 righe di
+ * TS. È la stessa decisione già presa per il muro di §04 (M18, riferimento
+ * React + motion/react): si porta il DISEGNO — banda in cima, icona, titolo,
+ * descrizione, azione, chiusura — non l'implementazione.
+ *
+ * ⚠ E NEMMENO IL SUO ASPETTO. Lo snippet è `bg-violet-50` con testo
+ * `violet-900`: una banda CHIARA. Qui sarebbe stata la seconda inversione di
+ * palette della Home, e la Home ne ha UNA SOLA per scelta esplicita (il paper
+ * dello Statement, vedi CLAUDE.md). Fondo scuro con filo d'accento: la chrome
+ * appartiene alla stanza scura, esattamente come la pillola della navbar.
+ *
+ * ⚠ NIENTE `backdrop-filter`, benché la navbar ce l'abbia e la banda le stia
+ * attaccata. Il divieto è misurato: il blur è confinato alla navbar perché è
+ * un'area di ≤544×48px. Questa banda è larga quanto la viewport, cioè un ordine
+ * di grandezza in più di pixel da ricompositare — e per di più mentre la hero
+ * sta ancora animando. Fondo OPACO, che è anche l'unica scelta corretta sopra
+ * la fotografia della hero.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LA SPINTA È GEOMETRIA VERA, NON DUE TRANSFORM SINCRONIZZATI.
+ *
+ * Questa banda e la navbar vivono dentro lo stesso contenitore fisso
+ * (`.chrome` in BaseLayout), come fratelli in FLUSSO NORMALE. La navbar scende
+ * perché sopra di lei è comparso un blocco alto, non perché qualcuno le ha
+ * scritto un `translate` uguale e contrario. Due conseguenze che valgono da
+ * sole la scelta:
+ *   1. senza JS la banda è semplicemente lì, in cima, e la navbar è già più in
+ *      basso — nessun valore da misurare, nessuno stato incompleto;
+ *   2. non esiste il fotogramma in cui banda e navbar si sovrappongono perché
+ *      una delle due transizioni è partita un istante prima dell'altra.
+ *
+ * L'ingresso anima `margin-top` da `-<altezza>px` a `0`. ⚠ Il numero lo misura
+ * banner.ts e lo scrive in `--ab-h`: `margin-top: -100%` NON funziona (le
+ * percentuali dei margini si risolvono sulla LARGHEZZA del blocco contenitore,
+ * non sull'altezza — qui sarebbe stato un margine di ~1400px) e `height: auto`
+ * non è interpolabile. È la stessa famiglia di problema, e la stessa soluzione,
+ * di `--nav-compact-w` in nav.ts: si misura in JS e si scrive una lunghezza
+ * vera. Sì, è un'animazione di layout — ma è UNA volta sola all'ingresso, non
+ * per frame di scroll, che è ciò che il budget di questo sito difende.
+ *
+ * ⚠ IL PUNTINO D'ACCENTO NON PULSA, ed è una decisione. `.tli__now` nella
+ * timeline pulsa perché descrive uno stato ancora vero, e la stessa logica
+ * varrebbe qui ("il cantiere è aperto adesso"). Ma questa banda fa già un
+ * ingresso vistoso: aggiungerle un battito perpetuo significherebbe una quarta
+ * eccezione dichiarata al divieto di loop infiniti, per decorazione, su un
+ * elemento che si è appena fatto notare da solo. Statico.
+ */
+import { SITE } from '../../lib/site';
+---
+
+{/* `role="status"` e NON `aria-live`: il contenuto sta nel DOM fin dal primo
+    byte (è solo traslato fuori vista), quindi uno screen reader lo incontra già
+    in ordine di documento — che per un avviso "questo sito è un cantiere" è
+    esattamente il momento giusto. Un `aria-live` lo farebbe annunciare una
+    SECONDA volta all'ingresso, 2,6 secondi dopo, interrompendo la lettura. */}
+<aside class="ab" data-banner role="status" aria-labelledby="ab-title">
+  <div class="ab__inner">
+    <span class="ab__dot" aria-hidden="true"></span>
+
+    <p class="ab__title" id="ab-title">Ciao, sono il sito. Non ho ancora finito.</p>
+
+    {/* ⚠ Il link al CV sta DENTRO il paragrafo, non su una riga propria. Su una
+        riga sua costava 28px di banda (misurato: 127px invece di ~99) per una
+        sola parola, e su una banda che spinge giù la navbar ogni riga si paga
+        due volte — in altezza della chrome e in viewport rubata alla hero.
+        In linea è anche la composizione dello snippet di partenza, dove
+        "Learn more" chiudeva la descrizione. */}
+    <p class="ab__text">
+      Qualche testo me lo sono inventato per provare la grafica e un paio di progetti sono
+      segnaposto. Il CV, invece, è vero e aggiornato: <a class="ab__cv" href={SITE.cv.path} download
+        >scaricalo qui<svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path
+            d="M3 11L11 3M11 3H5M11 3V9"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg></a
+      >. Buon scroll.
+    </p>
+
+    {/* Bersaglio 40px: sopra il minimo WCAG 2.5.8 (24px), che su una chiusura
+        — l'unico comando della banda — non è un dettaglio da tirare. */}
+    <button class="ab__close" type="button" data-banner-close aria-label="Chiudi l'avviso">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path
+          d="M3.5 3.5l7 7M10.5 3.5l-7 7"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"></path>
+      </svg>
+    </button>
+  </div>
+</aside>
+
+<style>
+  /* Nessun `position` qui: la banda sta in FLUSSO dentro `.chrome`, ed è questo
+     che fa scendere la navbar (vedi la nota lunga in testa al file). */
+  .ab {
+    width: 100%;
+    background-color: var(--color-surface-1);
+    /* Il filo d'accento è l'unico segno colorato della banda, e sta SOTTO: è il
+       confine con la navbar, cioè il punto esatto in cui la spinta si vede. */
+    border-bottom: 1px solid color-mix(in oklab, var(--color-accent) 42%, transparent);
+  }
+
+  .ab__inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.35rem 0.75rem;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding: 0.875rem var(--spacing-gutter);
+  }
+
+  .ab__dot {
+    grid-column: 1;
+    grid-row: 1;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    margin-top: 0.34em; /* allinea al centro ottico della prima riga del titolo */
+    border-radius: 50%;
+    background-color: var(--color-accent);
+  }
+
+  .ab__title {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--color-text-1);
+  }
+
+  .ab__text {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: 62ch;
+    font-size: var(--text-label);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.5;
+    /* ⚠ `--color-text-2`, mai `text-3`: questo è testo da 12-14px e il text-3
+       di `:root` sta a 4.19:1 sul nero, cioè sotto AA (difetto noto,
+       documentato in CLAUDE.md). Qui non lo si eredita. */
+    color: var(--color-text-2);
+  }
+
+  /* In linea dentro `.ab__text` (vedi la nota nel markup). `inline-flex` e non
+     `inline`: tiene la freccina attaccata alla parola senza che possa restare
+     orfana a capo, ed è lo stesso motivo per cui `.btn__label` è inline-flex —
+     la preflight di Tailwind dichiara `svg { display: block }`, e un blocco
+     dentro testo inline prenderebbe riga propria. */
+  .ab__cv {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    /* `accent-hi` e non `accent`: è un link dentro testo da 12-14px su
+       `surface-1`, appena più chiaro del canvas su cui `accent` è tarato
+       (5.16:1). 7.93:1 non lascia margini da discutere. */
+    color: var(--color-accent-hi);
+    text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+    text-underline-offset: 0.22em;
+    transition: text-decoration-color 240ms var(--ease-snappy);
+  }
+  .ab__cv:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .ab__close {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: -0.5rem -0.625rem 0 0;
+    border-radius: 50%;
+    color: var(--color-text-2);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition:
+      color 240ms var(--ease-snappy),
+      background-color 240ms var(--ease-snappy);
+  }
+  .ab__close:hover {
+    color: var(--color-text-1);
+    background-color: color-mix(in oklab, var(--color-text-1) 10%, transparent);
+  }
+
+  /* Sotto i 900px la banda si stringe: il titolo resta, la descrizione pure —
+     è l'informazione, non un ornamento — ma il respiro cala. */
+  @media (max-width: 56.1875rem) {
+    .ab__inner {
+      padding-block: 0.75rem;
+      gap: 0.25rem 0.625rem;
+    }
+  }
+
+  /* ---- L'ingresso ------------------------------------------------------
+     ⚠ TUTTO gated dietro `html.js-anim`. Senza JS (o con movimento ridotto, che
+     è la stessa porta) non c'è nessun margine negativo: la banda è già lì, in
+     cima, e la navbar è già più in basso. Lo stato di partenza è quello
+     COMPLETO, e il JS toglie — mai il contrario. Stessa regola del pre-hiding
+     dei reveal in global.css. */
+  :global(html.js-anim) .ab {
+    /* `--ab-h` la scrive banner.ts misurando l'altezza reale (vedi lì il
+       perché non può essere una percentuale). Il fallback `6rem` copre il solo
+       fotogramma prima della prima misura. */
+    margin-top: calc(-1 * var(--ab-h, 6rem));
+    /* Non `visibility: hidden`: la banda deve restare leggibile da uno screen
+       reader in ordine di documento anche prima di scendere. È fuori dalla
+       viewport, il che basta per l'occhio e non toglie niente a nessun altro. */
+    transition: margin-top var(--chrome-t) var(--chrome-e);
+  }
+
+  :global(html.banner-in) .ab {
+    margin-top: 0;
+  }
+
+  /* ---- I token della chrome, dichiarati su <html> --------------------------
+     Una durata e una curva sole, come `--nav-morph-t/-e` per la navbar: la
+     spinta deve leggere come UN gesto. 520ms con la curva quasi-lineare del
+     morph — `--ease-out-expo` a metà durata è già al 90% e la spinta
+     sembrerebbe uno scatto invece di un corpo che ne urta un altro.
+
+     ⚠ STANNO SU `html` E NON SU `.ab` PERCHÉ HANNO UN SECONDO UTENTE, e il
+     motivo è un difetto vero trovato guardando lo screenshot: la navbar
+     spinta giù COPRIVA l'indice di sezione ("00 · INIZIO"), che si incolla a
+     `calc(var(--nav-h) + 1.5rem)` — una misura presa quando sopra la navbar
+     non c'era mai niente. `--chrome-shift` è di quanto la chrome è cresciuta
+     in cima: chiunque si ancori sotto di lei lo somma e resta al suo posto,
+     invece di ricopiare l'altezza della banda (che oltretutto è misurata a
+     runtime e cambia col ritorno a capo del testo).
+
+     ⚠ `--ab-h` la scrive banner.ts in inline style SU `html`, quindi qui
+     `var(--ab-h)` si risolve sullo stesso elemento. Il fallback `0px` sul
+     `:global(html)` nudo è ciò che rende innocuo il caso senza JS: nessuno
+     shift, perché senza JS la banda è già in flusso e la navbar è già bassa
+     di suo — non c'è niente da compensare. */
+  :global(html) {
+    --chrome-t: 520ms;
+    --chrome-e: var(--ease-morph);
+    --chrome-shift: 0px;
+  }
+  :global(html.banner-in) {
+    --chrome-shift: var(--ab-h, 0px);
+  }
+</style>

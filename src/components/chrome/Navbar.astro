@@ -101,12 +101,14 @@ const DESKTOP_NAV = NAV.filter((item) => item.href !== '/contatti');
 </header>
 
 <style>
+  /* ⚠ NESSUN `position: fixed` QUI, e non è una svista: il fisso è salito sul
+     wrapper `.chrome` in BaseLayout, che contiene navbar E avviso come
+     fratelli in flusso. È così che l'avviso spinge giù la navbar — perché le
+     sta sopra in un flusso vero, non perché qualcuno sincronizza due
+     transform. Rimettere `position: fixed` qui staccherebbe la navbar da quel
+     flusso e la spinta smetterebbe di esistere, in silenzio. */
   .nav {
-    position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
-    z-index: var(--z-nav);
 
     /* UNA durata e UNA curva per tutto il morph, dichiarate una volta qui e
        lette da ogni discendente: il morph deve leggere come UN gesto solo, e
