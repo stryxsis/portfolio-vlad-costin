@@ -85,7 +85,15 @@ import Testimonials from '../components/sections/Testimonials.astro';
 import JourneyTeaser from '../components/sections/JourneyTeaser.astro';
 import CTASection from '../components/sections/CTASection.astro';
 import { STATEMENTS } from '../data/statements';
+import { TESTIMONIALS } from '../data/testimonials';
 import { SITE } from '../lib/site';
+
+/* ⚠ STESSA CONDIZIONE DI `show` IN Testimonials.astro (senza `limit`, che lì
+   esiste solo per l'anteprima): ripetuta qui perché `travel` sotto la decide
+   IL GENITORE, non il figlio — un Handoff non sa cosa renderà il proprio slot
+   finché non l'ha già renderizzato, e la corsa di scroll va scritta nel markup
+   prima di quel momento. Vedi la nota sul perché lì accanto a `travel={140}`. */
+const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
 ---
 
 <BaseLayout description={SITE.description}>
@@ -137,9 +145,23 @@ import { SITE } from '../lib/site';
     /* Vedi "PERCHÉ DUE HANDOFF" qui sopra. `travel=140`: tempo per leggere le
        tre card mentre Dicono è incollata, prima che Statement salga a coprirla
        — stessa logica di lettura del `travel=100` di "closing" sotto, un po'
-       più lungo perché qui ci sono tre citazioni da leggere e non un teaser. */
+       più lungo perché qui ci sono tre citazioni da leggere e non un teaser.
+
+       ⚠ CONDIZIONATO A `hasTestimonials`, dal 2026-08-08. Con la sezione spenta
+       `<Testimonials>` non renderizza niente: `.ho__out` resta a 0 di altezza
+       (misurato via CDP) e un `travel=140` incondizionato diventava 140svh di
+       scroll a vuoto — nessuna card da leggere, solo `.ho__backdrop` nero fra il
+       mazzo di §30 e Statement. Non un difetto di taratura: tempo di lettura per
+       un contenuto che non c'è è scroll morto puro, la stessa categoria di
+       problema che questo prop esiste per evitare quando il contenuto INVECE
+       c'è. `undefined` e non `0`: guardare `Handoff.astro`, `travel && (...)`
+       — un `travel` falsy salta il rendering del div, non lo crea alto zero.
+       ⚠ SPREAD e non `travel={hasTestimonials ? 140 : undefined}`: sotto
+       `exactOptionalPropertyTypes` (tsconfig strictest) un prop opzionale
+       ASSENTE e un prop opzionale VALORIZZATO A `undefined` sono due tipi
+       diversi — `travel?: number` accetta il primo, non il secondo. */
   }
-  <Handoff name="dicono" tone="paper" travel={140}>
+  <Handoff name="dicono" tone="paper" {...(hasTestimonials ? { travel: 140 } : {})}>
     <Testimonials slot="out" n="04" />
     <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
   </Handoff>
