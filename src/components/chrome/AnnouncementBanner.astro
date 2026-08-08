@@ -38,14 +38,25 @@
  *   2. non esiste il fotogramma in cui banda e navbar si sovrappongono perché
  *      una delle due transizioni è partita un istante prima dell'altra.
  *
- * L'ingresso anima `margin-top` da `-<altezza>px` a `0`. ⚠ Il numero lo misura
- * banner.ts e lo scrive in `--ab-h`: `margin-top: -100%` NON funziona (le
- * percentuali dei margini si risolvono sulla LARGHEZZA del blocco contenitore,
- * non sull'altezza — qui sarebbe stato un margine di ~1400px) e `height: auto`
- * non è interpolabile. È la stessa famiglia di problema, e la stessa soluzione,
- * di `--nav-compact-w` in nav.ts: si misura in JS e si scrive una lunghezza
- * vera. Sì, è un'animazione di layout — ma è UNA volta sola all'ingresso, non
- * per frame di scroll, che è ciò che il budget di questo sito difende.
+ * L'ingresso anima `height` da `0` a `<altezza vera>px`. ⚠ Il numero lo misura
+ * banner.ts e lo scrive in `--ab-h`: `height: auto` non è interpolabile,
+ * quindi la sola alternativa a un valore misurato sarebbe un numero
+ * indovinato — ed è ESATTAMENTE la scelta scartata (vedi il difetto corretto
+ * il 2026-08-08 nel CSS più sotto, sulla regola `:global(html.js-anim) .ab`).
+ * È la stessa famiglia di problema, e la stessa soluzione, di
+ * `--nav-compact-w` in nav.ts: si misura in JS e si scrive una lunghezza vera.
+ * Sì, è un'animazione di layout — ma è UNA volta sola all'ingresso, non per
+ * frame di scroll, che è ciò che il budget di questo sito difende.
+ *
+ * ⚠ `height`, NON `margin-top` (prima versione). Un margine negativo ha
+ * SEMPRE bisogno di un fallback per l'istante prima della prima misura reale
+ * — e un fallback è un numero indovinato, che con testo più lungo del previsto
+ * diventa TROPPO PICCOLO e lascia sbordare l'ultima riga per una manciata di
+ * frame prima che la misura vera lo corregga di scatto (il difetto che un
+ * utente ha visto: "l'avviso rientra un istante, poi esce di nuovo dopo
+ * qualche secondo"). `height: 0` non ha niente da indovinare: è zero SEMPRE,
+ * per qualunque lunghezza di testo, senza eccezioni da coprire con un numero
+ * a caso.
  *
  * ⚠ IL PUNTINO D'ACCENTO NON PULSA, ed è una decisione. `.tli__now` nella
  * timeline pulsa perché descrive uno stato ancora vero, e la stessa logica
@@ -67,9 +78,10 @@ import { SITE } from '../../lib/site';
   <div class="ab__inner">
     <span class="ab__dot" aria-hidden="true"></span>
 
-    {/* ⚠ TESTO DETTATO DA VLAD (2026-08-08), parola per parola — non riscrivere
-        senza chiedere. La sola libertà presa è tipografica: dove va il grassetto
-        e dove l'accento, non le parole. */}
+    {/* ⚠ TESTO DETTATO DA VLAD (2026-08-08, aggiornato lo stesso giorno con la
+        battuta sul telefono), parola per parola — non riscrivere senza
+        chiedere. La sola libertà presa è tipografica: dove va il grassetto e
+        dove l'accento, non le parole. */}
     <p class="ab__title" id="ab-title">
       Ciao, sono il sito. Spoiler: sono ancora un <strong>cantiere aperto 🚧</strong>.
     </p>
@@ -87,11 +99,14 @@ import { SITE } from '../../lib/site';
         accent) applicato qui in miniatura — ciò che è finto resta nel grigio
         del corpo, ciò che è vero si accende tutto della stessa tinta, e il
         link ne è la conclusione naturale invece di un colore in più da
-        spiegare. */}
+        spiegare. La battuta sul telefono è nuova ma resta nel grigio: è
+        un'altra scusa, non una verità, quindi non riceve l'accento. */}
     <p class="ab__text">
       Qualche testo è qui solo per fare scena e un paio di progetti sono segnaposto per i test
-      grafici. L'unica cosa <strong class="ab__true">definitiva</strong> (e vera al 100%) è il <strong
-        class="ab__true">CV del mio creatore</strong
+      grafici. Inoltre, ti chiedo un favore: guardami da PC, perché per entrare nello schermo del
+      telefono devo ancora fare un po' di dieta. L'unica cosa <strong class="ab__true"
+        >definitiva</strong
+      > (e vera al 100%) è il <strong class="ab__true">CV del mio creatore</strong
       >: <a class="ab__cv ab__true" href={SITE.cv.path} download
         >scaricalo qui<svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path
@@ -169,7 +184,10 @@ import { SITE } from '../../lib/site';
   .ab__text {
     grid-column: 2;
     grid-row: 2;
-    max-width: 62ch;
+    /* ⚠ Niente `max-width`, su richiesta di Vlad (2026-08-08): col testo
+       allungato dalla battuta sul telefono, 62ch avrebbe fatto andare a capo
+       la frase molto prima del bordo destro disponibile, sprecando la
+       larghezza che il grid (`minmax(0,1fr)`, colonna 2) le dà già. */
     font-size: var(--text-label);
     font-weight: 400;
     letter-spacing: 0;
@@ -241,23 +259,52 @@ import { SITE } from '../../lib/site';
 
   /* ---- L'ingresso ------------------------------------------------------
      ⚠ TUTTO gated dietro `html.js-anim`. Senza JS (o con movimento ridotto, che
-     è la stessa porta) non c'è nessun margine negativo: la banda è già lì, in
-     cima, e la navbar è già più in basso. Lo stato di partenza è quello
-     COMPLETO, e il JS toglie — mai il contrario. Stessa regola del pre-hiding
-     dei reveal in global.css. */
+     è la stessa porta) non c'è nessuna altezza forzata: la banda è già lì, in
+     cima, alta quanto il suo contenuto, e la navbar è già più in basso. Lo
+     stato di partenza è quello COMPLETO, e il JS toglie — mai il contrario.
+     Stessa regola del pre-hiding dei reveal in global.css.
+
+     ⚠ `height: 0`, ERA `margin-top: calc(-1 * var(--ab-h, 6rem))`. Il difetto
+     reale che questo ha corretto: quel `6rem` (96px) era un FALLBACK
+     INDOVINATO per il solo istante prima della prima misura di banner.ts — ma
+     con tre-quattro righe di testo l'altezza vera è più vicina a 130-150px. Nel
+     buco fra "js-anim aggiunta" (sincrono, in testa a <head>) e "--ab-h
+     misurata" (banner.ts, un modulo caricato ed eseguito dopo), il margine
+     insufficiente lasciava SBORDARE l'ultima riga della banda per una manciata
+     di frame — poi, appena la misura vera arrivava, quello sbordo si RITIRAVA
+     di scatto. Risultato osservato: "vedo l'avviso per un microsecondo che
+     rientra, poi dopo un po' esce di nuovo". `height: 0` non ha un fallback da
+     indovinare: è zero per definizione, sempre, per qualunque lunghezza di
+     testo — il problema non è risolto meglio, è rimosso alla radice. */
   :global(html.js-anim) .ab {
-    /* `--ab-h` la scrive banner.ts misurando l'altezza reale (vedi lì il
-       perché non può essere una percentuale). Il fallback `6rem` copre il solo
-       fotogramma prima della prima misura. */
-    margin-top: calc(-1 * var(--ab-h, 6rem));
-    /* Non `visibility: hidden`: la banda deve restare leggibile da uno screen
-       reader in ordine di documento anche prima di scendere. È fuori dalla
-       viewport, il che basta per l'occhio e non toglie niente a nessun altro. */
-    transition: margin-top var(--chrome-t) var(--chrome-e);
+    height: 0;
+    /* Necessario perché `height:0` da solo NON basta a nascondere: senza,
+       il contenuto continuerebbe a dipingersi fuori dalla propria scatola
+       (un'altezza di 0 non è un `overflow: hidden` implicito). */
+    overflow: clip;
+    transition: height var(--chrome-t) var(--chrome-e);
+  }
+
+  /* ⚠ Attiva SOLO per la durata della misura in banner.ts, mai a riposo:
+     forza l'altezza reale (non quella imposta sopra) perché `offsetHeight`
+     possa leggerla. Vedi la nota lunga in banner.ts sul perché la sequenza
+     "misura → rimuovi QUESTA classe → forza un reflow → riabilita le
+     transizioni" è in quattro passi e non in uno solo — stessa tecnica, e
+     stesso motivo, di `nav-measuring` in nav.ts. */
+  :global(html.ab-measuring) .ab {
+    height: auto !important;
+  }
+  :global(html.ab-no-transition) .ab {
+    transition: none !important;
   }
 
   :global(html.banner-in) .ab {
-    margin-top: 0;
+    /* `auto` di fallback e non un numero: se per qualunque motivo questa
+       regola si applicasse prima che banner.ts abbia scritto `--ab-h` (non
+       dovrebbe mai succedere, banner-in arriva sempre dopo la prima misura),
+       il contenuto resterebbe comunque leggibile alla sua altezza naturale
+       invece di collassare a zero. */
+    height: var(--ab-h, auto);
   }
 
   /* ---- I token della chrome, dichiarati su <html> --------------------------

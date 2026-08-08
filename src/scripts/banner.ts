@@ -42,15 +42,40 @@ export function initBanner(): void {
   }
 
   /* ---- La misura ---------------------------------------------------------
-     L'ingresso anima `margin-top` da `-<altezza>` a `0`, e quell'altezza deve
-     essere una LUNGHEZZA VERA: `-100%` si risolverebbe sulla larghezza del
-     contenitore (~1400px invece di ~72) e `height: auto` non è interpolabile.
-     Stesso problema, e stessa soluzione, di `--nav-compact-w` in nav.ts.
-     `offsetHeight` e non `getBoundingClientRect().height`: qui serve un intero
-     di layout, non il valore frazionario che una transizione in corso
-     restituirebbe. */
+     L'ingresso anima `height` da `0` a `<altezza vera>`, e quell'altezza deve
+     essere una LUNGHEZZA VERA: `height: auto` non è interpolabile. Stesso
+     problema, e stessa soluzione, di `--nav-compact-w` in nav.ts.
+
+     ⚠ MA QUI `.ab` a riposo è FORZATA a `height: 0` (vedi il CSS): misurare
+     `offsetHeight` direttamente restituirebbe sempre 0, non l'altezza
+     naturale del contenuto. Serve lo stesso trucco di `measure()` in nav.ts —
+     forzare temporaneamente lo stato "vero" (qui: `height: auto`), leggere, e
+     tornare indietro — ma in QUATTRO passi e non due, perché qui la
+     transizione è dichiarata sulla stessa proprietà che va forzata:
+
+       1. `ab-measuring` (height:auto!important) + `ab-no-transition`
+          (transition:none!important): ora `.ab` è alla sua altezza naturale,
+          e non sta animando.
+       2. `offsetHeight`: legge quell'altezza. Forza anche il reflow che rende
+          la lettura affidabile.
+       3. Si rimuove SOLO `ab-measuring`: `.ab` torna all'altezza "vera" del
+          momento (0 se non ancora entrata, `--ab-h` se già in scena) — ma
+          `ab-no-transition` è ancora lì, quindi il ritorno non anima.
+       4. Un altro `offsetHeight` (scartato, serve solo a forzare il reflow di
+          quel ritorno) PRIMA di rimuovere `ab-no-transition`.
+
+     ⚠ Il passo 3+4 non si possono accorpare in un solo "rimuovi tutto insieme"
+     — è la stessa lezione di `void bar.offsetWidth` in nav.ts: se si
+     riabilitano le transizioni nello stesso movimento in cui si cambia il
+     valore, il motore di rendering rischia di animare quel cambio, cioè
+     esattamente il rientro/uscita di scatto che questa riscrittura elimina. */
   const measure = (): void => {
-    root.style.setProperty('--ab-h', `${banner.offsetHeight}px`);
+    root.classList.add('ab-measuring', 'ab-no-transition');
+    const h = banner.offsetHeight;
+    root.classList.remove('ab-measuring');
+    void banner.offsetHeight;
+    root.classList.remove('ab-no-transition');
+    root.style.setProperty('--ab-h', `${h}px`);
   };
   measure();
   /* I font metric-matched cambiano di poco l'altezza del testo, ma la banda è
