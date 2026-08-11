@@ -109,7 +109,7 @@ Questi non sono stile: sono correzioni a errori concreti già commessi o a scorc
 
 **⏸ IN PAUSA. Non è una pausa "di questa sessione": vale finché non la revoca l'utente a voce, e va riconfermata da lui, non dedotta dal fatto che sembri il momento giusto.**
 - **Non eseguire Lighthouse.**
-- **Non procedere con M8** (About/Portfolio/Contatti/404).
+- **Non procedere con M8** (About/Portfolio/Contatti) — ⚠ **tranne la 404, che Vlad ha chiesto esplicitamente l'11-08-2026 ed è fatta** (vedi la sezione dedicata più sotto). Il resto di M8 resta fermo: una richiesta diretta su UN pezzo non revoca la pausa sugli altri.
 - Più in generale: **non far avanzare il piano.** La fase corrente è design.
 
 ### Cosa si sta facendo davvero
@@ -175,6 +175,12 @@ Vlad ha chiesto di **nascondere momentaneamente tre blocchi di contenuto finto**
 - **Una volta per DISPOSITIVO (`localStorage`), non per sessione** — al contrario dell'avviso §00. Il velo copre il primo *scaricamento*; dalla seconda visita quegli asset sono in cache e non c'è più niente da coprire.
 
 ⚠ **IL COSTO, dichiarato**: un velo **ritarda l'LCP per costruzione**. Accettato sapendolo, con Lighthouse in pausa. Chi dovesse rientrare nel budget di `lighthouserc.json` sappia che è qui che va cercato il ritardo, non nella hero.
+
+⚠ **SEGUITO DEL 2026-08-11 — `once: true` aveva un SECONDO difetto, peggiore, e stava già in produzione.** Costruendo la 404 è venuto fuori che su `/chi-sono` la **bio del sito** (`.ab__lede`, cinque righe, il testo canonico di `SITE.bio`) era **invisibile in modo permanente**: non "in ritardo" — mai, a nessuna posizione di scroll. Misurato via CDP: i cinque frammenti fermi a `translate(0%, 110%)` dentro i wrapper mascherati, e confermato a occhio con uno screenshot (sotto il titolone "Studio. Lavoro." c'era il vuoto).
+
+La causa è la stessa `once: true`, ma per l'altro verso: **un trigger che nasce con start (ed end) GIÀ superati viene reclamato da ScrollTrigger prima di aver giocato.** ⚠ **Era già scritto in `reveal.ts`, ma solo per M4** — la nota di M4 lo dice per esteso e per questo M4 tiene la contabilità a mano. M1 e M2 non avevano mai imparato la lezione. Si vede solo quando un elemento splittato nasce **sopra la propria soglia** (`top 82%`), cioè sopra la piega: sulla Home non capita mai (lì i titoli splittati stanno tutti più in basso, e sopra la piega non si splitta per la regola LCP), ma capita su **ogni pagina interna che apra con un titolo e una lede**.
+
+Fix: via `once` da M1 e M2 (non serve più — `finishEntrance` uccide il trigger al momento giusto, cioè a ingresso finito invece che a fine corsa raggiunta) più **`settleSplits()`**, la terza rete di sicurezza di questo file accanto a `sweepPassed` (M4) e `settle` (M14), con gli stessi due agganci: `refresh`, `scrollEnd`, e una chiamata diretta per il caso in cui nessuno dei due arrivi mai — che è esattamente ciò che succedeva su `/chi-sono`. Chi è già scorso via sopra riceve `progress(1)` **più la chiusura chiamata a mano**, perché `progress(1)` non fa scattare `onComplete` e resterebbe vivo il trigger.
 
 ⚠ **Quattro assert nuovi in `verify-anim`, e due trappole già incontrate scrivendoli.** (1) Si **azzera `vc:seen` prima** di provare, o in un profilo già usato dai controlli precedenti il velo non compare e gli assert diventano verdi per assenza di bersaglio. (2) **Non si usa `load()`** per la sonda "durante": quell'aiutante aspetta 2600ms e il velo su cache calda vive ~1,8s — la prima stesura era verde proprio così. L'invariante che conta più di tutte: **un velo che non se ne va è un sito inaccessibile**, ed è l'unico elemento del sito che copre tutto e che solo il JS sa togliere.
 
@@ -492,6 +498,27 @@ Il footer non ha più un taglio netto in cima: **raccoglie la luce della CTA e l
 **Gli altri due interventi.** Tre canali (email + WhatsApp + LinkedIn) al posto della sola email, da cui anche il cambio di etichetta: "Dove sono" descriveva solo il luogo, **"Dove trovarmi"** copre il luogo e i modi. E **wordmark e barra base separati**: la barra viene ora PRIMA: prima le stava sopra (il `margin-bottom: -0.28em` del wordmark tirava su l'elemento successivo) e il suo testo misurava 3,65:1 sopra i glifi. Ora il wordmark è davvero l'ultimo gesto, tagliato solo dal bordo pagina.
 
 ⚠ **Due proposte sono state ESCLUSE da Vlad** e non vanno riproposte come "fix": il bottone CV resta un bottone (non diventa un link testuale) e la griglia 4/3/3 resta com'è, vuoto compreso.
+
+### /404 — la pagina che si trova sbagliando strada (2026-08-11)
+
+`src/pages/404.astro` + `src/scripts/video404.ts`. Uno schermo, un fondo video della Terra vista dallo spazio, il numero gigante, una via d'uscita. Sotto continua il footer del sito, che è la seconda via d'uscita dopo la navbar.
+
+⚠ **ORIGINE: un riferimento React + Tailwind + `lucide-react` portato da Vlad**, per un'azienda di hosting inventata ("NEXOVA"). **Nessuna libreria installata** — quarta volta. Ma qui è stato scartato **molto più del codice**, perché metà del riferimento descriveva un altro sito: la sua navbar (Domain/Servers/Cloud…) e il suo logo, il suo **footer a sei colonne** con newsletter e sei icone social, e il gradiente `emerald-400 → cyan-500`. Questo sito ha già una navbar, ha già un footer disegnato (§80), e ha **un accento solo**. Una 404 non è il posto dove chiedere l'iscrizione a una newsletter.
+
+⚠ **Scartata anche la classe `liquid-glass` del riferimento**, che è `backdrop-filter: blur(4px)`: in questo repo il backdrop-filter è **vietato fuori dalla navbar** senza una ragione misurata. Il bottone qui è il `Button` primitivo, che ha già il suo riempimento in hover a costo zero — e usarlo significa anche che il bottone della 404 è lo stesso bottone di tutto il sito.
+
+⚠ **IL VIDEO È STATO RICODIFICATO, ed è la modifica più importante di questa pagina.** L'originale consegnato era **3828×2164 a ~11 Mbps per 10 secondi: 13,35 MB**, per un fondo che `object-fit: cover` mostra al massimo a larghezza di viewport. Ricodificato a **1600×904 H.264: 0,27 MB — 50 volte meno**, con differenza visiva nulla su questo contenuto (cielo scuro, un arco luminoso). ⚠ Sul sistema **non c'è ffmpeg**: la ricodifica è stata fatta col browser (`canvas.captureStream` + `MediaRecorder`, che in Chrome produce un MP4 H.264 vero — verificato `ftyp isom`), poi ricontrollata caricandola (1600×904, 10,01s, riproduce). È la via da riusare se serve rifarlo. Una 404 è la pagina che si carica **quando qualcosa è già andato storto**: è l'ultima su cui valga la pena spendere banda.
+
+**Decisioni da non disfare:**
+- ⚠ **Il `src` del video NON sta nell'HTML, sta in `data-src`.** Un `<video src autoplay>` scritto nel markup si scarica **sempre**: con JS spento, per un crawler, e soprattutto per chi ha chiesto meno movimento — a cui verrebbe scaricato un filmato che poi non deve nemmeno partire. Verificato: in entrambi i rami il `src` resta vuoto e non parte nessuna richiesta.
+- ⚠ **`preload` va riportato ad `auto` PRIMA di assegnare `src`**, e la prima stesura sbagliava qui: lasciandolo a `none` il browser non carica niente, quindi `canplay` non arriva **mai** e il video resta fermo con la sorgente impostata (misurato: `paused: true`, `is-live` mai aggiunta). Oggi si chiama `play()` direttamente, che è ciò che avvia il recupero dati e la cui promessa si risolve a riproduzione avviata.
+- **Il fotogramma statico non è un ripiego**: è lo stato completo della pagina per reduced-motion, per chi non ha JS e per un crawler. Sta sotto al video, che lo copre solo quando è davvero in moto.
+- ⚠ **Il comando "Ferma lo sfondo" è WCAG 2.2.2**, non una gentilezza: un movimento automatico oltre i 5 secondi, presentato insieme ad altro contenuto, deve potersi fermare — e qui il movimento sta letteralmente dietro al testo che la pagina esiste per far leggere. Il muro di §04 assolve lo stesso obbligo con hover/focus perché lì il muro **è** il contenuto; su un fondo a tutto schermo nessuno "passa sopra" per fermarlo, quindi serve un comando esplicito. Compare solo a video in moto (`is-live`): un comando che non comanda niente è peggio della sua assenza.
+- **Il fondo non si scarica su connessione scarsa o `saveData`**: è decorativo, ed è la prima cosa da non scaricare a chi sta contando i megabyte.
+- ⚠ **Il corpo del "404" è dichiarato in loco e non preso da `--text-display`** (52→132px): è l'unica eccezione alla scala tipografica del sito, e vale solo qui, perché in questa pagina il numero non è un titolo — è il soggetto. Porta `aria-hidden`: è una figura, e chi usa uno screen reader ha già il `<title>` e la frase sopra.
+- ⚠ **Il bagliore del numero è di LUMINANZA, non di tinta** (bianco su bianco). Un alone d'accento (viola) su un fondo che è **blu** metterebbe due tinte fredde una accanto all'altra — la stessa ragione per cui le onde della CTA non stanno su fondo accento. L'accento in questa pagina compare **solo** nell'indice mono, che è dove il sito lo mette sempre.
+- **Contrasti misurati sui pixel dipinti** (`sample:px`, obbligatorio qui: sotto il testo c'è un video, non un colore dichiarato): lede 19,57:1 · numero **6,87:1 sul punto più chiaro della Terra** · comando 7,87:1 · indice 5,70:1 · bottone 17,66:1.
+- **Il testo è una proposta, non dettatura**: "Questa pagina è finita fuori dalla mia orbita. / O forse non c'è mai stata." continua la voce in prima persona dell'avviso §00 e gioca col video. A differenza di §00, **Vlad non l'ha dettato** — se lo cambia, cambiarlo.
 
 ### Convenzioni consolidate durante le rifiniture, da riusare (non nel piano originale)
 

@@ -13,6 +13,7 @@ import { initStages } from './stage';
 import { initNav } from './nav';
 import { initBanner } from './banner';
 import { initLoader } from './loader';
+import { initVideo404 } from './video404';
 
 declare global {
   interface Window {
@@ -45,6 +46,9 @@ function boot(): void {
     /* Dopo initNav: la banda spinge la navbar, quindi la navbar deve esistere
        e aver già misurato la propria pillola prima che qualcosa la sposti. */
     initBanner();
+    /* Esce da solo su ogni pagina che non sia la 404 (nessun `[data-bg-video]`
+       da trovare), come initLoader fuori dalla Home. */
+    initVideo404();
 
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).

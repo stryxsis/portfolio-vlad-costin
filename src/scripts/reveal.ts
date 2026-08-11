@@ -122,6 +122,53 @@ export function initReveal(): void {
       gsap.set(targets, { clearProps: 'transform' });
     };
 
+    /* ---- RETE DI SICUREZZA PER M1/M2, e copre un difetto LIVE -------------
+       ⚠ Trovato il 2026-08-11 su `/chi-sono`: la bio del sito (`.ab__lede`,
+       cinque righe, il testo canonico) era **invisibile in modo permanente**.
+       Non "entrava in ritardo": non entrava mai, a nessuna posizione di
+       scroll. Misurato via CDP: i cinque frammenti fermi a
+       `translate(0%, 110%)` dentro i loro wrapper mascherati.
+
+       ⚠ LA CAUSA È `once: true`, ED ERA GIÀ DOCUMENTATA IN QUESTO FILE — per
+       M4, non per M1/M2. La nota di M4 poco più sotto lo dice per esteso: con
+       `once` un trigger che si trova start (ed end) GIÀ SUPERATI in un solo
+       update viene reclamato da ScrollTrigger prima di aver giocato, e
+       l'elemento resta nello stato di partenza per sempre. M4 ha imparato la
+       lezione e tiene la contabilità a mano; M1 e M2 sono rimasti con `once`.
+       Si vede solo quando un elemento splittato nasce SOPRA la propria soglia
+       (`top 82%`), cioè sopra la piega — che sulla Home non capita mai (lì i
+       titoli splittati stanno tutti più in basso, e sopra la piega non si
+       splitta per la regola LCP), ma capita su ogni pagina interna che apra
+       con un titolo e una lede.
+
+       Il rimedio è quello che questo file già applica due volte (`sweepPassed`
+       per M4, `settle` per M14): un controllo di STATO invece che di evento.
+       L'invariante è la stessa scritta più sotto: quando lo scorrimento è
+       fermo, niente che sia in vista può essere ancora nascosto. */
+    const splitTweens = new Map<Element, { tween: gsap.core.Tween; finisci: () => void }>();
+
+    const settleSplits = (): void => {
+      if (splitTweens.size === 0) return;
+      const soglia = window.innerHeight * 0.82;
+      for (const [el, { tween, finisci }] of splitTweens) {
+        if (splitPlayed.has(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0) {
+          /* Già scorso via sopra: stato finale SENZA animare — un ingresso di
+             cui nessuno ha visto l'inizio non è un'animazione, è un ritardo.
+             `progress(1)` non fa scattare `onComplete`, quindi la chiusura va
+             chiamata a mano o resterebbe vivo il trigger che questa stessa
+             sessione ha appena imparato a uccidere. */
+          tween.progress(1);
+          finisci();
+        } else if (r.top < soglia) {
+          // In vista e oltre la soglia: deve giocare adesso, non "quando entra"
+          // — è già entrato.
+          tween.play();
+        }
+      }
+    };
+
     // M1 — reveal riga per riga.
     // `mask: 'lines'` avvolge ogni riga in un contenitore con overflow clippato,
     // così l'animazione è una translateY sulla riga interna: interamente
@@ -164,10 +211,16 @@ export function initReveal(): void {
                 // clamp() evita il salto quando il trigger è già oltre lo start
                 // al primo paint.
                 start: 'clamp(top 82%)',
-                once: true,
+                /* ⚠ NIENTE `once: true` — c'era, e rendeva la bio di
+                   `/chi-sono` invisibile per sempre (vedi la nota su
+                   `settleSplits` sopra). Non serve nemmeno più: `finishEntrance`
+                   uccide il trigger appena l'ingresso è finito, che è il
+                   momento giusto — `once` invece lo uccide al raggiungimento
+                   della FINE, che può arrivare prima che abbia giocato. */
                 fastScrollEnd: true,
               },
             });
+            splitTweens.set(el, { tween, finisci: () => finishEntrance(el, tween, self.lines) });
             return tween;
           },
         })
@@ -196,8 +249,10 @@ export function initReveal(): void {
               stagger: 0.035,
               ease: 'expo.out',
               onComplete: () => finishEntrance(el, tween, self.words),
-              scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true, fastScrollEnd: true },
+              // Niente `once`, stessa ragione di M1 qui sopra.
+              scrollTrigger: { trigger: el, start: 'clamp(top 80%)', fastScrollEnd: true },
             });
+            splitTweens.set(el, { tween, finisci: () => finishEntrance(el, tween, self.words) });
             return tween;
           },
         })
@@ -331,6 +386,16 @@ export function initReveal(): void {
     ScrollTrigger.addEventListener('refresh', sweepPassed);
     ScrollTrigger.addEventListener('scrollEnd', sweepPassed);
     sweepPassed();
+
+    /* La rete di M1/M2 (vedi `settleSplits` in cima). Stessi due agganci di
+       `sweepPassed` qui sopra e per le stesse ragioni: il `refresh` copre il
+       primo layout e ogni ricalcolo (resize, font arrivati, re-split), lo
+       `scrollEnd` copre l'arrivo in una posizione qualunque senza eventi di
+       ingresso. La chiamata diretta copre il caso in cui nessuno dei due
+       arrivi mai — che è esattamente ciò che succedeva su `/chi-sono`. */
+    ScrollTrigger.addEventListener('refresh', settleSplits);
+    ScrollTrigger.addEventListener('scrollEnd', settleSplits);
+    settleSplits();
 
     // M11 — il filetto che si disegna. transform-origin è in CSS.
     document.querySelectorAll<HTMLElement>('[data-rule]').forEach((el) => {

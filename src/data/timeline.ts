@@ -59,14 +59,4 @@ export const TIMELINE: TimelineEntry[] = [
       'Progetti per aziende vere mentre studio. È il punto in cui teoria e pratica hanno smesso di essere due cose separate.',
     current: true,
   },
-  {
-    year: 2025,
-    from: '2025-04',
-    to: '2025-09',
-    kind: 'lavoro',
-    role: 'Macchinista litografia',
-    org: 'Sonoco Metal Packaging Italia S.r.l.',
-    detail:
-      'Stagionale, lontano da uno schermo. Sta qui perché una linea di produzione insegna cose sui processi che nessun corso spiega.',
-  },
 ];

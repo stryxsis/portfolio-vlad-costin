@@ -1,0 +1,257 @@
+---
+/**
+ * /404 — la pagina che si trova sbagliando strada.
+ *
+ * ⚠ ORIGINE: un riferimento React + Tailwind + `lucide-react` portato da Vlad,
+ * per un'azienda di hosting inventata ("NEXOVA"). **Nessuna delle librerie è
+ * stata installata** — quarta volta, stessa decisione del muro di §04,
+ * dell'avviso §00 e del velo di prima visita: si porta il DISEGNO, non
+ * l'implementazione.
+ *
+ * E qui è stato scartato molto PIÙ del codice, perché metà del riferimento
+ * descriveva un altro sito:
+ *   - la sua navbar (Domain/Servers/Cloud/Managed…) e il suo logo: questo sito
+ *     ha già una navbar, servita dalla chrome di BaseLayout;
+ *   - il suo footer a sei colonne con SERVERS/DOMAINS/HELP US + newsletter +
+ *     sei icone social: questo sito ha già un footer disegnato (§80), e una
+ *     404 non è il posto dove chiedere un'iscrizione a una newsletter;
+ *   - il gradiente `emerald-400 → cyan-500` dei suoi bottoni: qui l'accento è
+ *     UNO SOLO (`--color-accent`), ed è la regola meno negoziabile del sistema
+ *     visivo;
+ *   - la classe `liquid-glass`, che è `backdrop-filter: blur(4px)`: in questo
+ *     repo il backdrop-filter è VIETATO fuori dalla navbar senza una ragione
+ *     misurata (costa un compositing pass). Il bottone qui è il `Button`
+ *     primitivo del sito, che ha già il suo riempimento in hover a costo zero.
+ *
+ * Resta il disegno vero: una pagina alta uno schermo, un fondo cinematico, il
+ * numero gigante, e una sola via d'uscita.
+ *
+ * ⚠ IL VIDEO È STATO RICODIFICATO. L'originale consegnato era 3828×2164 a
+ * ~11 Mbps per 10 secondi: 13,35 MB per un fondo che `object-fit: cover`
+ * mostra al massimo a larghezza di viewport. Ricodificato a 1600×904 H.264:
+ * **0,27 MB, cioè 50 volte meno**, con differenza visiva nulla su questo
+ * contenuto (un cielo scuro con un arco luminoso). Se un domani si sostituisce
+ * il filmato, ricodificarlo prima: una 404 è la pagina che si carica quando
+ * qualcosa è già andato storto, ed è l'ultima su cui valga la pena spendere
+ * banda.
+ */
+import { Image } from 'astro:assets';
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/primitives/Button.astro';
+import SectionIndex from '../components/primitives/SectionIndex.astro';
+import poster from '../assets/brand/404-poster.png';
+---
+
+<BaseLayout
+  title="Pagina non trovata"
+  description="La pagina che cercavi non esiste. Torna alla home del portfolio di Vlad Costin."
+  noindex
+>
+  <section class="e4" data-section data-bg-scope id="errore">
+    {/* ---- Il fondo ------------------------------------------------------
+        Due strati, e l'ordine conta: l'immagine è SEMPRE in scena, il video le
+        sta sopra e la copre solo quando è davvero in riproduzione. Non è un
+        ripiego per il caricamento — è lo stato completo della pagina per chi
+        ha chiesto meno movimento, per chi naviga senza JS e per un crawler.
+        ⚠ NIENTE animazione di `opacity` su questi due: sono l'elemento più
+        grande sopra la piega, cioè il candidato LCP di questa pagina (regola
+        LCP, vedi CLAUDE.md). Entrano già dipinti. */}
+    <div class="e4__media" aria-hidden="true">
+      <Image
+        src={poster}
+        alt=""
+        widths={[720, 1080, 1600]}
+        sizes="100vw"
+        loading="eager"
+        decoding="sync"
+        fetchpriority="high"
+        class="e4__poster"
+      />
+      {/* `data-src` e non `src`: vedi la nota in testa a video404.ts — un
+          `src` scritto qui si scaricherebbe anche da chi non lo vedrà mai. */}
+      <video
+        class="e4__video"
+        data-bg-video
+        data-src="/video/background-404.mp4"
+        muted
+        loop
+        playsinline
+        preload="none"></video>
+      {/* Lo scrim non è un effetto: il fondo va dal nero pieno in alto al
+          bordo luminoso della Terra, e il testo deve restare leggibile su
+          ENTRAMBI. Misurato con sample:px, non stimato a occhio. */}
+      <div class="e4__scrim"></div>
+    </div>
+
+    {/* ---- Il contenuto --------------------------------------------------- */}
+    <div class="e4__wrap">
+      <SectionIndex n="404" label="Fuori rotta" />
+
+      <p class="e4__lede" data-split="lines">
+        Questa pagina è finita fuori dalla mia orbita.<br />O forse non c’è mai stata.
+      </p>
+
+      {/* ⚠ Corpo dichiarato QUI e non preso da `--text-display` (52→132px):
+          in questa pagina il numero non è un titolo, è il soggetto — l'unico
+          elemento che deve leggersi da lontano. È l'unica eccezione alla scala
+          tipografica del sito, e vale solo qui.
+          ⚠ `aria-hidden`: il numero è una figura, non un'informazione. Chi
+          usa uno screen reader riceve già "Pagina non trovata" dal <title> e
+          la frase qui sopra; farsi leggere anche "quattrocentoquattro" sarebbe
+          la stessa cosa detta due volte, la seconda peggio. */}
+      <p class="e4__num" aria-hidden="true">404</p>
+
+      <div class="e4__actions">
+        <Button href="/" variant="outline" tone="dark">Torna alla home</Button>
+      </div>
+    </div>
+
+    {/* ⚠ WCAG 2.2.2 — un movimento automatico oltre i 5 secondi, dietro del
+        testo da leggere, deve potersi fermare. Compare solo a video in moto
+        (`is-live`, messa da video404.ts): senza niente in movimento, un
+        comando per fermarlo sarebbe rumore. */}
+    <button class="e4__toggle" type="button" data-bg-toggle>Ferma lo sfondo</button>
+  </section>
+</BaseLayout>
+
+<style>
+  .e4 {
+    position: relative;
+    /* Uno schermo esatto: sotto continua il footer del sito, che su una 404 è
+       la seconda via d'uscita dopo il bottone (e la navbar è la prima). */
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    overflow: clip; /* il numero gigante può sbordare sulle viewport strette */
+    /* Il fondo dichiarato ANCHE qui: fra il primo paint e l'immagine c'è un
+       istante, e deve essere nero come il resto del sito, non bianco. */
+    background: var(--color-canvas);
+  }
+
+  .e4__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .e4__poster,
+  .e4__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Il soggetto (l'arco della Terra) sta in basso: ancorando il ritaglio in
+       basso resta visibile anche su viewport molto larghe e basse, dove un
+       centraggio lo taglierebbe via. */
+    object-position: 50% 70%;
+  }
+
+  .e4__video {
+    /* Sopra il fotogramma, ma trasparente finché non ha nulla da mostrare:
+       un <video> senza sorgente non dipinge, quindi l'immagine sotto resta
+       visibile senza bisogno di nasconderlo a mano. */
+    z-index: 1;
+  }
+
+  /* Due gradienti con lavori diversi, e per questo non sono uno solo:
+     - il primo scurisce la METÀ ALTA, dove sta il testo, che altrimenti
+       cadrebbe sul cielo già scuro ma non abbastanza;
+     - il secondo chiude il BORDO INFERIORE nel canvas, così la sezione non
+       finisce con un taglio netto sopra il footer nero. */
+  .e4__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-canvas) 82%, transparent) 0%,
+        color-mix(in oklab, var(--color-canvas) 55%, transparent) 45%,
+        transparent 72%
+      ),
+      linear-gradient(180deg, transparent 60%, var(--color-canvas) 100%);
+  }
+
+  .e4__wrap {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.5rem, 4vh, 2.75rem);
+    padding-block: clamp(6rem, 14vh, 9rem) clamp(3rem, 8vh, 5rem);
+    padding-inline: var(--spacing-gutter);
+    text-align: center;
+  }
+
+  .e4__lede {
+    max-width: 22ch;
+    font-size: var(--text-h3);
+    font-weight: 300;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--color-text-1);
+    text-wrap: balance;
+  }
+
+  .e4__num {
+    /* Vedi la nota nel markup: eccezione dichiarata alla scala tipografica. */
+    font-size: clamp(5.5rem, 24vw, 17rem);
+    font-weight: 600;
+    line-height: 0.82;
+    letter-spacing: -0.05em;
+    color: var(--color-text-1);
+    /* ⚠ Il bagliore è di LUMINANZA, non di tinta: bianco su bianco. Un alone
+       d'accento (viola) su un fondo che è blu introdurrebbe una seconda tinta
+       fredda accanto alla prima — la stessa ragione per cui le onde della CTA
+       non stanno su fondo accento. L'accento in questa pagina compare solo
+       nell'indice mono qui sopra, che è dove il sito lo mette sempre. */
+    text-shadow:
+      0 0 80px rgb(255 255 255 / 0.28),
+      0 0 160px rgb(255 255 255 / 0.1);
+    user-select: none;
+  }
+
+  .e4__actions {
+    margin-top: clamp(0.5rem, 2vh, 1rem);
+  }
+
+  /* Il comando di pausa: presente ma defilato. Non si vede finché il video non
+     è davvero in moto (classe messa da video404.ts). */
+  .e4__toggle {
+    display: none;
+    position: absolute;
+    z-index: 4;
+    right: var(--spacing-gutter);
+    bottom: clamp(1rem, 3vh, 1.75rem);
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    /* `text-2` e non `text-3`: sul canvas nero `text-3` è sotto AA (4.19:1) e
+       questo è testo mono da ~12px, cioè proprio la taglia che pretende 4.5:1. */
+    color: var(--color-text-2);
+    cursor: pointer;
+    transition: color 200ms var(--ease-snappy);
+  }
+
+  .e4.is-live .e4__toggle {
+    display: block;
+  }
+
+  .e4__toggle:hover,
+  .e4__toggle:focus-visible {
+    color: var(--color-text-1);
+  }
+
+  @media (min-width: 56.25rem) {
+    .e4__lede {
+      max-width: 26ch;
+    }
+  }
+</style>
