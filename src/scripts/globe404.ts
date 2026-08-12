@@ -57,6 +57,74 @@ const ACCENTO: [number, number, number] = [147 / 255, 112 / 255, 245 / 255];
  *  che un mappamondo possa dare. */
 const PARMA: [number, number] = [44.8015, 10.3279];
 
+/** Dimensione a riposo del segnaposto (lato in vista). */
+const MARKER_SIZE = 0.07;
+
+/** Inclinazione dell'asse passata a `createGlobe` — duplicata qui come
+ *  costante nominata perché la dissolvenza sotto ne ha bisogno di nuovo per
+ *  calcolare a mano la profondità del segnaposto ad ogni fotogramma. */
+const THETA = 0.28;
+
+/** Ampiezza (in prodotto scalare, non gradi) della zona in cui il segnaposto
+ *  sfuma prima di arrivare al bordo. Più larga = si smorza prima e più
+ *  dolcemente; troppo stretta e si torna al pop del difetto originale. */
+const FADE_BAND = 0.25;
+
+/*  ⚠ IL BUG CHE QUESTO BLOCCO RISOLVE: cobe non fa alcun depth test contro
+ *  la sfera (il contesto WebGL è creato con `depth:false`, letto nel
+ *  bundle). Il vertex shader del segnaposto nasconde il marcatore SOLO se è
+ *  insieme (a) dietro l'emisfero visibile *e* (b) entro un raggio fisso di
+ *  0.8 dal centro schermo — un test binario, senza dissolvenza. Il risultato
+ *  misurato: il segnaposto restava a piena opacità mentre attraversava il
+ *  bordo (appariva "sopra" il globo invece che dietro), poi spariva di
+ *  scatto nell'istante in cui rientrava in quel disco — un teletrasporto,
+ *  non un'eclissi.
+ *
+ *  Non si può correggere lo shader (bundle compilato, non un sorgente che
+ *  questo repo possiede). Si aggira **prima** che cobe ci arrivi: ad ogni
+ *  fotogramma si calcola a mano la stessa proiezione che cobe usa
+ *  internamente per decidere fronte/retro (`versore()` replica la sua
+ *  funzione `U()`, `profondita()` la sua `O()` — stesse formule, lette dal
+ *  bundle), e si sfuma il COLORE del marcatore verso il nero mano a mano che
+ *  si avvicina al bordo, invece di lasciarlo a colore pieno fino al taglio
+ *  netto di cobe. Il colore raggiunge il nero (indistinguibile dal canvas
+ *  scuro sotto) PRIMA che la sua proiezione tocchi lo zero: quando il taglio
+ *  binario di cobe scatta, il marcatore è già invisibile, quindi lo scatto
+ *  non si vede più. */
+
+/** Converte lat/lon nello stesso versore 3D che usa cobe internamente
+ *  (replica la sua `U()`): serve per calcolare a mano ciò che cobe non
+ *  espone, cioè la profondità del segnaposto rispetto alla camera. */
+function versore([lat, lon]: [number, number]): [number, number, number] {
+  const r = (lat * Math.PI) / 180;
+  const a = (lon * Math.PI) / 180 - Math.PI;
+  const o = Math.cos(r);
+  return [-o * Math.cos(a), Math.sin(r), o * Math.sin(a)];
+}
+
+const puntoParma = versore(PARMA);
+
+/** Quanto il segnaposto guarda verso la camera dato l'angolo di rotazione
+ *  corrente (stessa proiezione della `O()` di cobe, qui letta come numero
+ *  continuo invece che come booleano visible/nascosto). Positivo e alto:
+ *  di fronte. Verso zero: sul bordo. Negativo: dietro. */
+function profondita(phi: number): number {
+  const [x, y, z] = puntoParma;
+  const r = Math.cos(THETA);
+  const o = Math.sin(THETA);
+  const a = Math.cos(phi);
+  const i = Math.sin(phi);
+  return -i * r * x + o * y + a * r * z;
+}
+
+/** 0 = sul bordo o oltre (nascosto), 1 = pienamente in vista. La curva è
+ *  cubica (smoothstep) e non lineare: un'uscita di scena lineare si legge
+ *  come un dimmer che si spegne, questa come un oggetto che si allontana. */
+function smoothstepProfondita(v: number): number {
+  const t = Math.min(1, Math.max(0, v / FADE_BAND));
+  return t * t * (3 - 2 * t);
+}
+
 function webglDisponibile(): boolean {
   try {
     const c = document.createElement('canvas');
@@ -99,7 +167,7 @@ export function initGlobe404(): void {
     width: lato,
     height: lato,
     phi: 0,
-    theta: 0.28,
+    theta: THETA,
     dark: 0,
     diffuse: 0.4,
     mapSamples: CAMPIONI,
@@ -109,7 +177,9 @@ export function initGlobe404(): void {
     baseColor: [1, 1, 1],
     glowColor: [1, 1, 1],
     markerColor: ACCENTO,
-    markers: [{ location: PARMA, size: 0.07 }],
+    // Sovrascritto ad ogni fotogramma da disegna(): questo è solo il primo
+    // paint, prima che il rAF abbia calcolato la dissolvenza vera.
+    markers: [{ location: PARMA, size: MARKER_SIZE, color: ACCENTO }],
   });
 
   /* ---- Il ciclo -----------------------------------------------------------
@@ -120,7 +190,30 @@ export function initGlobe404(): void {
      quindi non serve nessun aggancio a `visibilitychange`. */
   const disegna = (): void => {
     if (!inPausa && presaDa === null) phi += PASSO;
-    globe.update({ phi: phi + rotazioneManuale });
+    const phiTotale = phi + rotazioneManuale;
+
+    // Dissolvenza del segnaposto: vedi il blocco di commento sopra
+    // profondita() per il perché. `vista` va da 0 (dietro, nero) a 1
+    // (davanti, colore pieno); anche la dimensione si restringe leggermente
+    // in coda, per lo stesso motivo per cui un oggetto che si allontana
+    // sembra più piccolo oltre che più scuro.
+    const vista = smoothstepProfondita(profondita(phiTotale));
+    const coloreSegnaposto: [number, number, number] = [
+      ACCENTO[0] * vista,
+      ACCENTO[1] * vista,
+      ACCENTO[2] * vista,
+    ];
+
+    globe.update({
+      phi: phiTotale,
+      markers: [
+        {
+          location: PARMA,
+          size: MARKER_SIZE * (0.55 + 0.45 * vista),
+          color: coloreSegnaposto,
+        },
+      ],
+    });
     requestAnimationFrame(disegna);
   };
   requestAnimationFrame(disegna);
