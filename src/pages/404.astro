@@ -82,17 +82,6 @@ import SectionIndex from '../components/primitives/SectionIndex.astro';
       <div class="e4__actions">
         <Button href="/" variant="outline" tone="dark">Torna alla home</Button>
       </div>
-
-      {/* ⚠ WCAG 2.2.2 — un movimento automatico oltre i 5 secondi, presentato
-          insieme al contenuto da leggere, deve potersi fermare. Compare solo a
-          globo in scena (`is-live`, messa da globe404.ts): senza niente in
-          movimento, un comando per fermarlo sarebbe rumore.
-          ⚠ STA NEL FLUSSO, sotto il bottone, e NON ancorato a un angolo. Nella
-          prima stesura era in basso a destra: su telefono il globo è largo
-          quanto lo schermo, quindi quell'angolo è BIANCO e il comando ci
-          spariva sopra (misurato). Qui è sempre su nero, a qualunque
-          larghezza, e per giunta lo si trova senza cercarlo. */}
-      <button class="e4__toggle" type="button" data-globe-toggle>Ferma il globo</button>
     </div>
   </section>
 </BaseLayout>
@@ -252,34 +241,6 @@ import SectionIndex from '../components/primitives/SectionIndex.astro';
 
   .e4__actions {
     margin-top: clamp(0.5rem, 2vh, 1rem);
-  }
-
-  /* Il comando di pausa: nel flusso, defilato, e invisibile finché il globo
-     non gira davvero (classe messa da globe404.ts). */
-  .e4__toggle {
-    display: none;
-    padding: 0.5rem 0.75rem;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    /* `text-2` e non `text-3`: sul canvas nero `text-3` è sotto AA (4.19:1) e
-       questo è testo mono da ~12px, cioè proprio la taglia che pretende 4.5:1. */
-    color: var(--color-text-2);
-    cursor: pointer;
-    transition: color 200ms var(--ease-snappy);
-  }
-
-  .e4.is-live .e4__toggle {
-    display: block;
-  }
-
-  .e4__toggle:hover,
-  .e4__toggle:focus-visible {
-    color: var(--color-text-1);
   }
 
   @media (min-width: 56.25rem) {

@@ -1,7 +1,12 @@
 /**
- * Il globo della 404: quanto costa, come gira, e come si ferma.
+ * Il globo della 404: quanto costa, come gira, e come sparisce dietro sé stesso.
  *
  * Sostituisce il fondo video della prima stesura, che Vlad ha trovato a scatti.
+ *
+ * ⚠ NIENTE COMANDO DI PAUSA, su richiesta esplicita di Vlad (2026-08-13) —
+ * era lì per WCAG 2.2.2 (movimento automatico > 5s presentato insieme a
+ * contenuto da leggere dev'essere fermabile). Rimosso comunque: chi lo
+ * rimette lo rimetta sapendo che riapre quel requisito, non richiudendolo.
  *
  * ⚠ ORIGINE: uno snippet React (`cobe` + shadcn + `@/lib/utils`) portato da
  * Vlad. Qui la decisione è DIVERSA dalle tre volte precedenti, ed è
@@ -62,13 +67,8 @@ const MARKER_SIZE = 0.07;
 
 /** Inclinazione dell'asse passata a `createGlobe` — duplicata qui come
  *  costante nominata perché la dissolvenza sotto ne ha bisogno di nuovo per
- *  calcolare a mano la profondità del segnaposto ad ogni fotogramma. */
+ *  calcolare a mano la posizione del segnaposto ad ogni fotogramma. */
 const THETA = 0.28;
-
-/** Ampiezza (in prodotto scalare, non gradi) della zona in cui il segnaposto
- *  sfuma prima di arrivare al bordo. Più larga = si smorza prima e più
- *  dolcemente; troppo stretta e si torna al pop del difetto originale. */
-const FADE_BAND = 0.25;
 
 /*  ⚠ IL BUG CHE QUESTO BLOCCO RISOLVE: cobe non fa alcun depth test contro
  *  la sfera (il contesto WebGL è creato con `depth:false`, letto nel
@@ -76,21 +76,31 @@ const FADE_BAND = 0.25;
  *  insieme (a) dietro l'emisfero visibile *e* (b) entro un raggio fisso di
  *  0.8 dal centro schermo — un test binario, senza dissolvenza. Il risultato
  *  misurato: il segnaposto restava a piena opacità mentre attraversava il
- *  bordo (appariva "sopra" il globo invece che dietro), poi spariva di
- *  scatto nell'istante in cui rientrava in quel disco — un teletrasporto,
- *  non un'eclissi.
+ *  bordo, poi spariva di scatto — un teletrasporto, non un'eclissi.
  *
- *  Non si può correggere lo shader (bundle compilato, non un sorgente che
- *  questo repo possiede). Si aggira **prima** che cobe ci arrivi: ad ogni
- *  fotogramma si calcola a mano la stessa proiezione che cobe usa
- *  internamente per decidere fronte/retro (`versore()` replica la sua
- *  funzione `U()`, `profondita()` la sua `O()` — stesse formule, lette dal
- *  bundle), e si sfuma il COLORE del marcatore verso il nero mano a mano che
- *  si avvicina al bordo, invece di lasciarlo a colore pieno fino al taglio
- *  netto di cobe. Il colore raggiunge il nero (indistinguibile dal canvas
- *  scuro sotto) PRIMA che la sua proiezione tocchi lo zero: quando il taglio
- *  binario di cobe scatta, il marcatore è già invisibile, quindi lo scatto
- *  non si vede più. */
+ *  ⚠ UN PRIMO TENTATIVO SFUMAVA SUL RAGGIO PROIETTATO DAL CENTRO (quanto è
+ *  lontano dal centro schermo, per farlo scomparire "vicino al bordo del
+ *  disco" invece che "quando è dietro"). Sembrava la scelta più precisa e
+ *  ERA SBAGLIATA: per un punto su una sfera, raggio²+profondità²=raggio
+ *  fisso SEMPRE, quindi il raggio proiettato resta VICINO AL SUO MASSIMO per
+ *  la maggior parte dell'emisfero visibile (cresce verso il bordo lentamente
+ *  all'inizio, non linearmente) — un test tarato su "raggio abbastanza
+ *  grande" scattava mentre il segnaposto era ancora chiaramente sul lato
+ *  anteriore, ben dentro il disco bianco: si vedeva un puntino scuro
+ *  spegnersi in mezzo al bianco, non vicino al bordo. Misurato via
+ *  screenshot CDP, non solo dedotto.
+ *
+ *  Fix vero: sfumare sulla PROFONDITÀ (`profondita()` sotto, replica la
+ *  `O()` di cobe) — cioè fronte/retro rispetto alla camera, la stessa
+ *  quantità che decide l'occlusione reale — ma con una banda STRETTA
+ *  (`FADE_BAND`), che finisce esattamente a profondità zero (il confine vero
+ *  fra visibile e nascosto). Una banda larga (~0.25, il primo tentativo)
+ *  lascia il segnaposto a mezza tinta per oltre un secondo, e quel secondo –
+ *  speso vicino al proprio bordo di rotazione, non al centro del disco –
+ *  si legge comunque come un difetto per quanto dura, non per dove sta:
+ *  una banda stretta rende la dissolvenza un lampo invece di un'attesa. Il
+ *  colore raggiunge il nero PRIMA che il taglio binario di cobe scatti,
+ *  quindi quando scatta il marcatore è già invisibile. */
 
 /** Converte lat/lon nello stesso versore 3D che usa cobe internamente
  *  (replica la sua `U()`): serve per calcolare a mano ciò che cobe non
@@ -104,10 +114,9 @@ function versore([lat, lon]: [number, number]): [number, number, number] {
 
 const puntoParma = versore(PARMA);
 
-/** Quanto il segnaposto guarda verso la camera dato l'angolo di rotazione
- *  corrente (stessa proiezione della `O()` di cobe, qui letta come numero
- *  continuo invece che come booleano visible/nascosto). Positivo e alto:
- *  di fronte. Verso zero: sul bordo. Negativo: dietro. */
+/** Componente di profondità del segnaposto lungo l'asse della camera, dato
+ *  l'angolo di rotazione corrente (stessa proiezione della `O()` di cobe).
+ *  Positivo: di fronte alla sfera. Negativo: sul lato nascosto. */
 function profondita(phi: number): number {
   const [x, y, z] = puntoParma;
   const r = Math.cos(THETA);
@@ -117,12 +126,18 @@ function profondita(phi: number): number {
   return -i * r * x + o * y + a * r * z;
 }
 
-/** 0 = sul bordo o oltre (nascosto), 1 = pienamente in vista. La curva è
- *  cubica (smoothstep) e non lineare: un'uscita di scena lineare si legge
- *  come un dimmer che si spegne, questa come un oggetto che si allontana. */
-function smoothstepProfondita(v: number): number {
-  const t = Math.min(1, Math.max(0, v / FADE_BAND));
-  return t * t * (3 - 2 * t);
+/** Ampiezza della banda di dissolvenza, in unità di profondità (non gradi).
+ *  Stretta apposta: a questa velocità di rotazione la transizione dura
+ *  circa un quarto di secondo, un lampo invece di un'attesa. */
+const FADE_BAND = 0.09;
+
+/** 0 = dietro la sfera (nero), 1 = di fronte (colore pieno). Smoothstep
+ *  cubico invece che lineare: si legge come un oggetto che si allontana,
+ *  non come un dimmer. Raggiunge 1 già a profondità zero (il confine vero),
+ *  non oltre: davanti alla sfera il segnaposto è SEMPRE a colore pieno. */
+function visibilita(z: number): number {
+  const t = Math.min(1, Math.max(0, z / FADE_BAND + 1));
+  return t * t * (3 - t * 2);
 }
 
 function webglDisponibile(): boolean {
@@ -154,7 +169,6 @@ export function initGlobe404(): void {
 
   let phi = 0;
   let rotazioneManuale = 0;
-  let inPausa = false;
 
   /** Dove il puntatore ha cominciato a trascinare; `null` = non si trascina. */
   let presaDa: number | null = null;
@@ -189,7 +203,7 @@ export function initGlobe404(): void {
      Quando la scheda va in secondo piano il browser sospende `rAF` da solo,
      quindi non serve nessun aggancio a `visibilitychange`. */
   const disegna = (): void => {
-    if (!inPausa && presaDa === null) phi += PASSO;
+    if (presaDa === null) phi += PASSO;
     const phiTotale = phi + rotazioneManuale;
 
     // Dissolvenza del segnaposto: vedi il blocco di commento sopra
@@ -197,7 +211,7 @@ export function initGlobe404(): void {
     // (davanti, colore pieno); anche la dimensione si restringe leggermente
     // in coda, per lo stesso motivo per cui un oggetto che si allontana
     // sembra più piccolo oltre che più scuro.
-    const vista = smoothstepProfondita(profondita(phiTotale));
+    const vista = visibilita(profondita(phiTotale));
     const coloreSegnaposto: [number, number, number] = [
       ACCENTO[0] * vista,
       ACCENTO[1] * vista,
@@ -265,25 +279,4 @@ export function initGlobe404(): void {
   canvas.addEventListener('pointermove', (e) => muovi(e.clientX));
   // `touch-action: none` è in CSS: senza, il browser si prende il gesto per
   // scorrere la pagina e il trascinamento non arriva mai qui.
-
-  /* ---- Il comando di pausa ------------------------------------------------
-     ⚠ WCAG 2.2.2, come per il video che questo globo sostituisce: un
-     movimento automatico oltre i 5 secondi, presentato INSIEME al contenuto
-     da leggere, deve potersi fermare. Il globo gira all'infinito sotto il
-     testo della pagina, quindi l'obbligo vale identico.
-     ⚠ E `destroy()` NON è la risposta: fermare deve essere reversibile, e
-     distruggere il globo lascerebbe un rettangolo vuoto — cioè nascondere
-     invece di mettere in pausa. Si smette solo di far avanzare `phi`. */
-  const tasto = sezione?.querySelector<HTMLButtonElement>('[data-globe-toggle]');
-  if (tasto) {
-    const etichetta = (): void => {
-      tasto.textContent = inPausa ? 'Riprendi il globo' : 'Ferma il globo';
-      tasto.setAttribute('aria-pressed', String(inPausa));
-    };
-    etichetta();
-    tasto.addEventListener('click', () => {
-      inPausa = !inPausa;
-      etichetta();
-    });
-  }
 }
