@@ -70,6 +70,14 @@ const MARKER_SIZE = 0.07;
  *  calcolare a mano la posizione del segnaposto ad ogni fotogramma. */
 const THETA = 0.28;
 
+/** Rotazione di partenza: mezzo giro (180°) rispetto a `phi=0`, su richiesta
+ *  di Vlad (2026-08-13) — a `phi=0` il segnaposto nasceva sulla destra, qui
+ *  nasce sulla sinistra ("specchiato"). Non è un vero specchio del render
+ *  (i continenti ruotano con lui, non si riflettono: cobe non espone un
+ *  flip della texture), ma sposta il segnaposto dalla parte opposta, che è
+ *  l'effetto richiesto. */
+const PHI_INIZIALE = Math.PI;
+
 /*  ⚠ IL BUG CHE QUESTO BLOCCO RISOLVE: cobe non fa alcun depth test contro
  *  la sfera (il contesto WebGL è creato con `depth:false`, letto nel
  *  bundle). Il vertex shader del segnaposto nasconde il marcatore SOLO se è
@@ -235,7 +243,7 @@ export function initGlobe404(): void {
   let lato = canvas.offsetWidth;
   if (lato === 0) return; // nascosto o non ancora impaginato: non c'è niente da disegnare
 
-  let phi = 0;
+  let phi = PHI_INIZIALE;
   let rotazioneManuale = 0;
 
   /** Dove il puntatore ha cominciato a trascinare; `null` = non si trascina. */
@@ -250,7 +258,7 @@ export function initGlobe404(): void {
     // testa al file sul perché lo snippet originale rendeva a 4x.
     width: lato,
     height: lato,
-    phi: 0,
+    phi: PHI_INIZIALE,
     theta: THETA,
     dark: 0,
     diffuse: 0.4,

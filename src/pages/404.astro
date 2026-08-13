@@ -39,6 +39,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/primitives/Button.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
+import Starfield from '../components/primitives/Starfield.astro';
 ---
 
 <BaseLayout
@@ -47,6 +48,13 @@ import SectionIndex from '../components/primitives/SectionIndex.astro';
   noindex
 >
   <section class="e4" data-section data-globe-scope id="errore">
+    {/* ---- Il cielo -------------------------------------------------------
+        Sta PRIMA del globo nel markup e sotto di lui nell'impilamento: il
+        globo è opaco e le stelle che gli finiscono dietro sono giustamente
+        coperte — è un pianeta davanti a un cielo, non un velo sopra tutto.
+        Zero JS: vedi il componente per il perché non è WebGL. */}
+    <Starfield />
+
     {/* ---- Il globo -------------------------------------------------------
         ⚠ STA IN BASSO, E NON DIETRO AL TESTO: è la decisione di composizione
         che regge tutta la pagina. Il globo è BIANCO e il "404" è bianco —
@@ -129,7 +137,9 @@ import SectionIndex from '../components/primitives/SectionIndex.astro';
      ragionamento del corpo delle citazioni in TestimonialsFocus. */
   .e4__globe {
     position: absolute;
-    z-index: 0;
+    /* Sopra il cielo (z 0), sotto il contenuto (z 3): il globo occlude le
+       stelle, il testo occlude entrambi. */
+    z-index: 1;
     left: 50%;
     bottom: calc(-1 * var(--globo-l) * var(--globo-sotto));
     width: var(--globo-l);
