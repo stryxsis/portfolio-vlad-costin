@@ -29,7 +29,14 @@ export const SKILLS: SkillGroup[] = [
   },
   {
     label: 'Ambienti',
-    items: ['Visual Studio Code', 'Visual Studio', 'Android Studio', 'Git'],
+    items: [
+      'Visual Studio Code',
+      'Visual Studio',
+      'Android Studio',
+      'Git',
+      'Claude Code',
+      'Antigravity',
+    ],
   },
   {
     label: 'Corsi completati',
