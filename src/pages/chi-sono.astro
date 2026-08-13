@@ -97,12 +97,34 @@ import { SITE } from '../lib/site';
        (Statement, WhatIDo, JourneyTeaser, CTASection…), qui applicata a una
        pagina che non passa per un Handoff M12.
        Il padding-top resta: riserva lo spazio della navbar fissa, che sta
-       FUORI dal flusso e quindi non lo farebbe da sola. */
+       FUORI dal flusso e quindi non lo farebbe da sola.
+
+       ⚠ `--chrome-shift` VA TENUTO, e toglierlo È STATO PROVATO E SCARTATO
+       (2026-08-14): senza, quando compare l'avviso "cantiere aperto" il
+       padding non cresce ma `.idx` (sticky, si àncora a `--chrome-shift` per
+       conto suo in SectionIndex.astro) sì — verificato via CDP: l'indice
+       scivola giù fino a scavalcare il titolo, `idx.bottom` (216px) oltre
+       `h1.top` (166px), overlap VERO e PERSISTENTE per tutta la durata in
+       cui l'avviso resta a schermo, non un istante di transizione. Serve
+       che il padding cresca CON lui.
+
+       ⚠ QUELLO CHE MANCAVA NON ERA IL RIADATTAMENTO, ERA LA TRANSIZIONE.
+       Segnalato da Vlad («quando spunta l'avviso la hero si riadatta»):
+       misurato via CDP a campioni di 200ms, `padding-top` passava da 108px
+       a 205px in un frame solo — zero fotogrammi intermedi, uno scatto.
+       `SectionIndex.astro` anima lo stesso `--chrome-shift` con una
+       `transition` sugli stessi token (`--chrome-t`/`--chrome-e`, 520ms,
+       gli stessi dell'avviso che spinge la navbar): qui mancava quella
+       riga, quindi la sezione saltava mentre tutto il resto — navbar,
+       indice — scivolava. Aggiunta, il corpo ora si sposta in UN gesto
+       coordinato con la spinta della chrome, non in uno scatto seguito da
+       uno scivolamento. */
     min-height: 100svh;
     display: grid;
     align-content: center;
     padding-top: calc(var(--nav-h) + var(--chrome-shift, 0px) + clamp(1.5rem, 4vh, 3rem));
     padding-bottom: clamp(1.5rem, 4vh, 3rem);
+    transition: padding-top var(--chrome-t, 0ms) var(--chrome-e, linear);
   }
 
   .ab__wrap,
