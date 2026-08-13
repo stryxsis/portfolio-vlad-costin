@@ -1,10 +1,15 @@
 ---
 /**
- * "Adesso" — i tre fatti veri e correnti su di lui, nella hero di /chi-sono.
+ * "Adesso" — i fatti veri e correnti su di lui, nella hero di /chi-sono.
  *
  * Chiesto da Vlad (2026-08-13): dove lavora, dove studia, dove vive, con la
  * richiesta esplicita che «si capisca che sono cose che sto facendo adesso» e
  * la premessa che «cambieranno spesso, perché non sto mai fermo».
+ * Lo stesso giorno si è aggiunta la DISPONIBILITÀ, chiesta prima in fondo
+ * all'inventario e poi spostata qui su sua indicazione esplicita ("la voglio
+ * nella tabella quella in alto nella hero"). Ci sta meglio: quel pannello è
+ * già l'elenco di cosa è vero adesso, e "accetto nuovi progetti" è vero
+ * adesso esattamente come gli altri tre.
  *
  * ⚠ QUESTO COMPONENTE NON HA DATI PROPRI, ED È LA DECISIONE CHE LO REGGE.
  * La tentazione era un `src/data/adesso.ts` con dentro le tre righe. Sarebbe
@@ -35,11 +40,17 @@ interface Riga {
    *  invece di una scheda anagrafica. */
   label: string;
   valore: string;
-  dettaglio: string;
+  /** Assente per la riga di disponibilità: lì non c'è un secondo dato da
+   *  aggiungere, il valore è già tutta l'informazione. */
+  dettaglio?: string;
   /** "da gen 2025". Un inizio SENZA una fine è la prova tipografica che la
    *  cosa è ancora in corso, e non va scritta a mano: la produce
    *  `monthYearShort()` dalla stessa data ISO che usa la timeline. */
-  da: string | null;
+  da?: string | null;
+  /** Pallino di STATO (verde, "aperto"), non il respiro di `.now__dot` in
+   *  testata — quello dice "adesso", questo dice "accetto lavoro", e NON
+   *  pulsa: vedi la nota sul token `--color-ok` in global.css. */
+  stato?: boolean;
 }
 
 /** L'ultima voce ancora aperta di quel tipo. `reverse()` perché la timeline è
@@ -77,6 +88,14 @@ righe.push({
      su una pagina che parla di lui sarebbe l'unica bugia del pannello. */
   da: null,
 });
+/* ⚠ ULTIMA, e la posizione è il senso: le tre righe sopra dicono cosa sta
+   facendo, questa dice cosa può ancora prendere. È la conclusione naturale
+   di quell'elenco — chi ha appena letto che lavora, studia e vive qui, la
+   domanda dopo ce l'ha già in testa. Sopra sarebbe un annuncio; qui è una
+   risposta. */
+if (SITE.availability) {
+  righe.push({ label: 'Disponibilità', valore: SITE.availability, stato: true });
+}
 ---
 
 <div class="now">
@@ -101,21 +120,30 @@ righe.push({
         <div class="now__row">
           <dt class="now__label">{r.label}</dt>
           <dd class="now__val">
-            <span class="now__valore">{r.valore}</span>
+            <span class="now__valore">
+              {/* Il pallino NON porta l'informazione: a voce resta
+                  "Disponibilità: accetto nuovi progetti freelance", che è già
+                  tutto. Un colore non è mai l'unico veicolo di un significato
+                  (WCAG 1.4.1). */}
+              {r.stato && <span class="now__ok" aria-hidden="true" />}
+              {r.valore}
+            </span>
             {/* Dettaglio e "da" sulla STESSA riga, separati dal punto medio
                 che il sito già usa negli indici: su tre righe erano tre
                 capoversi per fatto, cioè un pannello alto 311px che finiva
                 sotto la piega — misurato. Il punto medio è `aria-hidden`
                 perché a voce non aggiunge nulla. */}
-            <span class="now__det">
-              {r.dettaglio}
-              {r.da && (
-                <>
-                  <span aria-hidden="true"> · </span>
-                  <span class="now__da">{r.da}</span>
-                </>
-              )}
-            </span>
+            {r.dettaglio && (
+              <span class="now__det">
+                {r.dettaglio}
+                {r.da && (
+                  <>
+                    <span aria-hidden="true"> · </span>
+                    <span class="now__da">{r.da}</span>
+                  </>
+                )}
+              </span>
+            )}
           </dd>
         </div>
       ))
@@ -210,6 +238,28 @@ righe.push({
     text-wrap: balance;
   }
 
+  /* Il pallino di stato. ⚠ NON pulsa, al contrario di `.now__dot` in testata:
+     quello respira perché il messaggio è "adesso" e il respiro è la terza
+     prova che quei fatti sono correnti; questo dice "aperto", uno stato che
+     non ha bisogno di essere ripetuto ogni tre secondi. Due puntini pulsanti
+     nello stesso pannello sarebbero anche una quinta eccezione al divieto di
+     loop infiniti, spesa per decorazione. */
+  .now__ok {
+    /* `inline-block` + `margin-right` e non un flex sul genitore: `.now__valore`
+       porta testo che può andare a capo, e in un flex container il pallino
+       resterebbe incolonnato accanto al blocco invece che accanto alla PRIMA
+       riga. Così scorre col testo, come una lettera. */
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.5rem;
+    /* Allineato all'occhio della riga, non alla base: un cerchio sulla
+       baseline sembra caduto. */
+    vertical-align: 0.12em;
+    border-radius: 50%;
+    background: var(--color-ok);
+  }
+
   .now__det {
     font-size: var(--text-sm);
     line-height: 1.35;
@@ -227,8 +277,27 @@ righe.push({
   }
 
   @media (min-width: 56.25rem) {
+    /* ⚠ LE COLONNE VIVONO SUL <dl> E LE RIGHE LE EREDITANO CON `subgrid`.
+       Prima ogni `.now__row` era una griglia INDIPENDENTE con la stessa
+       colonna fissa da 5,5rem: funzionava per caso, finché tutte le
+       etichette ci stavano dentro. "DISPONIBILITÀ" (13 caratteri mono in
+       maiuscolo con 0,12em di spaziatura, ~112px) la sfondava e finiva
+       addosso al valore — misurato.
+       ⚠ E il primo fix, `minmax(5.5rem, auto)` riga per riga, era PEGGIO
+       del difetto: griglie separate si dimensionano separatamente, quindi
+       la riga lunga allargava solo sé stessa e i valori delle altre tre
+       restavano indietro di ~24px. Il pannello perdeva l'asse verticale che
+       è la ragione per cui le etichette stanno in colonna.
+       `subgrid` dichiara la cosa vera: sono LE STESSE colonne per tutte le
+       righe, larghe quanto l'etichetta più lunga. Nessun numero da ritarare
+       quando un'etichetta cambia. */
+    .now__list {
+      grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+    }
+
     .now__row {
-      grid-template-columns: 5.5rem minmax(0, 1fr);
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
       align-items: baseline;
     }
   }
@@ -258,6 +327,9 @@ righe.push({
   }
   :global(html.js-anim) .now__row:nth-child(3) {
     animation-delay: 1220ms;
+  }
+  :global(html.js-anim) .now__row:nth-child(4) {
+    animation-delay: 1320ms;
   }
 
   @keyframes now-in {
