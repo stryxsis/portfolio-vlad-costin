@@ -12,6 +12,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
 import Timeline from '../components/primitives/Timeline.astro';
+import NowPanel from '../components/primitives/NowPanel.astro';
 import SkillsGrid from '../components/sections/SkillsGrid.astro';
 import { TIMELINE } from '../data/timeline';
 import { SITE } from '../lib/site';
@@ -27,8 +28,29 @@ import { SITE } from '../lib/site';
   <section class="ab" data-section id="chi-sono">
     <div class="ab__wrap">
       <SectionIndex n="00" label="Chi sono" />
-      <h1 class="ab__title">Studio.<br />Lavoro.<br />Spesso nello stesso pomeriggio.</h1>
-      <p class="ab__lede" data-split="lines">{SITE.bio}</p>
+      {/* ⚠ TRE REGISTRI, NON TRE RIGHE UGUALI (scelto da Vlad il 2026-08-13).
+          Le prime due sono affermazioni secche e restano al corpo pieno; la
+          chiusa è più lunga, scende di corpo e sta su UNA riga.
+          Non è solo gerarchia: è il fix di un difetto misurato. Al corpo
+          pieno quella frase è larga 1823px contro i 1310 della colonna, e
+          andava a capo lasciando "pomeriggio." orfana su una quarta riga —
+          il `max-width: 18ch` che avrebbe dovuto governarla non mordeva mai
+          (18ch a 132px valgono 1599px, più della colonna stessa). Le quattro
+          righe costavano 475px di altezza e spingevano il pannello "Adesso"
+          sotto la piega. */}
+      <h1 class="ab__title">
+        Studio.<br />Lavoro.<br /><span class="ab__coda"
+          >Spesso nello stesso pomeriggio.</span
+        >
+      </h1>
+      {/* Secondo registro della hero: a sinistra chi è (la bio canonica), a
+          destra cosa sta facendo ADESSO. Le due cose sono complementari — una
+          è stabile e in terza persona, l'altra è corrente e cambia spesso —
+          quindi stanno affiancate e non impilate. */}
+      <div class="ab__row">
+        <p class="ab__lede" data-split="lines">{SITE.bio}</p>
+        <NowPanel />
+      </div>
     </div>
   </section>
 
@@ -69,17 +91,50 @@ import { SITE } from '../lib/site';
 
   .ab__title {
     margin-top: 1.5rem;
-    /* La misura corta è ciò che fa leggere le tre righe come una dichiarazione:
-       il <br /> è manuale perché la spezzatura è parte del testo, non un
-       accidente della larghezza. */
-    max-width: 18ch;
+    /* I <br /> sono manuali perché la spezzatura è parte del testo, non un
+       accidente della larghezza.
+       ⚠ Qui c'era `max-width: 18ch`, tolta perché non ha MAI morso: a 132px
+       di corpo 18ch valgono ~1599px, cioè più della colonna disponibile
+       (1310px), quindi dichiarava un vincolo che il browser non poteva
+       applicare. A tenere le righe entro misura è ora il corpo della coda,
+       qui sotto — che è una lunghezza vera e verificabile. */
     font-size: var(--text-display);
     line-height: 0.9;
     letter-spacing: -0.04em;
   }
 
-  .ab__lede {
+  /* Il terzo registro. ⚠ Il corpo NON è una frazione in `em` del titolo:
+     `--text-display` si ferma a 132px oltre i 1440px mentre la colonna
+     continua a crescere fino a 90rem, quindi un rapporto fisso starebbe
+     largo in un punto e stretto in un altro. Questa è una misura ricavata
+     dal vincolo vero — la frase è larga 13,8 volte il proprio corpo, e la
+     colonna vale circa (viewport − due gutter) — da cui ~6,4vw, con un
+     tetto a 92px che le lascia 40px di margine a 1440. */
+  .ab__coda {
+    display: inline-block;
+    font-size: clamp(2.25rem, 6.4vw, 5.75rem);
+    letter-spacing: -0.03em;
+  }
+
+  /* La riga bio + "Adesso". Il margine che era sulla lede sta qui: è la riga
+     intera a staccarsi dal titolo, non uno dei suoi due elementi. */
+  .ab__row {
     margin-top: clamp(2rem, 4vw, 3rem);
+    display: grid;
+    gap: clamp(2.25rem, 4vw, 3.5rem);
+  }
+
+  @media (min-width: 56.25rem) {
+    .ab__row {
+      /* `minmax(0, …)` su entrambe: senza, una parola lunga nel pannello
+         (o la misura in `ch` della lede) allargherebbe la traccia oltre la
+         griglia invece di andare a capo. */
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.58fr);
+      align-items: start;
+    }
+  }
+
+  .ab__lede {
     max-width: 44ch;
     font-size: var(--text-lede);
     line-height: 1.4;

@@ -1,0 +1,284 @@
+---
+/**
+ * "Adesso" — i tre fatti veri e correnti su di lui, nella hero di /chi-sono.
+ *
+ * Chiesto da Vlad (2026-08-13): dove lavora, dove studia, dove vive, con la
+ * richiesta esplicita che «si capisca che sono cose che sto facendo adesso» e
+ * la premessa che «cambieranno spesso, perché non sto mai fermo».
+ *
+ * ⚠ QUESTO COMPONENTE NON HA DATI PROPRI, ED È LA DECISIONE CHE LO REGGE.
+ * La tentazione era un `src/data/adesso.ts` con dentro le tre righe. Sarebbe
+ * stato sbagliato: due di quei tre fatti ESISTONO GIÀ in `data/timeline.ts`,
+ * marcati `current: true` — cioè il repo sa già cosa sta facendo adesso. Un
+ * secondo file avrebbe messo lo stesso fatto in due posti, e "cambia spesso"
+ * è esattamente la condizione in cui due copie divergono: si aggiorna la
+ * timeline (che è il posto ovvio) e la hero resta indietro a mentire, senza
+ * che nessun controllo se ne accorga. Qui invece il pannello si aggiorna da
+ * solo quando cambia la timeline, che è il gesto che Vlad farebbe comunque.
+ *
+ * Il terzo fatto (dove vive) non è un periodo, quindi non sta nella timeline:
+ * viene da `SITE.author.location`, che è già l'unica fonte di verità per la
+ * località (la usa anche il JSON-LD).
+ *
+ * ⚠ SI DEGRADA INVECE DI ROMPERSI: se un giorno nessuna voce è `current`
+ * (fra un lavoro e l'altro, finita la triennale), la riga corrispondente
+ * semplicemente non si stampa. Il pannello non mostra mai una casella vuota
+ * né un "—", che sarebbero peggio del silenzio.
+ */
+import { TIMELINE } from '../../data/timeline';
+import { SITE } from '../../lib/site';
+import { monthYearShort } from '../../lib/format';
+
+interface Riga {
+  /** Etichetta mono. Verbi al presente, non sostantivi: "Lavoro" e non
+   *  "Occupazione" — è ciò che rende il pannello una dichiarazione di adesso
+   *  invece di una scheda anagrafica. */
+  label: string;
+  valore: string;
+  dettaglio: string;
+  /** "da gen 2025". Un inizio SENZA una fine è la prova tipografica che la
+   *  cosa è ancora in corso, e non va scritta a mano: la produce
+   *  `monthYearShort()` dalla stessa data ISO che usa la timeline. */
+  da: string | null;
+}
+
+/** L'ultima voce ancora aperta di quel tipo. `reverse()` perché la timeline è
+ *  in ordine cronologico crescente e "adesso" è la più recente. */
+const inCorso = (kind: 'studio' | 'lavoro'): (typeof TIMELINE)[number] | undefined =>
+  [...TIMELINE].reverse().find((e) => e.current === true && e.kind === kind);
+
+const lavoro = inCorso('lavoro');
+const studio = inCorso('studio');
+const dove = SITE.author.location;
+
+const righe: Riga[] = [];
+
+if (lavoro) {
+  righe.push({
+    label: 'Lavoro',
+    valore: lavoro.role,
+    dettaglio: lavoro.org,
+    da: `da ${monthYearShort(lavoro.from)}`,
+  });
+}
+if (studio) {
+  righe.push({
+    label: 'Studio',
+    valore: studio.role,
+    dettaglio: studio.org,
+    da: `da ${monthYearShort(studio.from)}`,
+  });
+}
+righe.push({
+  label: 'Vivo',
+  valore: dove.locality,
+  dettaglio: 'in provincia di Parma',
+  /* Nessun "da": non esiste una data di trasferimento nei dati, e inventarla
+     su una pagina che parla di lui sarebbe l'unica bugia del pannello. */
+  da: null,
+});
+---
+
+<div class="now">
+  {/* L'intestazione porta i due segnali di "presente" che il testo da solo non
+      dà: la parola e il punto che respira. ⚠ Il punto NON è decorazione ed è
+      lo stesso dispositivo di `.tli__now` nella timeline (respiro 3,2s
+      ease-in-out) — quella è già un'eccezione DICHIARATA al divieto di loop
+      infiniti, per la ragione identica: non annuncia un ingresso, descrive
+      uno stato che resta vero finché lo guardi. */}
+  <p class="now__head">
+    <span class="now__dot" aria-hidden="true"></span>
+    Adesso
+  </p>
+
+  {/* `<dl>` e non una lista: sono coppie etichetta/valore, ed è la struttura
+      che uno screen reader annuncia correttamente. Non viola "mai una lista
+      puntata nel sito": quel divieto riguarda gli elenchi di pari grado col
+      pallino, che qui infatti non c'è — il separatore è il filetto. */}
+  <dl class="now__list">
+    {
+      righe.map((r) => (
+        <div class="now__row">
+          <dt class="now__label">{r.label}</dt>
+          <dd class="now__val">
+            <span class="now__valore">{r.valore}</span>
+            {/* Dettaglio e "da" sulla STESSA riga, separati dal punto medio
+                che il sito già usa negli indici: su tre righe erano tre
+                capoversi per fatto, cioè un pannello alto 311px che finiva
+                sotto la piega — misurato. Il punto medio è `aria-hidden`
+                perché a voce non aggiunge nulla. */}
+            <span class="now__det">
+              {r.dettaglio}
+              {r.da && (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  <span class="now__da">{r.da}</span>
+                </>
+              )}
+            </span>
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</div>
+
+<style>
+  .now {
+    /* Non un box: il pannello è tenuto insieme dai filetti, come il resto del
+       sito. Un riquadro con bordo e riempimento sarebbe l'unico elemento
+       "scatolato" di tutta la pagina. */
+    display: grid;
+    gap: clamp(1rem, 1.6vh, 1.5rem);
+  }
+
+  .now__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    /* ⚠ `text-2` e non `text-3`: sul canvas nero `text-3` fa 4,19:1, sotto AA,
+       e questa è una label mono da ~12px — cioè esattamente la taglia che
+       pretende 4,5:1. Vale per tutte le mono di questo componente. */
+    color: var(--color-text-2);
+  }
+
+  .now__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-accent);
+    /* Nessun gate su `html.js-anim`: è animazione CSS pura, gira anche senza
+       JS, e la regola globale di `global.css` sotto `prefers-reduced-motion`
+       la ferma da sola (per un respiro "una sola iterazione" è la cosa
+       giusta, al contrario di uno scorrimento). */
+    animation: now-breathe 3.2s ease-in-out infinite;
+  }
+
+  @keyframes now-breathe {
+    50% {
+      opacity: 0.35;
+      transform: scale(0.82);
+    }
+  }
+
+  .now__list {
+    display: grid;
+  }
+
+  .now__row {
+    display: grid;
+    /* L'etichetta in colonna sua a partire da una certa larghezza: allineate
+       una sotto l'altra danno al pannello l'asse verticale che lo fa leggere
+       come un insieme invece che come tre blocchi impilati. */
+    gap: 0.1rem 1.25rem;
+    padding-block: clamp(0.7rem, 1.25vh, 0.95rem);
+    border-top: 1px solid var(--color-hairline);
+  }
+
+  .now__row:last-child {
+    border-bottom: 1px solid var(--color-hairline);
+  }
+
+  .now__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  .now__val {
+    /* `<dd>` porta un margine di default che qui sfonderebbe la griglia. */
+    margin: 0;
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .now__valore {
+    /* Fra il corpo e la lede di proposito: il pannello è il secondo registro
+       della hero, non deve competere con la bio che gli sta a fianco né
+       sparire sotto di lei. */
+    font-size: clamp(1.0625rem, 1.15vw, 1.3rem);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--color-text-1);
+    text-wrap: balance;
+  }
+
+  .now__det {
+    font-size: var(--text-sm);
+    line-height: 1.35;
+    color: var(--color-text-2);
+  }
+
+  .now__da {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.06em;
+    /* Leggermente più chiaro del dettaglio: è il dato che dice "e non è
+       ancora finita", cioè la ragione per cui il pannello si chiama Adesso. */
+    color: var(--color-text-1);
+    white-space: nowrap;
+  }
+
+  @media (min-width: 56.25rem) {
+    .now__row {
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+      align-items: baseline;
+    }
+  }
+
+  /* ---- Ingresso -----------------------------------------------------------
+     ⚠ CSS puro con ritardi, NON uno ScrollTrigger, e non è pigrizia: questo
+     blocco nasce SOPRA LA PIEGA, e un trigger che nasce oltre la propria
+     soglia è precisamente il caso che su questa stessa pagina aveva lasciato
+     la bio invisibile per sempre (vedi `settleSplits` in `reveal.ts`). Sopra
+     la piega il sito usa le animazioni CSS della hero, e questa le segue.
+     Gated su `html.js-anim`: senza JS, con JS rotto o per un crawler il
+     pannello è semplicemente lì, completo e leggibile. */
+  :global(html.js-anim) .now__head,
+  :global(html.js-anim) .now__row {
+    opacity: 0;
+    animation: now-in 700ms var(--ease-out-expo) forwards;
+  }
+
+  :global(html.js-anim) .now__head {
+    animation-delay: 900ms;
+  }
+  :global(html.js-anim) .now__row:nth-child(1) {
+    animation-delay: 1020ms;
+  }
+  :global(html.js-anim) .now__row:nth-child(2) {
+    animation-delay: 1120ms;
+  }
+  :global(html.js-anim) .now__row:nth-child(3) {
+    animation-delay: 1220ms;
+  }
+
+  @keyframes now-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* La regola globale di reduced-motion azzera le durate ma non garantisce lo
+     stato finale su un'animazione `forwards` che non parte: qui si dichiara
+     esplicitamente che il pannello è visibile e fermo. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .now__head,
+    :global(html.js-anim) .now__row {
+      opacity: 1;
+      animation: none;
+    }
+  }
+</style>
