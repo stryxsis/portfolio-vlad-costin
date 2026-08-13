@@ -91,6 +91,16 @@ Per misurare un contrasto non fidarsi a occhio: `--color-accent` su slate è 5.1
 
 `Fonts.astro`/`astro.config.mjs` usano l'API Fonts nativa di Astro (stabile dalla v6): Geist + Geist Mono, self-hostati, fallback metric-matched generati automaticamente. Il mono fa lavoro semantico (numeri indice, label, metadati), non decorazione.
 
+### Telemetria Vercel (dal 2026-08-13)
+
+`@vercel/analytics` e `@vercel/speed-insights`, montati una sola volta in `BaseLayout.astro` (`<Analytics />` + `<SpeedInsights />` in `<head>`, dopo lo script di boot) — chiesti da Vlad dopo il primo deploy su Vercel.
+
+⚠ **Non è un'eccezione a "zero islands", è la stessa regola applicata correttamente.** Il discrimine del repo non è "è una libreria" ma "porta con sé un runtime" (lo stesso criterio già scritto per `cobe`): l'entrypoint `/astro` di entrambi i pacchetti (non `/react`) è un **web component vanilla** che si registra con `customElements.define` e ordina al browser di caricare, differito, lo script reale da un endpoint del progetto Vercel — niente framework da idratare, niente client directive.
+
+⚠ **Fuori da Vercel quell'endpoint non esiste** (`npm run dev`/`preview`, o un domani un altro host): la richiesta fallisce e basta, senza eccezioni né errori in console — verificato via CDP (`Runtime.consoleAPICalled`/`exceptionThrown`, entrambi vuoti al caricamento della Home in locale). Non è quindi mai il colpevole di un problema osservato in sviluppo.
+
+Il commento sopra lo script di boot ("l'UNICO script del sito") è stato corretto per non dichiarare più un'esattezza falsa: resta l'unico punto in cui vive la logica di ANIMAZIONE/interazione, Analytics e SpeedInsights sono un'altra categoria (telemetria di piattaforma), non un'eccezione alla regola.
+
 ## Divieti espliciti
 
 Questi non sono stile: sono correzioni a errori concreti già commessi o a scorciatoie che sembrano equivalenti e non lo sono.

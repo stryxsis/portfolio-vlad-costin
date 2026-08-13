@@ -11,6 +11,8 @@ import Navbar from '../components/chrome/Navbar.astro';
 import AnnouncementBanner from '../components/chrome/AnnouncementBanner.astro';
 import Loader from '../components/chrome/Loader.astro';
 import Footer from '../components/chrome/Footer.astro';
+import Analytics from '@vercel/analytics/astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
 import { SITE } from '../lib/site';
 
 interface Props {
@@ -113,14 +115,38 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
     }
 
     {/*
-      L'UNICO <script> del sito. Astro lo processa: TypeScript compilato,
-      import npm risolti, bundle unico e deduplicato fra le pagine.
-      Non è `is:inline` (che rinuncerebbe a bundling e TS) e non è un'isola
-      (non c'è alcun framework da idratare).
+      L'UNICO SCRIPT DI ANIMAZIONE/INTERAZIONE del sito. Astro lo processa:
+      TypeScript compilato, import npm risolti, bundle unico e deduplicato fra
+      le pagine. Non è `is:inline` (che rinuncerebbe a bundling e TS) e non è
+      un'isola (non c'è alcun framework da idratare).
+
+      ⚠ "Unico" riguarda QUESTA categoria — non è più l'unico <script> del
+      documento in senso letterale da quando sono arrivati Analytics/
+      SpeedInsights qui sotto, ed è la distinzione che conta: quello resta il
+      solo punto in cui vive la logica del sito (scroll, reveal, navbar…),
+      loro sono telemetria di piattaforma, un'altra categoria.
     */}
     <script>
       import '../scripts/boot';
     </script>
+
+    {/*
+      TELEMETRIA VERCEL, chiesta da Vlad dopo il primo deploy. Entrambi i
+      pacchetti espongono un componente Astro dedicato (`/astro`, non
+      `/react`): un web component vanilla che registra sé stesso via
+      `customElements.define` e ordina al browser di caricare in modo
+      differito lo script REALE da un endpoint del progetto Vercel
+      (`/_vercel/insights/script.js`, `/_vercel/speed-insights/script.js`) —
+      niente da idratare, stessa categoria di `cobe`: una libreria vanilla
+      con una funzione sola, non un framework.
+      ⚠ Fuori da Vercel (dev locale, un altro host) quell'endpoint non esiste
+      e la richiesta fallisce in silenzio in console: innocuo, non blocca
+      niente, ma è il motivo per cui in `npm run dev`/`preview` non si vedrà
+      mai traffico verso quei percorsi.
+      Un'istanza sola, qui in BaseLayout: ogni pagina la eredita, come Seo e
+      Fonts. */}
+    <Analytics />
+    <SpeedInsights />
   </head>
 
   <body class={bodyClass}>
