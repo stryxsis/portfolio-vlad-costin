@@ -23,9 +23,22 @@
  *                           componente anima, questo modulo commuta soltanto).
  *                           Generico e riusabile su qualunque elemento — oggi
  *                           marca `.wid__clauses` (le due battute complete),
- *                           `.wid__title` (solo `is-in`, per lo squiggle) e
+ *                           `.wid__title` (solo `is-in`, per lo squiggle),
  *                           `.sp__logos` (solo `is-in`, ingresso riga +
- *                           accensione loghi su touch).
+ *                           accensione loghi su touch) e `.ap` (solo `is-in`
+ *                           per l'alone, `is-on` con soglia propria per le
+ *                           parole d'accento — vedi `data-on` qui sotto).
+ *                           `is-in` resta fissa a 80%: nessun consumer ha mai
+ *                           chiesto di spostarla, e finché è così va lasciata
+ *                           un default condiviso invece che un secondo
+ *                           attributo mai usato.
+ *                           `is-on` invece ammette un `data-on="NN"` opzionale
+ *                           (percentuale, default 40) per lo stesso motivo
+ *                           per cui esiste `data-i-offset` in M15: un secondo
+ *                           consumer con un'esigenza diversa era il segnale
+ *                           che il valore andava reso un parametro invece di
+ *                           restare inchiodato nel modulo condiviso. Chi non
+ *                           lo scrive ottiene lo stesso 40% di sempre.
  *
  * ⚠ `data-activate` NON VA MAI COMBINATO CON `data-reveal` SULLO STESSO
  * ELEMENTO. Costato un bug reale, due volte: se condividono la soglia
@@ -474,20 +487,26 @@ export function initReveal(): void {
        generico torna a nascondere tutto da capo. */
     const activatable = Array.from(document.querySelectorAll<HTMLElement>('[data-activate]'));
 
+    /* `data-on="NN"` opzionale: soglia `is-on` in percentuale di viewport dal
+       top, default 40 (il valore che ogni consumer aveva finora). Vedi la
+       nota su M14 in testa al file per il perché è un parametro e non una
+       seconda costante. */
+    const onThreshold = (el: HTMLElement): number => Number(el.dataset.on ?? 40);
+
     if (activatable.length > 0) {
       /* Controllo di STATO, non di evento, per gli stessi scenari di
          `sweepPassed`: salto d'ancora, tasto Fine, ripristino della posizione
          al reload. Se il blocco è già oltre una soglia, la classe va messa
          comunque — non ci sarà nessun ingresso futuro da osservare.
          `is-instant` azzera durate e ritardi quando il blocco è già USCITO
-         sopra la viewport: un'accensione che nessuno ha visto iniziare non è
-         un'animazione, è solo un ritardo (stessa regola del ramo `onLeave`). */
+         sopra la viewport: un'accensione di cui nessuno ha visto l'inizio non
+         è un'animazione, è solo un ritardo (stessa regola del ramo `onLeave`). */
       const settle = (): void => {
         for (const el of activatable) {
           const r = el.getBoundingClientRect();
           if (r.bottom < 0) el.classList.add('is-instant', 'is-in', 'is-on');
           if (r.top < window.innerHeight * 0.8) el.classList.add('is-in');
-          if (r.top < window.innerHeight * 0.4) el.classList.add('is-on');
+          if (r.top < window.innerHeight * (onThreshold(el) / 100)) el.classList.add('is-on');
         }
       };
 
@@ -528,7 +547,7 @@ export function initReveal(): void {
         });
         ScrollTrigger.create({
           trigger: el,
-          start: 'clamp(top 40%)',
+          start: `clamp(top ${onThreshold(el)}%)`,
           onEnter: turnOn('is-on'),
           onEnterBack: turnOn('is-on'),
           onLeave: skipToEnd,

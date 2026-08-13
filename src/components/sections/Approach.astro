@@ -15,6 +15,18 @@
  * fascia). **Il testo NON è cambiato**: a mancare non era cosa dice, era che
  * lo diceva tutto sullo stesso tono.
  *
+ * ⚠ TERZO GIRO, STESSO GIORNO: l'alone di quel secondo giro era un
+ * `radial-gradient` a tre stop, e Vlad l'ha bocciato ANCHE quello — «sembra
+ * un bug del sito». Aveva ragione: uno screenshot ingrandito mostrava un
+ * VIGNETTING simmetrico (angoli scuri, centro chiaro, nessuna sorgente
+ * riconoscibile) — esattamente il pattern che si vede quando qualcuno
+ * dimentica un overlay di debug, non quando lo si è disegnato apposta.
+ * Sostituito con un BLOB SFOCATO (vedi `.ap::before` più sotto): `filter:
+ * blur()` non ha mai uno stop geometrico definito, quindi non può produrre
+ * un bordo — il difetto che il gradiente aveva per costruzione. Anche la
+ * soglia d'accensione delle parole è cambiata nello stesso giro, vedi
+ * `data-on` più sotto.
+ *
  * ⚠ NIENTE NUMERO D'INDICE, ed è la regola del sito applicata, non una
  * dimenticanza: `SectionIndex.astro` dichiara che le sezioni statement non
  * sono numerate perché è **la numerazione stessa** a distinguere il contenuto
@@ -119,9 +131,19 @@ if (import.meta.env.DEV) {
      servirebbe un `:has()` per risalire all'alone; marcando la sezione, sono
      entrambi discendenti e non serve niente.
      ⚠ E la sezione NON porta `data-reveal`: i due non vanno mai insieme
-     (vedi reveal.ts), o il fade generico di M4 coprirebbe l'accensione. */
+     (vedi reveal.ts), o il fade generico di M4 coprirebbe l'accensione.
+
+     ⚠ `data-on="72"`: soglia PROPRIA per l'accensione, chiesta da Vlad il
+     giorno stesso — «non quando la sezione si trova a metà schermo ma
+     quando si trova a metà della parte bassa dello schermo». Metà della
+     metà inferiore (50-100%) è 75%; 72 la anticipa di un soffio perché
+     l'accensione a scaglioni impiega ~950ms (tre parole × 160ms + gli
+     620ms della più tardiva) a risolversi, e deve poter FINIRE mentre la
+     fascia è ancora comoda da leggere, non cominciare a fascia già quasi
+     a mezzo schermo. Il default resta 40 per tutti gli altri consumer di
+     M14 (`.wid__clauses`) — vedi `data-on` in reveal.ts. */
 }
-<section class="ap theme-slate" {id} data-activate>
+<section class="ap theme-slate" {id} data-activate data-on="72">
   <div class="ap__wrap">
     {
       /* `data-split="lines"` (M2) sull'h2 e `data-activate` sulla sezione:
@@ -174,20 +196,40 @@ if (import.meta.env.DEV) {
      onde CHE SI MUOVONO ed è l'evento di chiusura della Home. Questo è
      statico, entra una volta e resta — la fascia si scalda quando le parole
      si accendono, e quella è tutta la sua vita.
-     ⚠ L'alfa è tarata sul contrasto, non a occhio: il testo grigio sta
-     SOPRA questo alone, quindi ogni punto guadagnato di luminanza del fondo
-     è contrasto perso. Rimisurare con `npm run sample:px` toccandolo. */
+
+     ⚠ ERA UN `radial-gradient` A TRE STOP, bocciato da Vlad («sembra un bug
+     del sito»). Aveva ragione: tre stop concentrici su un fondo scuro
+     producono un VIGNETTING simmetrico — angoli scuri, centro chiaro,
+     nessuna sorgente riconoscibile — che è esattamente il pattern di un
+     overlay di debug dimenticato, non di una luce disegnata apposta.
+
+     ⚠ ORA È UN BLOB SFOCATO, non un gradiente: `filter: blur()` non ha MAI
+     uno stop geometrico definito (un gradiente finisce a un raggio preciso,
+     una sfocatura degrada senza un bordo), quindi non può produrre il
+     "vignetting" che il gradiente aveva per costruzione — è la stessa
+     ragione per cui il velo della Home usa `blur()` invece di un overlay a
+     opacità. Un rettangolo pieno, sfumato dalla sfocatura stessa, resta più
+     stretto e più basso del testo (`min(38rem, 74%)` × `9rem` contro
+     `.ap__quote` a 38ch su ~3 righe): legge come "la luce dietro le parole"
+     invece che "un patch a caso nel riquadro".
+     ⚠ L'opacità del colore è tarata sul contrasto, non a occhio: il testo
+     grigio e le parole d'accento stanno SOPRA questo alone, quindi ogni
+     punto guadagnato di luminanza del fondo è contrasto perso. Rimisurare
+     con `npm run sample:px` toccandolo. */
   .ap::before {
     content: '';
     position: absolute;
     inset: 0;
+    margin: auto;
     z-index: 0;
-    background: radial-gradient(
-      58% 68% at 50% 50%,
-      color-mix(in oklab, var(--color-accent) 13%, transparent) 0%,
-      color-mix(in oklab, var(--color-accent) 5%, transparent) 42%,
-      transparent 72%
-    );
+    width: min(30rem, 60%);
+    height: 6rem;
+    /* Ellisse e non rettangolo: sfocata, è la differenza fra "una luce" e
+       "una macchia". Un bordo dritto sfumato resta leggibile come un
+       rettangolo ammorbidito; un'ellisse sfumata non ha spigoli da smorzare. */
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--color-accent) 16%, transparent);
+    filter: blur(110px);
     pointer-events: none;
   }
 
