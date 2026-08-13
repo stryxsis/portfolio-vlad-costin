@@ -140,6 +140,74 @@ function visibilita(z: number): number {
   return t * t * (3 - t * 2);
 }
 
+/** Quanto restare nascosti IN PIÙ, oltre al tempo che la rotazione impiega
+ *  già da sola a riportare il segnaposto sul lato visibile — su richiesta
+ *  esplicita di Vlad (2026-08-13): non sostituisce il tempo naturale
+ *  (~7s per questa latitudine/inclinazione), si somma. */
+const ATTESA_EXTRA_MS = 2000;
+
+/** Durata della ricomparsa manuale, una volta scaduta l'attesa in più:
+ *  stessa velocità della dissolvenza in uscita (`FADE_BAND`), che dura
+ *  anch'essa una frazione di secondo — coerenza di ritmo fra le due. */
+const RICOMPARSA_MS = 350;
+
+/** Macchina a stati per l'attesa extra. La geometria (`visibilita()` sopra)
+ *  decide da sola quando il segnaposto sparisce e QUANDO tornerebbe
+ *  naturalmente a fronte — questa funzione decide solo di trattenerlo
+ *  ancora un po' oltre quel momento, invece di mostrarlo subito.
+ *
+ * ⚠ Perché non semplicemente "aspetta 2s dalla scomparsa e riappari da
+ *  solo dopo": la geometria resterebbe a colore pieno per tutta l'attesa
+ *  (la sua transizione dura una frazione di secondo, molto meno dei 2s), e
+ *  smettere di ignorarla a un istante qualunque produrrebbe uno scatto da 0
+ *  a colore pieno — non una ricomparsa. Per questo, scaduta l'attesa, la
+ *  crescita la anima QUESTA funzione con un proprio orologio
+ *  (`RICOMPARSA_MS`), non la geometria (che nel frattempo è già a 1). */
+function creaCicloComparsa(): (vistaGeom: number, adesso: number) => number {
+  type Fase = 'segue' | 'attesa' | 'comparendo';
+  let fase: Fase = 'segue';
+  let vistaGeomPrec = 0;
+  let attesaFino = 0;
+  let comparendoDa = 0;
+  // ⚠ Al primo fotogramma `vistaGeomPrec` non ha ancora un valore vero, e un
+  // qualunque default (0 incluso) rischia di leggersi come "era appena
+  // sparito", innescando l'attesa extra anche se il segnaposto nasce già
+  // in vista. Trovato via CDP: senza questa guardia il globo apriva con
+  // ~2,3s di segnaposto invisibile che non doveva esserci.
+  let inizializzato = false;
+
+  return (vistaGeom: number, adesso: number): number => {
+    if (!inizializzato) {
+      inizializzato = true;
+      vistaGeomPrec = vistaGeom;
+      return vistaGeom;
+    }
+    if (fase === 'segue') {
+      if (vistaGeomPrec <= 0 && vistaGeom > 0) {
+        // La rotazione lo riporterebbe già a fronte: si trattiene ancora.
+        fase = 'attesa';
+        attesaFino = adesso + ATTESA_EXTRA_MS;
+        vistaGeomPrec = vistaGeom;
+        return 0;
+      }
+      vistaGeomPrec = vistaGeom;
+      return vistaGeom;
+    }
+    if (fase === 'attesa') {
+      vistaGeomPrec = vistaGeom;
+      if (adesso < attesaFino) return 0;
+      fase = 'comparendo';
+      comparendoDa = adesso;
+      return 0;
+    }
+    // fase === 'comparendo': cresce sul proprio orologio, non sulla geometria.
+    vistaGeomPrec = vistaGeom;
+    const t = Math.min(1, (adesso - comparendoDa) / RICOMPARSA_MS);
+    if (t >= 1) fase = 'segue';
+    return t * t * (3 - t * 2);
+  };
+}
+
 function webglDisponibile(): boolean {
   try {
     const c = document.createElement('canvas');
@@ -174,6 +242,8 @@ export function initGlobe404(): void {
   let presaDa: number | null = null;
   let spostamento = 0;
 
+  const cicloComparsa = creaCicloComparsa();
+
   const globe = createGlobe(canvas, {
     devicePixelRatio: dpr,
     // ⚠ Larghezza CSS, NON già moltiplicata: ci pensa cobe. Vedi la nota in
@@ -207,11 +277,12 @@ export function initGlobe404(): void {
     const phiTotale = phi + rotazioneManuale;
 
     // Dissolvenza del segnaposto: vedi il blocco di commento sopra
-    // profondita() per il perché. `vista` va da 0 (dietro, nero) a 1
-    // (davanti, colore pieno); anche la dimensione si restringe leggermente
-    // in coda, per lo stesso motivo per cui un oggetto che si allontana
-    // sembra più piccolo oltre che più scuro.
-    const vista = visibilita(profondita(phiTotale));
+    // profondita() per il perché, e quello sopra creaCicloComparsa() per
+    // l'attesa in più. `vista` va da 0 (sparito del tutto: dimensione E
+    // colore a zero, non solo il colore) a 1 (davanti, dimensione e colore
+    // pieni) — sempre insieme, per lo stesso motivo per cui un oggetto che
+    // si allontana sembra più piccolo oltre che più scuro.
+    const vista = cicloComparsa(visibilita(profondita(phiTotale)), performance.now());
     const coloreSegnaposto: [number, number, number] = [
       ACCENTO[0] * vista,
       ACCENTO[1] * vista,
@@ -223,7 +294,7 @@ export function initGlobe404(): void {
       markers: [
         {
           location: PARMA,
-          size: MARKER_SIZE * (0.55 + 0.45 * vista),
+          size: MARKER_SIZE * vista,
           color: coloreSegnaposto,
         },
       ],
