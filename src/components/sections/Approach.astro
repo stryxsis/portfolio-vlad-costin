@@ -8,6 +8,13 @@
  * altissima) che spezza il ritmo visivo», in grigio chiaro «per non urlare
  * troppo». Il testo è suo, parola per parola — non riscriverlo senza chiedere.
  *
+ * ⚠ SECONDO GIRO, STESSO GIORNO: la prima stesura era solo la frase grigia,
+ * e Vlad l'ha bocciata — «non mi piace lo stile della scritta, non il font
+ * dico, proprio che è vuota, non ha personalità». Da qui i tre dispositivi
+ * qui sotto (parole d'accento, accensione a scaglioni, alone che scalda la
+ * fascia). **Il testo NON è cambiato**: a mancare non era cosa dice, era che
+ * lo diceva tutto sullo stesso tono.
+ *
  * ⚠ NIENTE NUMERO D'INDICE, ed è la regola del sito applicata, non una
  * dimenticanza: `SectionIndex.astro` dichiara che le sezioni statement non
  * sono numerate perché è **la numerazione stessa** a distinguere il contenuto
@@ -22,10 +29,10 @@
  * resterebbe anche senza nome accessibile.
  *
  * ⚠ NON RIUSA IL DISPOSITIVO DELLO STATEMENT della Home (parola-fantasma,
- * timbro editoriale, filetto cinetico, tre registri). Stessa famiglia — un
- * aside tipografico — ma gesto diverso: lì il testo si articola in voci, qui
- * dice una cosa sola con una voce sola. Ricopiare quel vocabolario avrebbe
- * reso le due sezioni la stessa cosa detta due volte in due pagine.
+ * timbro editoriale, filetto cinetico sotto l'accento, tre registri di corpo).
+ * Stessa famiglia — un aside tipografico con delle parole in evidenza — ma
+ * gesto diverso: lì l'accento è una SOTTOLINEATURA che si tira, qui è una
+ * ACCENSIONE a scaglioni, e non c'è nessun secondo piano tipografico.
  */
 import { SITE } from '../../lib/site';
 
@@ -33,6 +40,66 @@ interface Props {
   id?: string;
 }
 const { id = 'metodo' } = Astro.props;
+
+/**
+ * Le parole che si accendono.
+ *
+ * ⚠ SONO TRE SOSTANTIVI, E NON UNA FRASE INTERA MARCATA. Sono i tre
+ * ingredienti veri del metodo — quello che c'è al posto del "talento innato"
+ * che la prima frase nega — quindi accenderli produce tre battute che si
+ * leggono come un elenco senza esserlo. È anche il modo in cui questa sezione
+ * rispetta il divieto di liste puntate: l'enumerazione è nel ritmo, non nei
+ * pallini.
+ *
+ * ⚠ E SONO POCHE DI PROPOSITO: l'accento marca ciò che conta, e se conta
+ * mezza frase non conta niente. Aggiungendone, verificare che restino una
+ * minoranza netta del testo.
+ */
+const CHIAVI = ['caffè', 'nottate', 'ossessione'];
+
+interface Frammento {
+  testo: string;
+  /** Indice progressivo della parola accesa, o null se è testo normale.
+   *  ⚠ Serve a scaglionare l'accensione via `--i` invece che con
+   *  `nth-of-type`: SplitText riparenta le parole dentro i wrapper di riga,
+   *  quindi un `nth-of-type` ripartirebbe da 1 ad ogni riga e lo scaglione
+   *  si vedrebbe ricominciare a metà frase. */
+  i: number | null;
+}
+
+/**
+ * Ritaglia le parole chiave dalla stringa, lasciandola testo puro nei dati.
+ *
+ * L'alternativa — scrivere gli <strong> dentro `SITE.credo` — costringerebbe
+ * a `set:html`, cioè a rinunciare all'escaping su un testo che Vlad riscrive
+ * a mano. Stessa scelta, e stessa ragione, di `Statement.astro`.
+ */
+let frammenti: Frammento[] = [{ testo: SITE.credo, i: null }];
+CHIAVI.forEach((chiave, i) => {
+  frammenti = frammenti.flatMap((f) => {
+    if (f.i !== null) return [f];
+    const at = f.testo.indexOf(chiave);
+    if (at === -1) return [f];
+    return [
+      { testo: f.testo.slice(0, at), i: null },
+      { testo: chiave, i },
+      { testo: f.testo.slice(at + chiave.length), i: null },
+    ];
+  });
+});
+frammenti = frammenti.filter((f) => f.testo.length > 0);
+
+/* Guardia di sviluppo: una parola chiave che non compare più nel testo (Vlad
+   riscrive la frase, la parola sparisce) non romperebbe niente — la fascia
+   tornerebbe semplicemente grigia e piatta, cioè esattamente il difetto che
+   questi tre dispositivi esistono per chiudere. Silenzioso e invisibile è il
+   modo peggiore di rompersi. Solo in dev: non fa fallire una build. */
+if (import.meta.env.DEV) {
+  const perse = CHIAVI.filter((c) => !SITE.credo.includes(c));
+  if (perse.length > 0) {
+    console.warn(`[Approach] parola chiave non trovata in SITE.credo: ${perse.join(', ')}`);
+  }
+}
 ---
 
 {
@@ -43,23 +110,101 @@ const { id = 'metodo' } = Astro.props;
      ⚠ Slate e non paper: l'avorio è l'unico momento di luce della Home ed è
      un evento perché è isolato. Qui servirebbe anche il contrario di quello
      che Vlad ha chiesto — «grigio chiaro per non urlare» descrive testo
-     smorzato su fondo scuro, non un'inversione a tutta pagina. */
+     smorzato su fondo scuro, non un'inversione a tutta pagina.
+
+     ⚠ `data-activate` (M14) STA SULLA SEZIONE e non su un wrapper interno,
+     al contrario di Statement.astro: qui le classi servono a DUE cose che
+     stanno a livelli diversi dell'albero — l'alone, che è uno `::before`
+     della sezione, e le parole, che stanno nell'h2. Marcando il wrapper
+     servirebbe un `:has()` per risalire all'alone; marcando la sezione, sono
+     entrambi discendenti e non serve niente.
+     ⚠ E la sezione NON porta `data-reveal`: i due non vanno mai insieme
+     (vedi reveal.ts), o il fade generico di M4 coprirebbe l'accensione. */
 }
-<section class="ap theme-slate" {id}>
+<section class="ap theme-slate" {id} data-activate>
   <div class="ap__wrap">
-    <h2 class="ap__quote" data-split="lines">{SITE.credo}</h2>
+    {
+      /* `data-split="lines"` (M2) sull'h2 e `data-activate` sulla sezione:
+         mai sullo stesso elemento. Le righe salgono da sole alla loro
+         soglia; l'accensione delle parole arriva dopo, alla propria. */
+    }
+    <h2 class="ap__quote" data-split="lines">
+      {
+        frammenti.map((f) =>
+          f.i === null ? (
+            f.testo
+          ) : (
+            /* <strong> e non <em>: queste parole hanno IMPORTANZA, non
+               enfasi di tono — e <em> renderebbe in corsivo, che con Geist
+               caricato solo in tondo (vedi astro.config.mjs) sarebbe un
+               obliquo sintetico. Il peso lo ridichiara il CSS a 500, o il
+               `bolder` di default diventerebbe un finto 700.
+               ⚠ TUTTO SU UNA RIGA, e non è formattazione: andando a capo
+               dentro il tag, l'indentazione entra nel testo renderizzato
+               come spazio vero. Si vedeva — "caffè , nottate" con lo spazio
+               prima della virgola, perché la virgola sta nel frammento
+               DOPO e non dentro la parola marcata. */
+            <strong class="ap__key" style={`--i: ${f.i}`}>{f.testo}</strong>
+          )
+        )
+      }
+    </h2>
   </div>
 </section>
 
 <style>
   .ap {
+    position: relative;
+    /* L'alone sborda oltre la fascia: senza ritaglio finirebbe sul nero
+       delle sezioni vicine e la banda perderebbe i suoi bordi netti. */
+    overflow: clip;
     /* Non `100svh`: Vlad l'ha chiesta esplicitamente "non altissima". La
        fascia si dimensiona sul proprio contenuto più l'aria intorno, che è
        ciò che la fa leggere come una pausa e non come una tappa. */
     padding-block: clamp(5rem, 14vh, 9rem);
   }
 
+  /* ---- L'alone che scalda la fascia ---------------------------------------
+     ⚠ È LA RISPOSTA ALLA PARTE "VUOTA" DELLA CRITICA, non alla parte
+     "tipografica": con la sola frase la banda era un rettangolo di colore
+     piatto, e nessuna quantità di lavoro sul testo dà profondità a un fondo
+     che non ne ha. Un solo alone d'accento, molto basso di alfa, dietro al
+     testo.
+     ⚠ NON è il cielo della CTA e non deve diventarlo: quello è un campo di
+     onde CHE SI MUOVONO ed è l'evento di chiusura della Home. Questo è
+     statico, entra una volta e resta — la fascia si scalda quando le parole
+     si accendono, e quella è tutta la sua vita.
+     ⚠ L'alfa è tarata sul contrasto, non a occhio: il testo grigio sta
+     SOPRA questo alone, quindi ogni punto guadagnato di luminanza del fondo
+     è contrasto perso. Rimisurare con `npm run sample:px` toccandolo. */
+  .ap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(
+      58% 68% at 50% 50%,
+      color-mix(in oklab, var(--color-accent) 13%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent) 5%, transparent) 42%,
+      transparent 72%
+    );
+    pointer-events: none;
+  }
+
+  /* Senza JS l'alone è già lì: è un fondo, non un ingresso. Il gate lo
+     spegne solo nel ramo animato, dove ha una soglia a cui accendersi. */
+  :global(html.js-anim) .ap::before {
+    opacity: 0;
+    transition: opacity 1100ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .ap.is-in::before {
+    opacity: 1;
+  }
+
   .ap__wrap {
+    position: relative;
+    /* Sopra l'alone. Senza, il gradiente coprirebbe il testo. */
+    z-index: 1;
     max-width: 90rem;
     margin-inline: auto;
     padding-inline: var(--spacing-gutter);
@@ -87,5 +232,78 @@ const { id = 'metodo' } = Astro.props;
        `text-3` è sotto AA (difetto noto di palette, vedi CLAUDE.md) e questa
        è la frase più importante della sezione, non un metadato. */
     color: var(--color-text-2);
+  }
+
+  /* ---- Le parole che si accendono ----------------------------------------
+     ⚠ IL PESO È 500 SEMPRE, E NON È UN'ANIMAZIONE MANCATA: far passare la
+     parola da 400 a 500 mentre si accende la farebbe diventare più LARGA, e
+     una parola che si allarga dentro una riga già spezzata da SplitText
+     sposta tutto ciò che le sta dopo — a occhio è uno scatto del testo, non
+     un'accensione. Il peso è quindi struttura (queste parole contano da
+     subito, anche spente) e a fare l'evento è il solo colore.
+     ⚠ 500 e non 700: `astro.config.mjs` carica Geist a 400 e 500. Un `bold`
+     vero non esiste in questo sito, e chiederlo produrrebbe un grassetto
+     SINTETICO — le stesse aste ingrossate dal browser. */
+  .ap__key {
+    font-style: normal;
+    font-weight: 500;
+    /* Stato finale, che è anche quello del ramo senza JS e di
+       reduced-motion: la parola è accesa e basta. */
+    color: var(--color-accent);
+    text-shadow: 0 0 0.6em color-mix(in oklab, var(--color-accent) 26%, transparent);
+  }
+
+  /* Nel ramo animato le parole partono SPENTE — cioè dello stesso grigio del
+     testo intorno.
+     ⚠ "Spento" qui non vuol dire invisibile né illeggibile, ed è l'invariante
+     che regge tutta M14 (vedi reveal.ts): mentre aspetta la propria soglia la
+     frase è già leggibile per intero, la pausa trattiene solo colore. */
+  :global(html.js-anim) .ap__key {
+    color: var(--color-text-2);
+    text-shadow: 0 0 0.6em transparent;
+  }
+
+  :global(html.js-anim) .ap.is-on .ap__key {
+    animation: ap-accendi 620ms var(--ease-out-expo) forwards;
+    /* Lo scaglione. `--i` arriva dal markup (vedi il commento su Frammento):
+       160ms sono quanto basta a leggere tre battute distinte senza che la
+       terza arrivi quando lo sguardo è già andato oltre. */
+    animation-delay: calc(var(--i, 0) * 160ms);
+  }
+
+  /* ⚠ L'accensione è un'ANIMAZIONE con un fotogramma intermedio e non una
+     transizione, perché deve SCAVALCARE il valore finale: la parola arriva a
+     `accent-hi` (il tono più luminoso della palette) e poi si posa su
+     `accent`. Una transizione può solo avvicinarsi al bersaglio, e senza
+     quello scarto l'accensione legge come un cambio di colore invece che
+     come qualcosa che si accende. È la stessa tecnica del LED sui numeri
+     01/02/03 di WhatIDo, qui su colore e alone insieme. */
+  @keyframes ap-accendi {
+    0% {
+      color: var(--color-text-2);
+      text-shadow: 0 0 0.6em transparent;
+    }
+    55% {
+      color: var(--color-accent-hi);
+      text-shadow: 0 0 0.85em color-mix(in oklab, var(--color-accent) 58%, transparent);
+    }
+    100% {
+      color: var(--color-accent);
+      text-shadow: 0 0 0.6em color-mix(in oklab, var(--color-accent) 26%, transparent);
+    }
+  }
+
+  /* ⚠ `is-instant` azzera DURATA E RITARDO, non solo il ritardo: la lezione
+     è già costata due volte (vedi M14 in CLAUDE.md). Chi arriva qui con un
+     salto — un'ancora, il tasto Fine, il ripristino della posizione al
+     reload — non ha visto cominciare niente, e un'accensione di cui nessuno
+     ha visto l'inizio non è un'animazione, è solo un ritardo prima di poter
+     leggere. */
+  :global(html.js-anim) .ap.is-instant .ap__key {
+    animation-duration: 0s;
+    animation-delay: 0s;
+  }
+  :global(html.js-anim) .ap.is-instant::before {
+    transition-duration: 0s;
   }
 </style>
