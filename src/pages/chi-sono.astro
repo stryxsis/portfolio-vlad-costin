@@ -13,6 +13,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
 import Timeline from '../components/primitives/Timeline.astro';
 import NowPanel from '../components/primitives/NowPanel.astro';
+import Approach from '../components/sections/Approach.astro';
 import SkillsGrid from '../components/sections/SkillsGrid.astro';
 import { TIMELINE } from '../data/timeline';
 import { SITE } from '../lib/site';
@@ -57,6 +58,10 @@ import { SITE } from '../lib/site';
       </div>
     </div>
   </section>
+
+  {/* La pausa fra la hero e il percorso: una frase sola, su una superficie
+      diversa. Senza numero d'indice di proposito — vedi Approach.astro. */}
+  <Approach />
 
   {/* §20 — Il percorso. Il filetto verticale della timeline sborda in basso di
       proposito: questa sezione non deve avere overflow clippato. */}

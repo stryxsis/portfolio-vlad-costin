@@ -67,6 +67,21 @@ export const SITE = {
     'C++ o SQL, il mio obiettivo è uno solo: costruire interfacce solide e ' +
     'app che risolvono problemi.',
 
+  /**
+   * IL CREDO — la fascia del metodo su /chi-sono, subito dopo la hero.
+   * Testo dettato da Vlad il 2026-08-13, parola per parola.
+   *
+   * Sta qui e non nel componente per la stessa ragione di `bioIo`: è una
+   * dichiarazione su di lui, cioè un dato di identità, e nessun componente
+   * di questo sito ne scrive uno a mano. È anche la frase che un domani
+   * potrebbe servire altrove (una meta, un llms.txt, la CTA) senza doverla
+   * ricopiare.
+   */
+  credo:
+    'Nessun metodo segreto o talento innato. Solo un sacco di caffè, ' +
+    'nottate a studiare quello che non so, e una leggera ossessione per ' +
+    'risolvere i problemi.',
+
   /** Versione breve per meta description (≤160 caratteri). */
   description:
     'Sviluppatore e studente di Ingegneria Informatica a Parma. Progetto e ' +

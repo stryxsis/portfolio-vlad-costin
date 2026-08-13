@@ -1,0 +1,91 @@
+---
+/**
+ * LA FASCIA DEL METODO — l'aside tipografico di /chi-sono, subito dopo la hero.
+ *
+ * Chiesta da Vlad (2026-08-13) come "Il Superpotere (La Filosofia e il
+ * Mindset)". Fra le forme possibili ha scelto lui **la citazione pura**: «non
+ * ci sono colonne o griglie, solo una frase a tutto schermo (ma non
+ * altissima) che spezza il ritmo visivo», in grigio chiaro «per non urlare
+ * troppo». Il testo è suo, parola per parola — non riscriverlo senza chiedere.
+ *
+ * ⚠ NIENTE NUMERO D'INDICE, ed è la regola del sito applicata, non una
+ * dimenticanza: `SectionIndex.astro` dichiara che le sezioni statement non
+ * sono numerate perché è **la numerazione stessa** a distinguere il contenuto
+ * dalla pausa. Questa è una pausa: una frase sola, nessun titolo, nessun
+ * elenco. Conseguenza da NON "correggere": su /chi-sono i numeri restano
+ * 00 → 02 → 03 e questa fascia sta in mezzo senza uno suo.
+ *
+ * ⚠ È UN <h2> E NON UN <p>, per la stessa ragione di `Statement.astro`: la
+ * frase È il titolo della sezione, quindi la semantica è corretta — e in più
+ * l'`aria-label` che SplitText mette sul contenitore è PROIBITO sul ruolo
+ * `paragraph`, mentre su un heading è legittimo. Senza heading la sezione
+ * resterebbe anche senza nome accessibile.
+ *
+ * ⚠ NON RIUSA IL DISPOSITIVO DELLO STATEMENT della Home (parola-fantasma,
+ * timbro editoriale, filetto cinetico, tre registri). Stessa famiglia — un
+ * aside tipografico — ma gesto diverso: lì il testo si articola in voci, qui
+ * dice una cosa sola con una voce sola. Ricopiare quel vocabolario avrebbe
+ * reso le due sezioni la stessa cosa detta due volte in due pagine.
+ */
+import { SITE } from '../../lib/site';
+
+interface Props {
+  id?: string;
+}
+const { id = 'metodo' } = Astro.props;
+---
+
+{
+  /* `.theme-slate` sul <section>: il tema ridichiara `--color-canvas` E si
+     dipinge da solo (`background-color: var(--color-canvas)`), quindi la
+     fascia è già a tutta larghezza senza nessun trucco full-bleed — la
+     sezione è un blocco in flusso normale, larga quanto il body.
+     ⚠ Slate e non paper: l'avorio è l'unico momento di luce della Home ed è
+     un evento perché è isolato. Qui servirebbe anche il contrario di quello
+     che Vlad ha chiesto — «grigio chiaro per non urlare» descrive testo
+     smorzato su fondo scuro, non un'inversione a tutta pagina. */
+}
+<section class="ap theme-slate" {id}>
+  <div class="ap__wrap">
+    <h2 class="ap__quote" data-split="lines">{SITE.credo}</h2>
+  </div>
+</section>
+
+<style>
+  .ap {
+    /* Non `100svh`: Vlad l'ha chiesta esplicitamente "non altissima". La
+       fascia si dimensiona sul proprio contenuto più l'aria intorno, che è
+       ciò che la fa leggere come una pausa e non come una tappa. */
+    padding-block: clamp(5rem, 14vh, 9rem);
+  }
+
+  .ap__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .ap__quote {
+    /* ⚠ La misura è in `ch` e non in px: fissa i CARATTERI per riga, quindi
+       il numero di RIGHE resta ~4 a qualunque corpo la scala fluida produca.
+       Con una larghezza in px il testo si allungherebbe di una riga proprio
+       sui viewport stretti, dove lo spazio manca di più. */
+    max-width: 38ch;
+    margin-inline: auto;
+    text-align: center;
+    text-wrap: balance;
+
+    /* Un corpo intermedio, sotto i titoli di sezione: la frase deve occupare
+       lo schermo senza competere con l'h1 della hero che le sta sopra. */
+    font-size: clamp(1.5rem, 3vw, 2.625rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+
+    /* ⚠ `text-2` e MAI `text-3`: è il "grigio chiaro per non urlare" chiesto
+       da Vlad, ma il pavimento di contrasto per il testo resta `text-2` —
+       `text-3` è sotto AA (difetto noto di palette, vedi CLAUDE.md) e questa
+       è la frase più importante della sezione, non un metadato. */
+    color: var(--color-text-2);
+  }
+</style>
