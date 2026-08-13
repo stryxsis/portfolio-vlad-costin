@@ -87,8 +87,22 @@ import { SITE } from '../lib/site';
 
 <style>
   .ab {
-    padding-top: calc(var(--nav-h) + clamp(3rem, 8vh, 6rem));
-    padding-bottom: var(--spacing-section);
+    /* ⚠ ALTA UN SCHERMO, richiesta esplicita di Vlad (2026-08-13). `min-`
+       e non `height` secca: se un domani il contenuto (title + riga + i
+       quattro fatti di NowPanel) diventasse più alto di una viewport corta,
+       la sezione deve poter crescere invece di tagliarlo — stessa scelta
+       già fatta per la fascia del globo in 404.astro.
+       `grid` + `align-content: center` è la convenzione già in uso in tutto
+       il sito per centrare il contenuto di una sezione a schermo intero
+       (Statement, WhatIDo, JourneyTeaser, CTASection…), qui applicata a una
+       pagina che non passa per un Handoff M12.
+       Il padding-top resta: riserva lo spazio della navbar fissa, che sta
+       FUORI dal flusso e quindi non lo farebbe da sola. */
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    padding-top: calc(var(--nav-h) + var(--chrome-shift, 0px) + clamp(1.5rem, 4vh, 3rem));
+    padding-bottom: clamp(1.5rem, 4vh, 3rem);
   }
 
   .ab__wrap,
