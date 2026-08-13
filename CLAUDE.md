@@ -563,7 +563,7 @@ Scartato dal riferimento, oltre a React: la **reazione al mouse** (esclusa da Vl
 ⚠ **Un canvas WebGL NON si può rileggere con `drawImage`** se il contesto ha `preserveDrawingBuffer: false` — che è il default di cobe. Un test di rotazione scritto così restituisce due fotogrammi identici **anche mentre il globo gira**, ed è verde per il motivo sbagliato al contrario. La misura corretta sono due `Page.captureScreenshot` di CDP ritagliati sul globo: quelli catturano il compositato. Verificato anche l'inverso — **in pausa i due fotogrammi devono essere identici**, e lo sono.
 - **Il testo è una proposta, non dettatura**: "Questa pagina è finita fuori dalla mia orbita. / O forse non c'è mai stata." continua la voce in prima persona dell'avviso §00 e gioca col video. A differenza di §00, **Vlad non l'ha dettato** — se lo cambia, cambiarlo.
 
-### /chi-sono — la hero: tre registri e il pannello "Adesso" (2026-08-13)
+### /chi-sono — la hero: due registri, la voce in prima persona e il pannello "Adesso" (2026-08-13)
 
 Vlad ha chiesto di migliorare la hero ("dammi delle idee... comportati come un ui/ux professionista"). Proposte fatte, **scartate due direzioni su richiesta sua**: qualunque variante con una **foto è esclusa** ("ce già nella pagina principale" — il ritratto resta un gesto della sola Home), e con essa il dittico e il primo piano. Scelta finale sua: nella parte vuota, **tre informazioni vere e correnti** — dove lavora, dove studia, dove vive — «che si capisca che sono cose che sto facendo adesso», sapendo che «cambieranno spesso».
 
@@ -578,7 +578,34 @@ Vlad ha chiesto di migliorare la hero ("dammi delle idee... comportati come un u
 
 Fix scelto da Vlad fra tre opzioni misurate: **tre registri**. "Studio." e "Lavoro." restano al corpo pieno, la chiusa scende e sta su una riga. Titolo da 475px a **356px**, e tutto rientra: riga a **838 (1440) · 847 (1280) · 785 (1024)**, sempre sopra la piega. Scartato il rimpicciolimento uniforme a 94px, che avrebbe pagato il 29% di corpo per un problema di spazio.
 
-⚠ **Il corpo della coda NON è una frazione in `em` del titolo**, e la tentazione era forte: `--text-display` si ferma a 132px oltre i 1440px mentre la colonna continua a crescere fino a 90rem, quindi un rapporto fisso starebbe largo in un punto e stretto in un altro. È una misura ricavata dal vincolo vero — la frase è larga **13,8 volte** il proprio corpo, la colonna vale circa (viewport − due gutter) — da cui `clamp(2.25rem, 6.4vw, 5.75rem)`, verificato a 1440/1280/1024/390. Su mobile la coda va a capo in due righe: è la degradazione giusta, e sono comunque 4 righe invece di 5.
+⚠ **Il corpo della coda NON è una frazione in `em` del titolo**, e la tentazione era forte: `--text-display` si ferma a 132px oltre i 1440px mentre la colonna continua a crescere fino a 90rem, quindi un rapporto fisso starebbe largo in un punto e stretto in un altro. È una misura ricavata dal vincolo vero — la larghezza della frase in multipli del proprio corpo contro la colonna, che vale circa (viewport − due gutter) — verificata a 1440/1280/1024/390 ogni volta che il testo cambia.
+
+#### Il testo è cambiato lo stesso giorno: DUE registri, non tre (2026-08-13, seconda richiesta)
+
+Vlad ha dettato titolo e paragrafo nuovi. La struttura a registri regge, ma il conto è diverso: **il titolo è ora due FRASI, non tre righe**, e la divisione fra i due registri è la sua punteggiatura, non una scelta di impaginazione.
+
+- **Registro 1, corpo pieno**: "Curioso di sapere / chi sono?" — una domanda rivolta a chi legge. `<br>` manuale, due righe da 132px.
+- **Registro 2, `.ab__coda`**: "Ti avviso: faccio un sacco di cose, spesso nello stesso pomeriggio." — un inciso che commenta la domanda. ⚠ **Al corpo pieno è larga ~4000px** contro i 1310 della colonna: tre a capo, e la domanda si perderebbe dentro il paragrafo che la segue. Scesa a `clamp(1.375rem, 2.9vw, 2.5rem)` sta su **una riga sola** a 1440 (48px di altezza), 1280 e 1024, e va a capo in due solo su telefono.
+- ⚠ **`display: block` e non più `inline-block`**: non è più la terza riga di una strofa (dove il blocco inline serviva a non spezzarla a metà), è un capoverso con la propria interlinea — con l'0,9 del titolo due righe di inciso si toccherebbero.
+- ⚠ **`--color-text-2` e non `text-1`**: è ciò che lo rende un *inciso* invece di una seconda affermazione. 7,92:1 misurato con `sample:px`, e comunque a 40px.
+- **Resta UN SOLO `<h1>`**: l'inciso è parte del titolo, non un sottotitolo, quindi sta dentro e non in un `<p>` accanto. E il titolo resta senza `data-split` e senza fade — è candidato LCP.
+
+Misurato dopo il cambio: titolo 308px, riga bio+pannello a **790 (1440) · 804 (1280) · 746 (1024)**, sempre sopra la piega.
+
+⚠ **`SITE.bio` e `SITE.bioIo` NON SONO UN DOPPIONE, e chi ne cancella una rompe l'altra.** La lede della hero legge ora `bioIo`, il testo in **prima persona** dettato da Vlad. `bio` resta in **terza persona con le entità per esteso** perché il suo lettore è una macchina (JSON-LD `Person.description`, llms.txt, meta description): un motore generativo la cita così com'è, e in prima persona citerebbe "sono" senza sapere chi parla. ⚠ **Da questa modifica `bio` non ha più nessun lettore** — stessa situazione di `sameAs`, e per la stessa ragione (i suoi consumatori non esistono ancora). Non è codice morto: è la stringa che serviranno il giorno in cui vengono costruiti. Le due vivono **adiacenti** in `site.ts` apposta: i fatti dentro sono gli stessi, quindi cambiando lavoro o ateneo si toccano entrambe, e la prossimità è l'unica difesa contro la divergenza.
+
+### /chi-sono §03 — la riga "Disponibilità", e il verde che non è un secondo accento (2026-08-13)
+
+Chiesta da Vlad: `DISPONIBILITÀ: Accetto nuovi progetti freelance`, con un pallino verde, in fondo all'inventario delle competenze (`SkillsGrid.astro`).
+
+- ⚠ **Sta nel MARKUP e non in `SKILLS`.** Quell'array ha un tipo che dice "gruppo di competenze": infilarci una disponibilità renderebbe il tipo una bugia. È la stessa ragione per cui "Lingue" è già una riga scritta a mano nel componente invece di un elemento in coda ai dati. Il **testo** però viene da `SITE.availability`, perché è un dato di identità e questo componente non ne scrive nessuno a mano.
+- ⚠ **`availability` è una STRINGA e non un booleano con due testi.** Il pallino verde *significa* "aperto": non esiste una versione di questa riga che dica "non disponibile" — sarebbe un semaforo verde su un cartello di divieto. Quando Vlad smette di prendere progetti la riga si **toglie** (campo a stringa vuota, il render è già condizionato), non si capovolge.
+- ⚠ **`--color-ok: #4ade80` è un token nuovo, e la regola "un solo accento" RESTA IN PIEDI.** L'accento marca ciò che è *importante* e potrebbe essere di qualunque tinta; il verde qui non decora niente, **dice "aperto"** — una convenzione che il viola non sa esprimere (un pallino viola accanto a "accetto nuovi progetti" non significherebbe nulla). **Ha esattamente un utente.** Il giorno in cui ne spuntasse un secondo è il momento di chiedersi se il sito abbia due accenti, non di aggiungerne un terzo uso.
+- **Il pallino NON pulsa**, e non è una dimenticanza: `.now__dot` nella hero respira perché lì il messaggio è "adesso" e il respiro è la terza prova che quei fatti sono correnti. Qui il messaggio è "aperto", uno stato che non ha bisogno di essere ripetuto ogni tre secondi — e un secondo puntino pulsante nella stessa pagina sarebbe una **quinta eccezione** al divieto di loop infiniti, spesa per decorazione.
+- **Il colore non è mai l'unico veicolo del significato** (WCAG 1.4.1): il pallino è `aria-hidden`, e a voce resta "Disponibilità: accetto nuovi progetti freelance", che è già tutto.
+- **Perché in fondo all'inventario**: chi ha appena finito di leggere cosa sa fare trova subito dopo se è libero di farlo — la domanda successiva naturale — senza dover raggiungere i contatti.
+
+⚠ **Misurando questa riga è riemerso il difetto noto di `--color-text-3` sul canvas nero** (4,19:1, sotto AA): `sample:px` segna rosse **tutte e sette** le etichette dell'inventario, "Disponibilità" compresa. **Non è un regresso di questa modifica** — è la stessa riga di palette già dichiarata aperta in cima a questo file. Non è stata corretta qui perché è un cambio di token che tocca ogni label mono del sito, cioè una decisione di design da proporre, non da infilare in una richiesta di contenuto. Fare eccezione per la sola "Disponibilità" avrebbe prodotto un grigio diverso dai suoi sei fratelli, che si legge come un errore.
 
 ### Convenzioni consolidate durante le rifiniture, da riusare (non nel piano originale)
 

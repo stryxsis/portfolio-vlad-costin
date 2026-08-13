@@ -17,6 +17,7 @@
  */
 import SectionIndex from '../primitives/SectionIndex.astro';
 import { SKILLS, LANGUAGES } from '../../data/skills';
+import { SITE } from '../../lib/site';
 
 interface Props {
   /** Numero d'indice della sezione nella pagina che la ospita. */
@@ -74,6 +75,35 @@ const { n = '03', id = 'competenze' } = Astro.props;
             }
           </ul>
         </div>
+
+        {/* L'ultima riga dell'inventario NON è una competenza: è uno stato.
+            Chiude apposta l'elenco — chi ha appena finito di leggere cosa so
+            fare trova subito dopo se sono libero di farlo, che è la domanda
+            successiva naturale, e la trova senza dover raggiungere i
+            contatti.
+            ⚠ Sta nel MARKUP e non in `SKILLS`: quell'array ha un tipo che
+            dice "gruppo di competenze", e infilarci dentro una disponibilità
+            renderebbe il tipo una bugia — la stessa ragione per cui "Lingue"
+            è già una riga a mano qui sopra invece che un elemento in coda ai
+            dati. Il testo però viene da `site.ts`: è un dato di identità, e
+            questo componente non ne scrive nessuno a mano. */}
+        {
+          SITE.availability && (
+            <div class="sk__group" data-reveal>
+              <div class="sk__head">
+                <h3 class="sk__label">Disponibilità</h3>
+              </div>
+              <p class="sk__stato">
+                {/* Il pallino è `aria-hidden` e NON porta l'informazione: a
+                    voce resta "Disponibilità: accetto nuovi progetti
+                    freelance", che è già tutto. Un colore non è mai l'unico
+                    veicolo di un significato (WCAG 1.4.1). */}
+                <span class="sk__dot" aria-hidden="true" />
+                {SITE.availability}
+              </p>
+            </div>
+          )
+        }
       </div>
     </div>
   </div>
@@ -180,6 +210,36 @@ const { n = '03', id = 'competenze' } = Astro.props;
      madrelingua" (18) no. Un a capo che dipende da un carattere di differenza
      legge come un difetto; metterlo sempre sulla riga sotto lo rende una
      scelta, e a quel punto il livello può anche rimpicciolirsi. */
+  /* Stessa tipografia di `.sk__item`: la riga della disponibilità deve
+     leggersi come una voce dell'inventario, non come un annuncio incollato
+     in fondo. A distinguerla bastano l'etichetta e il pallino. */
+  .sk__stato {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.9;
+    color: var(--color-text-1);
+  }
+
+  .sk__dot {
+    /* `flex: none` perché in un flex container un elemento vuoto senza
+       larghezza intrinseca si lascia comprimere a zero dal testo accanto. */
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-ok);
+    /* ⚠ NON pulsa, e non è una dimenticanza: il punto di `.now__dot` nella
+       hero respira perché lì il messaggio è "adesso", e il respiro è la
+       terza prova che quei fatti sono correnti. Qui il messaggio è
+       "aperto" — uno stato che non ha bisogno di essere ripetuto ogni tre
+       secondi. Un secondo puntino che pulsa nella stessa pagina sarebbe
+       anche una quinta eccezione al divieto di loop infiniti, spesa per
+       decorazione. */
+  }
+
   .sk__level {
     display: block;
     font-size: var(--text-micro);

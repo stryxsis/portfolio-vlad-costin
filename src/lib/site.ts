@@ -24,16 +24,48 @@ export const SITE = {
   inLanguage: 'it-IT',
 
   /**
-   * LA STRINGA BIO CANONICA. Una sola, riusata in: meta description di default,
-   * JSON-LD Person.description, llms.txt, og:description della home.
+   * LA STRINGA BIO CANONICA, destinata a: JSON-LD Person.description,
+   * llms.txt, meta description e og:description di default.
    * Terza persona ed entità nominate esplicitamente: è la forma che un motore
    * di risposta generativo può citare senza doverla riscrivere.
+   *
+   * ⚠ DAL 2026-08-13 NESSUNO LA LEGGE, come già succede a `sameAs` qui sotto,
+   * e per la stessa ragione: i suoi consumatori (JSON-LD, llms.txt) non sono
+   * ancora stati costruiti. L'unico posto che la stampava era la hero di
+   * /chi-sono, passata a `bioIo` perché lì parla Vlad e non un catalogo.
+   * NON è codice morto da cancellare — è la stringa che quei consumatori
+   * useranno il giorno in cui esistono, ed è scritta nella forma che serve a
+   * loro. Chi la cancella dovrà riscriverla identica.
    */
   bio:
     'Vlad Costin è uno sviluppatore e studente di Ingegneria Informatica ' +
     "all'Università di Parma. Costruisce interfacce e applicazioni web, con " +
     'esperienza in JavaScript, PHP, Python, C++ e SQL, e lavora come developer ' +
     'presso JEParma. Vive a Colorno, in provincia di Parma.',
+
+  /**
+   * LA BIO IN PRIMA PERSONA — quella che si LEGGE, nella hero di /chi-sono.
+   * Testo dettato da Vlad il 2026-08-13.
+   *
+   * ⚠ NON È UN DOPPIONE DI `bio`, ed è il motivo per cui sta appiccicata a
+   * lei invece che dentro la pagina: le due stringhe hanno voce e
+   * destinatario diversi e NON sono intercambiabili. `bio` è in terza
+   * persona con le entità nominate per esteso perché il suo lettore è una
+   * macchina (JSON-LD, llms.txt, meta description): un motore generativo la
+   * cita così com'è, e riscritta in prima persona citerebbe "sono" senza
+   * sapere chi parla. Questa invece è la voce di Vlad sulla pagina che parla
+   * di lui, ed è l'unica delle due che un essere umano legge.
+   *
+   * ⚠ I FATTI DENTRO SONO GLI STESSI: cambiando lavoro, ateneo o linguaggi
+   * si toccano ENTRAMBE. Stanno adiacenti apposta — chi apre questo file per
+   * aggiornarne una si trova l'altra sotto gli occhi.
+   */
+  bioIo:
+    'Sono Vlad Costin. Se c’è una cosa che mi definisce è che non sto mai ' +
+    'fermo. Sono uno studente di Ingegneria Informatica all’Unipr e, ' +
+    'contemporaneamente, uno sviluppatore. Che sia JavaScript, PHP, Python, ' +
+    'C++ o SQL, il mio obiettivo è uno solo: costruire interfacce solide e ' +
+    'app che risolvono problemi.',
 
   /** Versione breve per meta description (≤160 caratteri). */
   description:
@@ -121,6 +153,18 @@ export const SITE = {
     updated: 'agosto 2026',
     sizeLabel: '189 KB',
   },
+
+  /**
+   * Disponibilità dichiarata. Chiude l'inventario di /chi-sono con l'unica
+   * riga che non è una competenza ma uno STATO.
+   *
+   * ⚠ È UNA STRINGA E NON UN BOOLEANO CON DUE TESTI, di proposito: il
+   * pallino verde accanto significa "aperto", quindi non esiste una versione
+   * di questa riga che dica "non disponibile" — sarebbe un semaforo verde su
+   * un cartello di divieto. Quando Vlad non prende più progetti, la riga si
+   * TOGLIE (questo campo a stringa vuota), non si capovolge.
+   */
+  availability: 'Accetto nuovi progetti freelance',
 
   /**
    * FEATURE FLAG — sezioni la cui esistenza dipende da contenuti che non ci

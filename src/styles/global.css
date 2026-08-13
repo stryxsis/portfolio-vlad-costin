@@ -44,6 +44,19 @@
      grigio neutro, per la stessa ragione di --color-accent-deep sul paper. */
   --color-accent-text-2: #1a1425; /* su accento                        5.02:1 */
 
+  /* Verde di STATO. ⚠ NON è un secondo accento, e la regola "un solo accento
+     in tutto il sito" resta in piedi: l'accento marca ciò che è IMPORTANTE
+     (keyword, CTA, stato attivo) e può essere di qualunque tinta, mentre il
+     verde qui non decora niente — dice "aperto", che è una convenzione che
+     il viola non sa esprimere (un pallino viola accanto a "accetto nuovi
+     progetti" non significherebbe nulla). Ha ESATTAMENTE UN UTENTE, la riga
+     Disponibilità dell'inventario di /chi-sono. Il giorno in cui ne
+     spuntasse un secondo è il momento di chiedersi se il sito abbia due
+     accenti, non di aggiungerne un terzo uso.
+     11.7:1 su --color-canvas: è un pallino da 8px, e a quella taglia il
+     contrasto non è pignoleria ma l'unica cosa che lo rende visibile.       */
+  --color-ok: #4ade80; /* disponibile                             11.7:1 */
+
   /* Sezioni invertite full-bleed ("le finestre" nella stanza scura").
      Avorio caldo invece di un bianco-grigio neutro — la stessa correzione
      applicata al canvas, sul lato chiaro. */
