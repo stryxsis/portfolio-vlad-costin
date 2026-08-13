@@ -29,14 +29,14 @@ export const SKILLS: SkillGroup[] = [
   },
   {
     label: 'Ambienti',
-    items: [
-      'Visual Studio Code',
-      'Visual Studio',
-      'Android Studio',
-      'Git',
-      'Claude Code',
-      'Antigravity',
-    ],
+    items: ['Visual Studio Code', 'Visual Studio', 'Android Studio', 'Git'],
+  },
+  {
+    /* Riga dedicata e separata da "Ambienti": è la lista che Vlad vuole
+       poter allungare più spesso di tutte le altre, quindi ha un posto suo
+       invece di essere mescolata a editor/IDE che non cambiano quasi mai. */
+    label: 'Strumenti AI',
+    items: ['Claude Code', 'Antigravity'],
   },
   {
     label: 'Corsi completati',
