@@ -70,14 +70,29 @@ import { SITE } from '../lib/site';
       <div class="jr__idx">
         <SectionIndex n="02" label="Percorso" />
       </div>
-      <div class="jr__head">
+      {/* `data-activate` sul contenitore e `data-split` sul titolo: mai sullo
+          stesso elemento (vedi reveal.ts). Da qui le classi governano in CSS
+          l'ingresso della lede e l'accensione delle sue parole chiave. */}
+      <div class="jr__head" data-activate>
         <h2 class="jr__title" data-split="lines">
-          In ordine, ma non in fila: studio e lavoro si sovrappongono.
+          Niente curriculum impolverati in formato europeo, te lo prometto.
         </h2>
+        {/* Testo dettato da Vlad (2026-08-14), parola per parola.
+            ⚠ Le parole d'accento NON sono "nottate": quella parola è già
+            accesa nella fascia del metodo poco sopra, sulla stessa pagina, e
+            vederla in viola due volte a mezzo schermo di distanza legge come
+            una ripetizione involontaria. Marcate invece le due che dicono di
+            cosa parla l'elenco. */}
+        <p class="jr__lede">
+          Ecco le <strong class="jr__key" style="--i: 0">tappe fondamentali</strong> – tra
+          nottate passate a studiare e prime vere <strong class="jr__key" style="--i: 1"
+            >vittorie sul campo</strong
+          > – che mi hanno portato a essere chi sono oggi:
+        </p>
       </div>
       {/* Wrapper e non `class` sul componente: vedi la nota in Timeline.astro. */}
       <div class="jr__tl">
-        <Timeline entries={TIMELINE} />
+        <Timeline entries={TIMELINE} closing />
       </div>
     </div>
   </section>
@@ -251,10 +266,100 @@ import { SITE } from '../lib/site';
   }
 
   .jr__title {
-    max-width: 22ch;
+    /* 28ch e non 22: il titolo nuovo è di 64 caratteri contro i 58 del
+       precedente, e a 22ch cadeva su quattro righe con "prometto." orfana
+       sull'ultima — lo stesso difetto già misurato e corretto sull'h1 della
+       hero. A 28ch sta su tre righe piene a 1440. */
+    max-width: 28ch;
     font-size: var(--text-h2);
     line-height: 1.05;
     letter-spacing: -0.025em;
+  }
+
+  /* La lede sotto il titolo: dice di cosa parla l'elenco che segue. */
+  .jr__lede {
+    margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+    max-width: 52ch;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+  :global(html.js-anim) .jr__lede {
+    opacity: 0;
+    transform: translateY(0.5rem);
+    /* Entra DOPO il titolo: M1 spacca l'h2 in righe e le fa salire in ~1s
+       (0,9s + stagger). Un ritardo di 0,55s la fa arrivare mentre le ultime
+       righe si stanno posando, senza aspettare che finiscano del tutto —
+       che sarebbe una pausa, non una sequenza. */
+    transition:
+      opacity 700ms var(--ease-out-expo) 550ms,
+      transform 700ms var(--ease-out-expo) 550ms;
+  }
+  :global(html.js-anim) .jr__head.is-in .jr__lede {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ---- Le parole chiave della lede ---------------------------------------
+     ⚠ GESTO DIVERSO da quello della fascia del metodo (`.ap__key`), che sta
+     sulla STESSA pagina poco sopra: lì le parole si ACCENDONO con un alone
+     che scavalca il colore finale, qui si accendono e ricevono un FILETTO
+     che si tira sotto. Ripetere lo stesso effetto due volte in una pagina lo
+     avrebbe fatto leggere come un tic invece che come un dispositivo.
+     ⚠ E non è solo gusto: l'alone di `.ap__key` vive su un testo da 42px,
+     dove un `text-shadow` sfumato si legge come luce. Qui il corpo è 16-19px
+     e lo stesso alone sarebbe solo una sbavatura — a questa taglia serve un
+     segno netto, non una diffusione. */
+  .jr__key {
+    position: relative;
+    font-weight: 500;
+    /* Stato finale: è anche quello del ramo senza JS e di reduced-motion. */
+    color: var(--color-accent);
+  }
+  .jr__key::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.15em;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform-origin: left;
+  }
+
+  /* Nel ramo animato partono spente — dello stesso grigio del testo intorno,
+     mai invisibili: è l'invariante di M14 (la pausa trattiene colore, non
+     informazione). */
+  :global(html.js-anim) .jr__key {
+    color: var(--color-text-2);
+    transition: color 500ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .jr__key::after {
+    transform: scaleX(0);
+    transition: transform 600ms var(--ease-out-expo);
+  }
+  /* ⚠ Ancorate a `is-in` con un RITARDO, non a `is-on`: è la stessa lezione
+     costata un giro sulla fascia del metodo (vedi Approach.astro). Due
+     soglie di scroll vicine si sovrappongono per chi scorre veloce e restano
+     separate per sempre per chi si ferma; qui l'ordine deve valere sempre.
+     1,35s = il reveal del titolo (~1s) più la lede che entra a 0,55s, così
+     le parole si accendono su una frase già arrivata e ferma. */
+  :global(html.js-anim) .jr__head.is-in .jr__key {
+    color: var(--color-accent);
+    transition-delay: calc(1350ms + var(--i, 0) * 180ms);
+  }
+  :global(html.js-anim) .jr__head.is-in .jr__key::after {
+    transform: scaleX(1);
+    transition-delay: calc(1350ms + var(--i, 0) * 180ms);
+  }
+
+  /* Salto d'ancora o tasto Fine: stato finale senza attesa. Deve restare DOPO
+     le regole di `is-in`, che hanno la stessa specificità. */
+  :global(html.js-anim) .jr__head.is-instant .jr__lede,
+  :global(html.js-anim) .jr__head.is-instant .jr__key,
+  :global(html.js-anim) .jr__head.is-instant .jr__key::after {
+    transition-duration: 0s;
+    transition-delay: 0s;
   }
 
   .jr__tl {

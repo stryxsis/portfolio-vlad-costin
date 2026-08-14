@@ -40,7 +40,24 @@ const { entry, showYear = true, compact = false } = Astro.props;
    "da / a", ed è ciò che rende il percorso leggibile da una macchina. */
 const { from, to } = periodParts(entry.from, entry.to);
 
-const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
+const KIND_LABEL = {
+  studio: 'Studio',
+  lavoro: 'Lavoro',
+  bivio: 'Bivio',
+  traguardo: 'Traguardo',
+} as const;
+
+/**
+ * `bivio` e `traguardo` sono MOMENTI, non periodi (vedi `kind` in lib/types.ts).
+ *
+ * ⚠ Senza questo, il ramo `to ? … : "in corso"` qui sotto avrebbe scritto
+ * «giu 2024 — in corso» sotto una decisione presa e finita in un pomeriggio:
+ * l'assenza di `to` significa "non è ancora finita" SOLO per un periodo, e per
+ * un momento non significa niente. Un difetto che si legge come un errore di
+ * dati, non come un errore di rendering — cioè il tipo che fa dubitare del
+ * contenuto invece che del codice.
+ */
+const momento = entry.kind === 'bivio' || entry.kind === 'traguardo';
 ---
 
 <li
@@ -67,12 +84,20 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
       <span class="tli__sep" aria-hidden="true"></span>
       <span class="tli__dates">
         <time datetime={from.iso}>{from.label}</time>
-        <span class="tli__dash" aria-hidden="true">—</span>
         {
-          to ? (
-            <time datetime={to.iso}>{to.label}</time>
-          ) : (
-            <span class="tli__now">in corso</span>
+          /* Un momento porta la sola data: niente trattino e niente "in
+             corso" — vedi la nota su `momento` in testa al file. */
+          !momento && (
+            <>
+              <span class="tli__dash" aria-hidden="true">
+                —
+              </span>
+              {to ? (
+                <time datetime={to.iso}>{to.label}</time>
+              ) : (
+                <span class="tli__now">in corso</span>
+              )}
+            </>
           )
         }
       </span>
@@ -158,6 +183,35 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
   .tli[data-kind='lavoro'] .tli__node {
     background-color: var(--color-hairline-strong);
   }
+
+  /* ⚠ IL BIVIO È UN ROMBO, e la forma fa un lavoro che il colore non può
+     fare: sul filo tutte le voci sono perline tonde, quindi un nodo ruotato
+     di 45° si legge come "qui è successo qualcos'altro" ancora prima di aver
+     letto l'etichetta. Vuoto dentro, perché un bivio non è una tappa
+     raggiunta ma un punto in cui si sceglie.
+     `transform` in CSS è sicuro qui: questo nodo non è animato da GSAP (il
+     divieto in CLAUDE.md riguarda `translate`/`scale`/`rotate` indipendenti
+     su elementi che GSAP tocca, e questo non lo tocca nessuno). */
+  .tli[data-kind='bivio'] .tli__node {
+    border-radius: 0;
+    transform: rotate(45deg);
+    border-color: var(--color-text-3);
+  }
+
+  /* Il traguardo porta un anello: il nodo pieno più un alone staccato dal
+     fondo canvas, così sul filo sembra un bersaglio centrato invece di una
+     perlina più grossa. Due `box-shadow` e nessun elemento in più.
+     ⚠ NIENTE ACCENTO: in questo sito l'accento significa "adesso" (vedi la
+     nota in testa al file), e un traguardo è per definizione già raggiunto.
+     A distinguerlo è la forma, non il colore. */
+  .tli[data-kind='traguardo'] .tli__node {
+    background-color: var(--color-text-2);
+    border-color: var(--color-text-2);
+    box-shadow:
+      0 0 0 3px var(--color-canvas),
+      0 0 0 4px var(--color-hairline-strong);
+  }
+
   .tli[data-current] .tli__node {
     border-color: var(--color-accent);
     background-color: var(--color-accent);
@@ -174,8 +228,19 @@ const KIND_LABEL = { studio: 'Studio', lavoro: 'Lavoro' } as const;
   .tli[data-kind='studio'] .tli__year {
     padding-left: clamp(1rem, 2.5vw, 2.75rem);
   }
+  /* ⚠ IL BIVIO RIENTRA DELLA METÀ ESATTA di `studio`, e non è una via di
+     mezzo scelta a occhio: le due tracce del racconto sono lavoro (a filo) e
+     studio (rientrato), e un bivio è il punto in cui non si è ancora né su
+     una né sull'altra. Metterlo a metà lo colloca letteralmente fra le due
+     strade che sta per scegliere. Il traguardo invece resta a filo come il
+     lavoro: è un esito, e sta sulla linea principale. */
+  .tli[data-kind='bivio'] .tli__body,
+  .tli[data-kind='bivio'] .tli__year {
+    padding-left: clamp(0.5rem, 1.25vw, 1.375rem);
+  }
   @media (min-width: 56.25rem) {
-    .tli[data-kind='studio'] .tli__year {
+    .tli[data-kind='studio'] .tli__year,
+    .tli[data-kind='bivio'] .tli__year {
       padding-left: 0;
     }
   }

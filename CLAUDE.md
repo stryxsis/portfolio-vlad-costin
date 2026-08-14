@@ -647,6 +647,44 @@ Verificato via CDP su profilo fresco, campioni ogni 200ms attraverso la comparsa
 
 ⚠ **Nota per chi debugga questa pagina da devtools**: `AnnouncementBanner.astro` e la hero di `/chi-sono` usano ENTRAMBI il prefisso di classe `ab`/`ab__*` (avviso banner l'uno, l'abbreviazione scelta per questa hero l'altro) — Astro li scopa correttamente con `data-astro-cid-*` diversi, quindi **non è un bug di rendering**, ma un `document.querySelector('.ab')` scritto a mano da console prende il PRIMO elemento in ordine di DOM, cioè l'avviso (renderizzato prima, dentro `.chrome`), non la sezione. Costato tempo proprio scrivendo la sonda CDP per questo fix — verificare sempre con un selettore più specifico (`section.ab`, `h1.ab__title`) quando si ispeziona questa pagina a mano.
 
+### /chi-sono §02 — la timeline: momenti, coda, e il titolo nuovo (2026-08-14)
+
+Quattro richieste di Vlad in un colpo. Il titolo e la lede sono **testo suo, dettato parola per parola**; i testi delle due voci nuove li ho **scritti io** su sua indicazione di contenuto (il bivio, il sito online) — se non lo convincono, sono da riscrivere.
+
+⚠ **`kind` HA ORA DUE FAMIGLIE, NON QUATTRO VALORI ALLA PARI**: `studio`/`lavoro` sono **periodi** (hanno una durata, possono essere `current`), `bivio`/`traguardo` sono **momenti** (un punto nel tempo, mai `to`, mai `current`). ⚠ La distinzione **non ha un campo suo** (`momento: true`) di proposito: sarebbe un secondo dato da tenere in sync con `kind` e libero di contraddirlo — `kind: 'bivio', momento: false` sarebbe compilabile e insensato. `TimelineItem` la deduce con una riga.
+
+⚠ **Senza quella deduzione il difetto era già lì e pronto**: il ramo `to ? … : "in corso"` avrebbe scritto «giu 2024 — **in corso**» sotto una decisione presa e conclusa in un pomeriggio. L'assenza di `to` significa "non è ancora finita" **solo per un periodo**; per un momento non significa niente. Si legge come un errore di *dati*, non di rendering — cioè quello che fa dubitare del contenuto invece che del codice.
+
+**Le due voci nuove**, entrambe `teaser: false` (il teaser della Home deve restare di tre voci in uno schermo — verificato: `.jt` misura ancora esattamente 900px):
+- **Il primo grande bivio** (giu 2024). Sta **prima** della laurea ed è tutto il senso della voce: tre mesi prima dell'iscrizione, col lavoro in Scic ancora in corso, cioè nel punto in cui le due strade erano davvero entrambe aperte. Dopo la laurea sarebbe il racconto di una decisione già presa.
+- **Il mio primo sito online** (ago 2026). Ultima voce, così il traguardo più recente chiude il racconto proprio dove comincia la coda tratteggiata.
+
+**Le forme dei nodi fanno un lavoro che il colore non può fare**: il bivio è un **rombo vuoto** (ruotato di 45°, `border-radius: 0`) — su un filo di perline tonde si legge come "qui è successo qualcos'altro" prima ancora dell'etichetta, e vuoto perché non è una tappa raggiunta ma un punto in cui si sceglie. Il traguardo è un **nodo con anello** (due `box-shadow`, zero elementi in più). ⚠ **Nessuno dei due usa l'accento**: in questo sito l'accento significa "adesso", e un traguardo è per definizione già raggiunto. Il bivio **rientra della metà esatta** di `studio`: le due tracce sono lavoro (a filo) e studio (rientrato), e un bivio è il punto in cui non si è ancora né su una né sull'altra.
+
+#### La coda — «vediamo cosa mi aspetta»
+
+Scelta da Vlad fra tre proposte, insieme al testo. ⚠ **Il testo NON porta i puntini di sospensione**, e non è una svista: lui ha scelto separatamente la frase *"Vediamo cosa mi aspetta…"* e la variante coi tre punti animati, e scriverli entrambi darebbe sei punti in fila. **I tre pallini che pulsano SONO i puntini di sospensione** — e in più fanno quello che i puntini di stampa non sanno fare: continuare.
+
+- ⚠ **`closing` è una prop esplicita con default `false`, e il teaser della Home non deve MAI accenderla**, per due ragioni indipendenti: direbbe una bugia (lì la lista è troncata da `limit`, non è la fine di niente) e aggiungerebbe altezza a una sezione che deve stare in uno schermo per reggere l'handoff M12. Esplicita e non dedotta da `!limit` perché dimenticarla è innocuo, accenderla per sbaglio rompe entrambe le cose.
+- ⚠ **`.tl__track` NON è un wrapper decorativo**: lo ScrollTrigger di M11b usa `el.parentElement` come trigger del proprio scrub (vedi `reveal.ts`). Senza, il trigger sarebbe `.tl`, che con la coda accesa include anche `.tl__end` — il filetto finirebbe di disegnarsi molto dopo l'ultima voce, con un tratto di corsa a vuoto.
+- ⚠ **Con la coda accesa lo sbordo del filetto va tolto** (`.tl--closing .tl__rail { bottom: 0 }`): i suoi 2,5rem di "coda che non si chiude" scenderebbero **sopra** il tratteggio, alla stessa x, e per quel tratto si vedrebbe un filo pieno stampato su uno tratteggiato. Lì il "non si chiude" non serve più a nessuno: a dire che il percorso continua ci pensa la coda, che è tutto il suo lavoro.
+- **`repeating-linear-gradient` e non `border: dashed`**: il tratteggio nativo non ha lunghezza né spaziatura controllabili e a 1px i browser lo rendono come una fila di puntini irregolari. Qui il passo è dichiarato (5px di tratto, 6px di vuoto).
+- **I tre punti pulsanti sono un'ECCEZIONE DICHIARATA** al divieto di loop infiniti — la stessa di `.tli__now` due file più in là e per la ragione identica: non annunciano un ingresso, descrivono uno stato ancora vero. Sfasati di 0,2s l'uno dall'altro, perché tre punti in fase sarebbero un unico lampeggio che legge come un errore di rendering.
+
+#### Il titolo nuovo e la lede
+
+⚠ **`max-width` del titolo da 22ch a 28ch**: il testo nuovo è di 64 caratteri contro i 58 del precedente, e a 22ch cadeva su quattro righe con **"prometto." orfana** sull'ultima — lo stesso difetto già misurato e corretto sull'h1 della hero.
+
+⚠ **Le parole d'accento della lede NON sono "nottate"**, benché sia la parola più forte della frase: è già accesa nella fascia del metodo mezzo schermo più su, **sulla stessa pagina**, e vederla in viola due volte legge come una ripetizione involontaria. Marcate invece `tappe fondamentali` e `vittorie sul campo`.
+
+⚠ **GESTO DIVERSO da `.ap__key`, e non solo per non ripetersi**: lì le parole si accendono con un alone che scavalca il colore finale, qui si accendono e ricevono un **filetto che si tira sotto**. La ragione tecnica è vincolante quanto quella estetica: l'alone di `.ap__key` vive su un testo da 42px, dove un `text-shadow` sfumato si legge come luce; qui il corpo è 19px e lo stesso alone sarebbe **solo una sbavatura**. A questa taglia serve un segno netto, non una diffusione.
+
+**Sequenza, ancorata a `is-in` con ritardi** (stessa lezione di Approach: due soglie di scroll vicine si sovrappongono per chi scorre veloce e restano separate per chi si ferma): titolo M1 → lede a +550ms → parole a +1350ms, sfalsate di 180ms. Misurato via CDP con scroll reale: parole grigie e filetti a `scaleX 0` fino a +1400ms, prima parola accesa a +1600, seconda a +1800, tutto risolto a +2000.
+
+⚠ **Difetto trovato nello screenshot e non nel codice**: nodo e testo della coda finivano nella colonna dell'anno (tratteggio a 80px invece che a 180, frase spezzata su tre righe dentro una colonna larga 40px). Causa: la `@media` che li ricolloca era scritta **prima** delle regole base — e **una media query non aggiunge specificità**, corollario già scritto in questo file a proposito dei blocchi reduce, ripetuto qui perché è la seconda volta che morde.
+
+Contrasti sui pixel dipinti: lede 7,92:1 · parole d'accento 5,70:1 · testo della coda 7,92:1. Nessun overflow a 390. `verify:anim` e `verify:stage` tutti i controlli superati.
+
 ### /chi-sono — la fascia del metodo, subito dopo la hero (2026-08-13)
 
 `Approach.astro`. Chiesta da Vlad come "Il Superpotere (La Filosofia e il Mindset)": ha proposto il concetto e poi **scelto lui la forma**, la *citazione pura* — «non ci sono colonne o griglie, solo una frase a tutto schermo (ma non altissima) che spezza il ritmo visivo», in grigio chiaro «per non urlare troppo». **Il testo è suo parola per parola** (`SITE.credo`): non riscriverlo senza chiedere.

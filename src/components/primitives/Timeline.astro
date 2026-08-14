@@ -44,25 +44,67 @@ interface Props {
    * assaggio, il racconto sta sulla pagina About.
    */
   compact?: boolean;
+  /**
+   * La coda tratteggiata con "Vediamo cosa mi aspetta" (vedi `.tl__end`).
+   *
+   * ⚠ DEFAULT `false`, E IL TEASER DELLA HOME NON DEVE MAI ACCENDERLA, per due
+   * ragioni indipendenti: (1) direbbe una bugia, perché lì la lista è troncata
+   * a `limit` e quella non è la fine di niente; (2) aggiungerebbe altezza a una
+   * sezione che deve stare in UNO schermo per reggere l'handoff M12. Esplicita
+   * e non dedotta da `!limit` proprio perché dimenticarla è innocuo, mentre
+   * accenderla per sbaglio rompe entrambe le cose.
+   */
+  closing?: boolean;
 }
-const { entries, limit, compact = false } = Astro.props;
+const { entries, limit, compact = false, closing = false } = Astro.props;
 const items = limit ? entries.slice(0, limit) : entries;
 ---
 
-<div class="tl">
-  <span class="tl__rail" data-rail aria-hidden="true"></span>
+<div class:list={['tl', closing && 'tl--closing']}>
+  {
+    /* ⚠ IL WRAPPER NON È DECORATIVO: lo ScrollTrigger di M11b usa
+       `el.parentElement` come trigger del proprio scrub (vedi reveal.ts).
+       Senza, il trigger sarebbe `.tl` — che con la coda accesa include anche
+       `.tl__end`, quindi il filetto finirebbe di disegnarsi molto dopo
+       l'ultima voce, con un tratto di corsa a vuoto. Con il wrapper il
+       trigger è esattamente la lista, che è ciò che il filetto misura. */
+  }
+  <div class="tl__track">
+    <span class="tl__rail" data-rail aria-hidden="true"></span>
 
-  <ol class="tl__list">
-    {
-      items.map((entry, i) => (
-        <TimelineItem
-          entry={entry}
-          showYear={items[i - 1]?.year !== entry.year}
-          compact={compact}
-        />
-      ))
-    }
-  </ol>
+    <ol class="tl__list">
+      {
+        items.map((entry, i) => (
+          <TimelineItem
+            entry={entry}
+            showYear={items[i - 1]?.year !== entry.year}
+            compact={compact}
+          />
+        ))
+      }
+    </ol>
+  </div>
+
+  {
+    closing && (
+      <div class="tl__end" data-activate>
+        <span class="tl__tail" aria-hidden="true" />
+        <span class="tl__end-node" aria-hidden="true" />
+        {/* I tre punti sono `aria-hidden` e NON stanno nel testo: a voce
+            resta "Vediamo cosa mi aspetta", una frase compiuta. Dei
+            puntini di sospensione letti da uno screen reader non
+            aggiungono niente, e tre pallini animati men che meno. */}
+        <p class="tl__end-text">
+          Vediamo cosa mi aspetta
+          <span class="tl__dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        </p>
+      </div>
+    )
+  }
 </div>
 
 <style>
@@ -72,13 +114,19 @@ const items = limit ? entries.slice(0, limit) : entries;
   .tl {
     --tl-year-col: 0rem;
     --tl-rail-col: 1.5rem;
-    position: relative;
   }
   @media (min-width: 56.25rem) {
     .tl {
       --tl-year-col: 10rem;
       --tl-rail-col: 2.5rem;
     }
+  }
+
+  /* Il `position: relative` è sceso da `.tl` a qui insieme al wrapper: è
+     questo il blocco contenitore del filetto assoluto, e deve contenere la
+     sola lista (vedi la nota nel markup). */
+  .tl__track {
+    position: relative;
   }
 
   .tl__rail {
@@ -94,6 +142,14 @@ const items = limit ? entries.slice(0, limit) : entries;
     background-color: var(--color-hairline);
     transform-origin: top;
   }
+  /* ⚠ Con la coda accesa quello sbordo va tolto: il filo continuo scenderebbe
+     2,5rem SOPRA il tratteggio, alla stessa x, e per quel tratto si vedrebbe
+     un filo pieno stampato sopra uno tratteggiato. Qui il "non si chiude" non
+     serve più a nessuno — a dire che il percorso continua ci pensa la coda,
+     che è tutto il suo lavoro. */
+  .tl--closing .tl__rail {
+    bottom: 0;
+  }
   /* Senza JS il filetto è già disegnato. Con JS parte da zero e lo disegna lo
      scroll (M11b in src/scripts/reveal.ts). */
   :global(html.js-anim) .tl__rail {
@@ -104,5 +160,154 @@ const items = limit ? entries.slice(0, limit) : entries;
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  /* ---- LA CODA: il percorso non finisce, smette di essere scritto ---------
+     Scelta da Vlad fra tre proposte (2026-08-14), insieme al testo.
+     ⚠ IL TESTO NON PORTA I PUNTINI DI SOSPENSIONE, e non è una svista: lui
+     ha scelto "Vediamo cosa mi aspetta…" da un elenco e, separatamente, la
+     variante con i tre punti animati. Scriverli entrambi darebbe sei punti in
+     fila. I tre pallini che pulsano SONO i puntini di sospensione, e in più
+     fanno quello che i puntini di stampa non possono fare: continuare. */
+  .tl__end {
+    display: grid;
+    grid-template-columns: var(--tl-rail-col) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  /* Il tratto tratteggiato che continua il filetto. Sta in griglia (non in
+     assoluto) così cade da solo nella colonna del filo, alla stessa x dei
+     nodi — la coordinata arriva dalle stesse custom property, quindi non
+     può divergere. */
+  .tl__tail {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    width: 1px;
+    height: clamp(3.5rem, 7vw, 5.5rem);
+    /* ⚠ `repeating-linear-gradient` e non `border-left: dashed`: il tratteggio
+       nativo non ha lunghezza né spaziatura controllabili, e a 1px di larghezza
+       i browser lo rendono come una fila di puntini irregolari. Qui il passo è
+       dichiarato: 5px di tratto, 6px di vuoto. */
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--color-hairline) 0 5px,
+      transparent 5px 11px
+    );
+    /* Si disegna dall'alto quando la coda entra in vista, come il filetto
+       vero sopra di lei — ma one-shot, non in scrub: qui non c'è niente da
+       accompagnare, è solo l'ultimo respiro del filo. */
+    transform-origin: top;
+  }
+  :global(html.js-anim) .tl__tail {
+    transform: scaleY(0);
+    transition: transform 700ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .tl__end.is-in .tl__tail {
+    transform: scaleY(1);
+  }
+
+  /* Nodo VUOTO, e non pieno come quelli delle voci: quelle sono tappe
+     raggiunte, questa è quella che deve ancora arrivare. */
+  .tl__end-node {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px dashed var(--color-hairline-strong);
+    border-radius: 50%;
+  }
+
+  .tl__end-text {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* `text-2` e non `text-3`: mono da 11-12px, e `text-3` sul canvas nero è
+       sotto AA (difetto noto di palette, vedi CLAUDE.md). */
+    color: var(--color-text-2);
+  }
+  :global(html.js-anim) .tl__end-text {
+    opacity: 0;
+    transform: translateY(0.4rem);
+    transition:
+      opacity 600ms var(--ease-out-expo) 420ms,
+      transform 600ms var(--ease-out-expo) 420ms;
+  }
+  :global(html.js-anim) .tl__end.is-in .tl__end-text {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ⚠ QUESTO BLOCCO DEVE STARE DOPO le regole base di `.tl__tail`,
+     `.tl__end-node` e `.tl__end-text`, e la prima stesura lo aveva PRIMA:
+     una media query NON aggiunge specificità (corollario già scritto in
+     CLAUDE.md a proposito dei blocchi reduce), quindi le regole base che
+     seguivano vincevano e nodo e testo restavano nella colonna dell'anno —
+     il filetto tratteggiato a 80px invece che a 180, e la frase spezzata su
+     tre righe dentro una colonna larga 40px. Visto nello screenshot. */
+  @media (min-width: 56.25rem) {
+    .tl__end {
+      grid-template-columns: var(--tl-year-col) var(--tl-rail-col) minmax(0, 1fr);
+    }
+    /* La prima colonna resta vuota: la coda non ha un anno, e non
+       inventargliene uno è esattamente il punto. */
+    .tl__tail,
+    .tl__end-node {
+      grid-column: 2;
+    }
+    .tl__end-text {
+      grid-column: 3;
+    }
+  }
+
+  .tl__dots {
+    display: inline-flex;
+    gap: 0.3rem;
+  }
+  .tl__dots i {
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 50%;
+    background-color: var(--color-text-3);
+    /* ⚠ ECCEZIONE DICHIARATA alla regola "ogni animazione una volta sola",
+       ed è la STESSA di `.tli__now` due file più in là, per la ragione
+       identica: il loop qui non annuncia un ingresso, descrive uno stato che
+       resta vero finché lo guardi ("non è ancora finita"). Un puntino di
+       sospensione fermo dice la stessa cosa in modo più debole.
+       ⚠ Nessun gate su `html.js-anim`: è `animation` CSS pura e la regola
+       globale di `global.css` sotto `prefers-reduced-motion` la ferma da
+       sola — per un pulsare "una sola iterazione" è la cosa giusta, al
+       contrario di uno scorrimento. */
+    animation: tl-dots 1.5s ease-in-out infinite;
+  }
+  /* Lo sfasamento fa correre l'onda da sinistra a destra: tre punti in fase
+     sarebbero un unico lampeggio, che legge come un errore di rendering. */
+  .tl__dots i:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .tl__dots i:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes tl-dots {
+    50% {
+      opacity: 0.25;
+      transform: translateY(-0.15rem);
+    }
+  }
+
+  /* Chi arriva qui con un salto non ha visto cominciare niente: stato finale
+     senza attesa (stessa regola di `is-instant` ovunque nel sito). */
+  :global(html.js-anim) .tl__end.is-instant .tl__tail,
+  :global(html.js-anim) .tl__end.is-instant .tl__end-text {
+    transition-duration: 0s;
+    transition-delay: 0s;
   }
 </style>

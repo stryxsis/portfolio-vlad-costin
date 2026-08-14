@@ -11,7 +11,23 @@ export interface TimelineEntry {
    *  due campi diversi divergerebbe alla prima modifica distratta. */
   from: string;
   to?: string;
-  kind: 'studio' | 'lavoro';
+  /**
+   * ⚠ DUE FAMIGLIE, NON QUATTRO VALORI ALLA PARI (dal 2026-08-14):
+   *
+   *   `studio` | `lavoro`    PERIODI. Hanno una durata, quindi possono avere
+   *                          un `to` o essere `current`. Sono le due tracce
+   *                          che si intrecciano, ed è per questo che `studio`
+   *                          è rientrato rispetto a `lavoro`.
+   *   `bivio` | `traguardo`  MOMENTI. Sono un punto nel tempo: niente `to`,
+   *                          mai `current`, e `TimelineItem` stampa la sola
+   *                          data invece dell'intervallo.
+   *
+   * La distinzione NON ha un campo suo (`momento: true`) di proposito: sarebbe
+   * un secondo dato da tenere in sync con `kind`, libero di contraddirlo — un
+   * `kind: 'bivio', momento: false` sarebbe compilabile e insensato. Qui la
+   * forma è DEDOTTA dal tipo, che è l'unica cosa che la determina davvero.
+   */
+  kind: 'studio' | 'lavoro' | 'bivio' | 'traguardo';
   role: string;
   org: string;
   place?: string;
