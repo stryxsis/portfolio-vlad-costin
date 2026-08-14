@@ -96,35 +96,45 @@ import { SITE } from '../lib/site';
        il sito per centrare il contenuto di una sezione a schermo intero
        (Statement, WhatIDo, JourneyTeaser, CTASection…), qui applicata a una
        pagina che non passa per un Handoff M12.
-       Il padding-top resta: riserva lo spazio della navbar fissa, che sta
-       FUORI dal flusso e quindi non lo farebbe da sola.
+       Il padding-top riserva lo spazio della navbar fissa, che sta FUORI dal
+       flusso e quindi non lo farebbe da sola.
 
-       ⚠ `--chrome-shift` VA TENUTO, e toglierlo È STATO PROVATO E SCARTATO
-       (2026-08-14): senza, quando compare l'avviso "cantiere aperto" il
-       padding non cresce ma `.idx` (sticky, si àncora a `--chrome-shift` per
-       conto suo in SectionIndex.astro) sì — verificato via CDP: l'indice
-       scivola giù fino a scavalcare il titolo, `idx.bottom` (216px) oltre
-       `h1.top` (166px), overlap VERO e PERSISTENTE per tutta la durata in
-       cui l'avviso resta a schermo, non un istante di transizione. Serve
-       che il padding cresca CON lui.
+       ⚠⚠ NIENTE `--chrome-shift` QUI DENTRO, ED È UNA REGOLA, NON UNA
+       TARATURA (2026-08-14, richiesta esplicita e ripetuta di Vlad:
+       «l'avviso non deve essere un elemento che influenza il sito»).
+       L'avviso "cantiere aperto" è chrome `position: fixed`: sovrapporsi al
+       contenuto è ciò che fa un banner, spingerlo giù no. Sommando
+       `--chrome-shift` al padding, la hero si allungava di 97px alla sua
+       comparsa e il corpo della pagina scendeva con lei.
 
-       ⚠ QUELLO CHE MANCAVA NON ERA IL RIADATTAMENTO, ERA LA TRANSIZIONE.
-       Segnalato da Vlad («quando spunta l'avviso la hero si riadatta»):
-       misurato via CDP a campioni di 200ms, `padding-top` passava da 108px
-       a 205px in un frame solo — zero fotogrammi intermedi, uno scatto.
-       `SectionIndex.astro` anima lo stesso `--chrome-shift` con una
-       `transition` sugli stessi token (`--chrome-t`/`--chrome-e`, 520ms,
-       gli stessi dell'avviso che spinge la navbar): qui mancava quella
-       riga, quindi la sezione saltava mentre tutto il resto — navbar,
-       indice — scivolava. Aggiunta, il corpo ora si sposta in UN gesto
-       coordinato con la spinta della chrome, non in uno scatto seguito da
-       uno scivolamento. */
+       ⚠ IL TENTATIVO INTERMEDIO — tenere lo spostamento e AMMORBIDIRLO con
+       una `transition` — È STATO BOCCIATO DA VLAD, giustamente: il difetto
+       non era la brutalità del salto, era il salto. Una transizione lo
+       rendeva solo più lento da guardare. Non riproporla.
+
+       ⚠ E TOGLIERE IL PADDING NON BASTA DA SOLO: `.idx` è `position: sticky`
+       e si àncora a `--chrome-shift` per conto proprio dentro
+       SectionIndex.astro, quindi con l'avviso aperto continuava a scendere
+       finché non scavalcava il titolo (misurato: `idx.bottom` 216px contro
+       `h1.top` 166px). Il fix è in DUE punti — questo, e lo sticky
+       disattivato qui sotto. */
     min-height: 100svh;
     display: grid;
     align-content: center;
-    padding-top: calc(var(--nav-h) + var(--chrome-shift, 0px) + clamp(1.5rem, 4vh, 3rem));
+    padding-top: calc(var(--nav-h) + clamp(1.5rem, 4vh, 3rem));
     padding-bottom: clamp(1.5rem, 4vh, 3rem);
-    transition: padding-top var(--chrome-t, 0ms) var(--chrome-e, linear);
+  }
+
+  /* ⚠ SECONDA METÀ DEL FIX QUI SOPRA, identica a quella già in `404.astro` e
+     per la ragione identica. `SectionIndex` è sticky perché serve ad
+     accompagnare la lettura di sezioni ALTE, che si attraversano scorrendo;
+     questa hero è alta uno schermo e non si attraversa, quindi non c'è
+     niente da accompagnare. Ma il suo ancoraggio (`--nav-h` +
+     `--chrome-shift` + 1.5rem) con l'avviso aperto cade PIÙ IN BASSO della
+     sua posizione naturale in griglia, e lo sticky lo spinge giù addosso al
+     titolo. Statico, l'avviso non lo tocca più. */
+  .ab :global([data-section-index]) {
+    position: static;
   }
 
   .ab__wrap,

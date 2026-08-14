@@ -23,9 +23,14 @@
  * dimentica un overlay di debug, non quando lo si è disegnato apposta.
  * Sostituito con un BLOB SFOCATO (vedi `.ap::before` più sotto): `filter:
  * blur()` non ha mai uno stop geometrico definito, quindi non può produrre
- * un bordo — il difetto che il gradiente aveva per costruzione. Anche la
- * soglia d'accensione delle parole è cambiata nello stesso giro, vedi
- * `data-on` più sotto.
+ * un bordo — il difetto che il gradiente aveva per costruzione.
+ *
+ * ⚠ QUARTO GIRO, il giorno dopo: le parole «spuntavano già in viola», cioè
+ * la loro accensione non si vedeva mai. Il terzo giro l'aveva agganciata a
+ * una seconda soglia di scroll troppo vicina alla prima, e le due battute si
+ * sovrapponevano invece di succedersi. Ora la sequenza è nel TEMPO: le righe
+ * salgono, e ~1,2s dopo le parole si accendono a scaglioni. Tutto in
+ * `.ap__key` più sotto, con il perché per esteso.
  *
  * ⚠ NIENTE NUMERO D'INDICE, ed è la regola del sito applicata, non una
  * dimenticanza: `SectionIndex.astro` dichiara che le sezioni statement non
@@ -133,17 +138,18 @@ if (import.meta.env.DEV) {
      ⚠ E la sezione NON porta `data-reveal`: i due non vanno mai insieme
      (vedi reveal.ts), o il fade generico di M4 coprirebbe l'accensione.
 
-     ⚠ `data-on="72"`: soglia PROPRIA per l'accensione, chiesta da Vlad il
-     giorno stesso — «non quando la sezione si trova a metà schermo ma
-     quando si trova a metà della parte bassa dello schermo». Metà della
-     metà inferiore (50-100%) è 75%; 72 la anticipa di un soffio perché
-     l'accensione a scaglioni impiega ~950ms (tre parole × 160ms + gli
-     620ms della più tardiva) a risolversi, e deve poter FINIRE mentre la
-     fascia è ancora comoda da leggere, non cominciare a fascia già quasi
-     a mezzo schermo. Il default resta 40 per tutti gli altri consumer di
-     M14 (`.wid__clauses`) — vedi `data-on` in reveal.ts. */
+     ⚠ USA SOLO `is-in`, NON `is-on`, e c'è una storia dietro. Vlad aveva
+     chiesto l'accensione più presto («non a metà schermo ma a metà della
+     parte bassa»), e la prima risposta era stata una soglia propria
+     (`data-on="72"`, un parametro nuovo in reveal.ts). Sbagliata: a 72% la
+     seconda soglia cade 90px di scroll dopo la prima, cioè MENTRE le righe
+     stanno ancora salendo, e le parole arrivavano già viola. Il problema
+     non era DOVE scattava la seconda battuta ma QUANDO — vedi la nota sul
+     ritardo in `.ap__key` più sotto. `data-on` è stato quindi rimosso da
+     reveal.ts insieme a questo attributo: era vocabolario nuovo aggiunto
+     per una soluzione che non serviva. */
 }
-<section class="ap theme-slate" {id} data-activate data-on="72">
+<section class="ap theme-slate" {id} data-activate>
   <div class="ap__wrap">
     {
       /* `data-split="lines"` (M2) sull'h2 e `data-activate` sulla sezione:
@@ -305,12 +311,43 @@ if (import.meta.env.DEV) {
     text-shadow: 0 0 0.6em transparent;
   }
 
-  :global(html.js-anim) .ap.is-on .ap__key {
+  /* ⚠ ANCORATA A `is-in` E RITARDATA NEL TEMPO, NON A UNA SECONDA SOGLIA DI
+     SCROLL — ed è il fix di un difetto vero, segnalato da Vlad il
+     2026-08-14: «la frase spunta già con le parole in viola, prima aveva
+     un'animazione, dove è finita?».
+
+     La causa: l'accensione era gated su `is-on`, che con `data-on="72"`
+     scattava appena 90px di scroll dopo la soglia del reveal delle righe
+     (M1, `clamp(top 82%)`). Ma quel reveal DURA 1,06s (0,9s + 0,08 di
+     stagger × 2 righe): 90px di scroll si attraversano in una frazione di
+     secondo, quindi le parole si accendevano MENTRE le righe stavano ancora
+     salendo — cioè la frase arrivava a viola già fatto e l'accensione non
+     la vedeva nessuno. L'animazione non era sparita: era coperta da quella
+     che doveva precederla.
+
+     ⚠ E LA DISTANZA DI SCROLL NON PUÒ RISOLVERLO, per quanto la si allarghi:
+     due eventi separati da spazio si sovrappongono comunque a chi scorre
+     veloce, e restano separati all'infinito per chi si ferma. Vlad ha
+     chiesto un ordine nel TEMPO («prima la frase, dopo qualche decimo di
+     secondo le parole»), e il tempo si misura con un ritardo.
+
+     ⚠ Questo NON contraddice la nota di M14 in CLAUDE.md ("la pausa non è
+     un delay, è la distanza fra le due soglie"). Quella riguarda
+     `.wid__clauses`: un blocco ALTO, che si attraversa scorrendo, dove un
+     timer fisso farebbe finire l'ultima riga quando il lettore è già oltre.
+     Qui il blocco è alto 416px, sta tutto in uno schermo e non si
+     attraversa: chi lo guarda è fermo davanti, e l'unica cosa che scorre è
+     il tempo. Il criterio non è "delay o soglia" ma "il lettore sta
+     attraversando o guardando". */
+  :global(html.js-anim) .ap.is-in .ap__key {
     animation: ap-accendi 620ms var(--ease-out-expo) forwards;
-    /* Lo scaglione. `--i` arriva dal markup (vedi il commento su Frammento):
-       160ms sono quanto basta a leggere tre battute distinte senza che la
-       terza arrivi quando lo sguardo è già andato oltre. */
-    animation-delay: calc(var(--i, 0) * 160ms);
+    /* 1,2s = i 1,06s del reveal delle righe + un paio di decimi di stacco,
+       cioè "dopo qualche decimo di secondo" preso alla lettera. Ritoccando
+       la durata o lo stagger di M1 in reveal.ts, va ritoccato con loro.
+       Lo scaglione fra le parole: `--i` arriva dal markup (vedi il commento
+       su Frammento), 150ms sono quanto basta a leggere tre battute distinte
+       senza che la terza arrivi quando lo sguardo è già andato oltre. */
+    animation-delay: calc(1200ms + var(--i, 0) * 150ms);
   }
 
   /* ⚠ L'accensione è un'ANIMAZIONE con un fotogramma intermedio e non una
@@ -345,6 +382,9 @@ if (import.meta.env.DEV) {
     animation-duration: 0s;
     animation-delay: 0s;
   }
+  /* ⚠ `is-instant` deve vincere anche sulla regola di `is-in` qui sopra, che
+     ha la stessa specificità: decide l'ordine nel file, quindi questo blocco
+     deve restare DOPO. Stessa trappola già documentata per il muro di §04. */
   :global(html.js-anim) .ap.is-instant::before {
     transition-duration: 0s;
   }

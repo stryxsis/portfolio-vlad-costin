@@ -25,20 +25,23 @@
  *                           marca `.wid__clauses` (le due battute complete),
  *                           `.wid__title` (solo `is-in`, per lo squiggle),
  *                           `.sp__logos` (solo `is-in`, ingresso riga +
- *                           accensione loghi su touch) e `.ap` (solo `is-in`
- *                           per l'alone, `is-on` con soglia propria per le
- *                           parole d'accento — vedi `data-on` qui sotto).
- *                           `is-in` resta fissa a 80%: nessun consumer ha mai
- *                           chiesto di spostarla, e finché è così va lasciata
- *                           un default condiviso invece che un secondo
- *                           attributo mai usato.
- *                           `is-on` invece ammette un `data-on="NN"` opzionale
- *                           (percentuale, default 40) per lo stesso motivo
- *                           per cui esiste `data-i-offset` in M15: un secondo
- *                           consumer con un'esigenza diversa era il segnale
- *                           che il valore andava reso un parametro invece di
- *                           restare inchiodato nel modulo condiviso. Chi non
- *                           lo scrive ottiene lo stesso 40% di sempre.
+ *                           accensione loghi su touch) e `.ap` (solo `is-in`,
+ *                           alone + accensione delle parole).
+ *                           ⚠ Le due soglie sono FISSE (80% e 40%) e un
+ *                           `data-on="NN"` per parametrizzare la seconda è
+ *                           stato aggiunto e poi RIMOSSO nello stesso giorno
+ *                           (2026-08-14). Serviva a far accendere prima le
+ *                           parole di `.ap`, e non funzionava: avvicinando la
+ *                           seconda soglia alla prima, le due battute si
+ *                           sovrappongono invece di succedersi — 90px di
+ *                           scroll si attraversano in una frazione di
+ *                           secondo, mentre l'animazione che devono seguire
+ *                           dura un secondo pieno. Quando due battute devono
+ *                           stare in ORDINE, la leva è un ritardo nel CSS del
+ *                           componente, non una soglia più vicina qui: vedi
+ *                           `.ap__key` in Approach.astro. Se un giorno
+ *                           riservisse davvero, il problema da risolvere è
+ *                           quasi certamente un altro.
  *
  * ⚠ `data-activate` NON VA MAI COMBINATO CON `data-reveal` SULLO STESSO
  * ELEMENTO. Costato un bug reale, due volte: se condividono la soglia
@@ -487,12 +490,6 @@ export function initReveal(): void {
        generico torna a nascondere tutto da capo. */
     const activatable = Array.from(document.querySelectorAll<HTMLElement>('[data-activate]'));
 
-    /* `data-on="NN"` opzionale: soglia `is-on` in percentuale di viewport dal
-       top, default 40 (il valore che ogni consumer aveva finora). Vedi la
-       nota su M14 in testa al file per il perché è un parametro e non una
-       seconda costante. */
-    const onThreshold = (el: HTMLElement): number => Number(el.dataset.on ?? 40);
-
     if (activatable.length > 0) {
       /* Controllo di STATO, non di evento, per gli stessi scenari di
          `sweepPassed`: salto d'ancora, tasto Fine, ripristino della posizione
@@ -506,7 +503,7 @@ export function initReveal(): void {
           const r = el.getBoundingClientRect();
           if (r.bottom < 0) el.classList.add('is-instant', 'is-in', 'is-on');
           if (r.top < window.innerHeight * 0.8) el.classList.add('is-in');
-          if (r.top < window.innerHeight * (onThreshold(el) / 100)) el.classList.add('is-on');
+          if (r.top < window.innerHeight * 0.4) el.classList.add('is-on');
         }
       };
 
@@ -547,7 +544,7 @@ export function initReveal(): void {
         });
         ScrollTrigger.create({
           trigger: el,
-          start: `clamp(top ${onThreshold(el)}%)`,
+          start: 'clamp(top 40%)',
           onEnter: turnOn('is-on'),
           onEnterBack: turnOn('is-on'),
           onLeave: skipToEnd,
