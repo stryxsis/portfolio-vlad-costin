@@ -1,0 +1,263 @@
+---
+/**
+ * La card della vetrina in movimento nella hero di /portfolio.
+ *
+ * Ospita la "demo" di un sito o di un'app: uno screenshot vero quando c'è,
+ * altrimenti un wireframe disegnato. ⚠ Il wireframe NON è un ripiego grafico:
+ * è la stessa scelta già fatta per i reel di §30 in Home (vedi la nota su
+ * `REEL` in FeaturedProjects.astro). Un rettangolo grigio con dentro "coming
+ * soon" si legge come un difetto; un wireframe si legge come una scelta, e
+ * dichiara da solo di essere un segnaposto senza doverlo scrivere.
+ *
+ * ⚠ LE CARD SONO DRITTE, richiesta esplicita di Vlad (2026-08-14): il
+ * riferimento le ruota di ±2-5°, lui le vuole dritte. Non è solo gusto — le
+ * card storte hanno bisogno di margine attorno per non tagliarsi a vicenda, e
+ * in una fascia alta un terzo di schermo quel margine si mangia proprio
+ * l'altezza che serve a far vedere cosa c'è dentro.
+ *
+ * ⚠ NON SONO LINK, e la decisione va capita prima di cambiarla. Sono nella
+ * HERO, dove la navigazione vera è il bottone sotto il titolo e la griglia che
+ * arriva scorrendo; renderle cliccabili avrebbe portato dietro due problemi
+ * veri invece di un vantaggio: (1) metà sono segnaposto e non hanno una pagina
+ * dove andare, quindi la fascia avrebbe avuto card cliccabili e card no, senza
+ * niente che lo dichiari; (2) la copia del marquee è `aria-hidden`, e un
+ * `aria-hidden` che contiene elementi raggiungibili da tastiera è una
+ * violazione WCAG vera (`aria-hidden-focus`) — la stessa già risolta a mano
+ * nel muro di §04. Restando decorative, il problema non esiste.
+ */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+export interface Demo {
+  /** Nome del lavoro, in didascalia sotto lo schermo. */
+  titolo: string;
+  /** Cliente · anno, oppure "Segnaposto" quando non c'è ancora niente. */
+  meta: string;
+  /** Screenshot vero. Se manca si disegna il wireframe. */
+  shot?: ImageMetadata;
+  shotAlt?: string;
+  /** Quale delle ricette qui sotto usare per il segnaposto. */
+  wire?: number;
+  /**
+   * La forma dello schermo.
+   *
+   * ⚠ DUE FORMATI E NON UNO SOLO, ed è una deviazione VOLUTA dal riferimento
+   * (che usa `aspect-[3/4]` per tutte). Due ragioni, e la seconda è geometrica:
+   *   1. sono "demo di app e SITI": un sito desktop dentro un ritratto 3/4 si
+   *      vede per un terzo, e un'app dentro un formato largo galleggia in due
+   *      fasce vuote. La forma dello schermo È l'informazione — si capisce cosa
+   *      si sta guardando prima di leggere la didascalia;
+   *   2. otto rettangoli identici in fila sono un pattern, e un pattern che
+   *      scorre si legge come un caricamento. Larghezze diverse danno alla
+   *      fascia un ritmo.
+   * L'altezza resta la stessa per tutte: in una fascia orizzontale è quella la
+   * misura che deve allinearsi.
+   */
+  formato?: 'desktop' | 'mobile';
+}
+
+interface Props extends Demo {
+  /**
+   * La copia del marquee: stessa grafica, invisibile agli screen reader.
+   * ⚠ Senza, un lettore di schermo annuncerebbe sedici card in coppie
+   * identiche — il difetto che il riferimento ha e che il muro di §04 ha già
+   * dovuto correggere.
+   */
+  decorative?: boolean;
+}
+const {
+  titolo,
+  meta,
+  shot,
+  shotAlt,
+  wire = 0,
+  formato = 'desktop',
+  decorative = false,
+} = Astro.props;
+
+/**
+ * Le ricette del wireframe: blocchi impilati, ognuno con la propria altezza
+ * (in % dello schermo) e larghezza (in % della colonna utile).
+ *
+ * ⚠ QUATTRO E NON UNA, e non è vezzo: sette segnaposto identici in fila si
+ * leggono come un errore di rendering, non come sette lavori diversi ancora da
+ * caricare. È la stessa ragione per cui i nomi segnaposto delle testimonianze
+ * sono coppie NATO diverse invece di sette "[Nome Cognome]".
+ */
+type Blocco = { h: number; w: number; tone?: 'accent' | 'forte' };
+const RICETTE: Blocco[][] = [
+  /* 0 — una landing: barra, titolone, due righe, una fascia di contenuto */
+  [
+    { h: 5, w: 100, tone: 'forte' },
+    { h: 14, w: 78, tone: 'accent' },
+    { h: 4, w: 92 },
+    { h: 4, w: 64 },
+    { h: 26, w: 100, tone: 'forte' },
+    { h: 4, w: 88 },
+    { h: 4, w: 70 },
+    { h: 18, w: 100 },
+  ],
+  /* 1 — una dashboard: barra, tre tessere, una tabella */
+  [
+    { h: 5, w: 100, tone: 'forte' },
+    { h: 12, w: 100, tone: 'forte' },
+    { h: 12, w: 100, tone: 'accent' },
+    { h: 12, w: 100, tone: 'forte' },
+    { h: 4, w: 96 },
+    { h: 4, w: 96 },
+    { h: 4, w: 96 },
+    { h: 4, w: 72 },
+  ],
+  /* 2 — un'app: intestazione alta, elenco di righe */
+  [
+    { h: 18, w: 100, tone: 'accent' },
+    { h: 7, w: 100, tone: 'forte' },
+    { h: 7, w: 100, tone: 'forte' },
+    { h: 7, w: 100, tone: 'forte' },
+    { h: 7, w: 100, tone: 'forte' },
+    { h: 4, w: 80 },
+    { h: 4, w: 58 },
+  ],
+  /* 3 — un catalogo: barra, griglia fitta, poco testo */
+  [
+    { h: 5, w: 100, tone: 'forte' },
+    { h: 4, w: 54 },
+    { h: 20, w: 100, tone: 'forte' },
+    { h: 20, w: 100, tone: 'accent' },
+    { h: 20, w: 100, tone: 'forte' },
+    { h: 4, w: 66 },
+  ],
+];
+const blocchi = RICETTE[wire % RICETTE.length] ?? RICETTE[0]!;
+---
+
+<figure class:list={['dc', `dc--${formato}`]} aria-hidden={decorative ? 'true' : undefined}>
+  <div class="dc__screen">
+    {
+      shot ? (
+        /* `widths`/`sizes` perché la card è piccola: servire i 2752px
+           dell'originale per un riquadro da ~230px sarebbe il singolo
+           spreco di banda più grande della pagina. */
+        <Image
+          class="dc__shot"
+          src={shot}
+          alt={decorative ? '' : (shotAlt ?? '')}
+          widths={[340, 680]}
+          sizes="(min-width: 56.25rem) 320px, 220px"
+          loading="lazy"
+        />
+      ) : (
+        <div class="dc__wire" aria-hidden="true">
+          {blocchi.map((b) => (
+            <span
+              class:list={['dc__blk', b.tone && `dc__blk--${b.tone}`]}
+              style={`--h: ${b.h}%; --w: ${b.w}%`}
+            />
+          ))}
+        </div>
+      )
+    }
+  </div>
+
+  {/* La didascalia sta FUORI dallo schermo, non sovrapposta: sopra uno
+      screenshot vero servirebbe una velatura per essere leggibile, cioè uno
+      strato in più per risolvere un problema che basta non creare. */}
+  <figcaption class="dc__cap">
+    <span class="dc__titolo">{titolo}</span>
+    <span class="dc__meta">{meta}</span>
+  </figcaption>
+</figure>
+
+<style>
+  .dc {
+    /* La larghezza la detta l'altezza: in una fascia orizzontale è l'altezza
+       la misura vincolata, non la larghezza. */
+    flex: 0 0 auto;
+    width: calc(var(--dc-h) * var(--dc-ar));
+    margin: 0;
+    display: grid;
+    gap: 0.7rem;
+  }
+  /* 16/10 e non 16/9: un filo più alto legge come "finestra del browser"
+     invece che come "fotogramma di un video". */
+  .dc--desktop {
+    --dc-ar: 1.6;
+  }
+  /* Il rapporto di un telefono moderno (~19,5/9), non il 3/4 del riferimento:
+     è la forma che si riconosce come app senza doverla etichettare. */
+  .dc--mobile {
+    --dc-ar: 0.462;
+  }
+
+  .dc__screen {
+    position: relative;
+    height: var(--dc-h);
+    overflow: clip;
+    /* `--radius-frame` è il token dei "riquadri che mostrano qualcosa" (lo
+       stesso della vetrina di §30): una card che ospita uno schermo è
+       esattamente quel caso, non una card di contenuto (`--radius-card`). */
+    border-radius: var(--radius-frame);
+    border: 1px solid var(--color-hairline-strong);
+    background-color: var(--color-surface-1);
+  }
+
+  .dc__shot {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* `top` e non `center`: uno screenshot alto due schermate e mezzo,
+       centrato, mostrerebbe una fascia a caso di metà pagina. La testa di un
+       sito è la parte che lo rende riconoscibile. */
+    object-position: top center;
+  }
+
+  /* ---- Il wireframe del segnaposto -------------------------------------- */
+  .dc__wire {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4%;
+    padding: 7%;
+  }
+
+  .dc__blk {
+    flex: 0 0 auto;
+    height: var(--h);
+    width: var(--w);
+    border-radius: 0.2rem;
+    background-color: var(--color-hairline);
+  }
+  .dc__blk--forte {
+    background-color: var(--color-surface-2);
+  }
+  /* ⚠ Un solo blocco d'accento per ricetta, e molto smorzato: sono otto card
+     in fila, e otto blocchi viola pieni che passano sarebbero la cosa più
+     luminosa della hero — cioè il segnaposto che ruba la scena al titolo. */
+  .dc__blk--accent {
+    background-color: color-mix(in oklab, var(--color-accent) 34%, transparent);
+  }
+
+  /* ---- La didascalia ---------------------------------------------------- */
+  .dc__cap {
+    display: grid;
+    gap: 0.15rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.08em;
+  }
+  .dc__titolo {
+    color: var(--color-text-1);
+    text-transform: uppercase;
+    /* Un nome più lungo della card non deve allargarla: la larghezza della
+       card è una misura del marquee, non del contenuto. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dc__meta {
+    /* `text-2` e non `text-3`: mono da 11-12px sul canvas nero, dove `text-3`
+       è 4,19:1 — sotto AA (difetto noto di palette, vedi CLAUDE.md). */
+    color: var(--color-text-2);
+    text-transform: uppercase;
+  }
+</style>

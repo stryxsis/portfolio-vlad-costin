@@ -57,7 +57,17 @@ export function initStages(): void {
       const screen = document.querySelector<HTMLElement>(`[data-screen="${name}"]`);
       if (!screen) return;
 
-      gsap.to(screen, {
+      /* ⚠ LA SFOCATURA È OPT-IN (prop `blurOut` su Handoff), e il default resta
+         senza. `scale` e `opacity` stanno sul compositor — è la promessa "zero
+         paint per frame" scritta qui sopra, ed è vera. `filter: blur()` invece
+         è PAINT: su uno strato grande quanto la viewport si paga ad ogni
+         fotogramma della transizione. Accenderla ovunque significherebbe
+         pagarla sui quattro handoff della Home per un effetto che lì nessuno ha
+         chiesto. La usa oggi la sola hero di /portfolio, dove Vlad l'ha chiesta
+         esplicitamente. */
+      const conBlur = screen.dataset.screenBlur !== undefined;
+
+      const bersaglio: gsap.TweenVars = {
         scale: 0.96,
         autoAlpha: 0.45,
         // `none` è obbligatorio in scrub: un easing sopra una posizione già
@@ -73,14 +83,30 @@ export function initStages(): void {
           // su uno strato a schermo pieno costerebbe memoria di compositing per
           // tutta la vita della pagina, per guadagnare un frame una volta sola.
           onToggle: (self) => {
-            screen.style.willChange = self.isActive ? 'transform, opacity' : '';
+            screen.style.willChange = self.isActive
+              ? conBlur
+                ? 'transform, opacity, filter'
+                : 'transform, opacity'
+              : '';
           },
         },
-      });
+      };
+
+      /* ⚠ `fromTo` SOLO nel ramo con la sfocatura, `to` puro nell'altro — e la
+         divisione è deliberata: senza un valore di partenza esplicito GSAP
+         dovrebbe interpolare da `filter: none`, che non è un blur da zero ma
+         "nessun filtro", e il primo fotogramma può scattare. Il ramo senza blur
+         resta esattamente il `to` di prima, quindi la Home non cambia di una
+         virgola. */
+      if (conBlur) {
+        gsap.fromTo(screen, { filter: 'blur(0px)' }, { ...bersaglio, filter: 'blur(14px)' });
+      } else {
+        gsap.to(screen, bersaglio);
+      }
 
       cleanups.push(() => {
         screen.style.willChange = '';
-        gsap.set(screen, { clearProps: 'scale,opacity,visibility' });
+        gsap.set(screen, { clearProps: 'scale,opacity,visibility,filter' });
       });
     });
 

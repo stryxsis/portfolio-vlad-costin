@@ -801,6 +801,36 @@ Verificato con una sonda CDP dedicata (poi cancellata), scroll reale a increment
 
 Verificato via CDP con scroll reale, campioni ogni 100ms, `t0` = comparsa di `is-in`: righe in movimento da +0 a +700ms (scarto 37/55/60px → 0/0/0), parole **tutte grigie** per tutto quel tratto, accensione che comincia a **+1100ms** (400ms dopo che le righe si sono posate) e si completa a **+1900ms**, una parola dopo l'altra. Ordine corretto e visibile. Rami `is-instant`, reduced-motion e senza-JS verificati: parole già accese, nessuna attesa.
 
+### /portfolio §00 — la hero: il taglio del nastro (2026-08-14)
+
+`PortfolioHero.astro` + `DemoCard.astro`. Pill, titolone a due registri, lede, bottone, e una **fascia di card che scorre** in fondo. Sotto, la griglia dei lavori le sale sopra invece di scorrerle accanto.
+
+⚠ **QUESTO È M8, CHE È IN PAUSA — ed entra per lo stesso motivo della 404**: Vlad l'ha chiesta esplicitamente. Vale il precedente già scritto in cima a questo file: **una richiesta diretta su UN pezzo non revoca la pausa sugli altri.** `/contatti` resta fermo.
+
+⚠ **ORIGINE: un riferimento React portato da Vlad** (`AnimatedMarqueeHero`), **sesta volta**. Fuori `framer-motion`, `cn()`, `@/lib/utils`, `/components/ui`. Cosa è diventato ognuno dei suoi pezzi: `motion.div animate={{x}}` → una `@keyframes` che trasla di -50% su traccia duplicata (la tecnica del muro di §04); `FADE_IN_ANIMATION_VARIANTS` + `transition:{delay}` → animazioni CSS con `animation-delay` (il vocabolario di `hero-in-fade` della Home); `whileHover={{scale}}` → il `Button` primitivo, che ha già il suo riempimento; **`backdrop-blur-sm` sulla pill → tolto**, il backdrop-filter è vietato fuori dalla navbar.
+
+⚠ **LA SOLA PARTE DEL RIFERIMENTO CHE NON SI POTEVA PORTARE È LO STAGGER PER PAROLE SUL TITOLO**, e il motivo è tecnico: quello stagger è `opacity: 0 → 1` per parola, e questo è l'h1 sopra la piega, cioè il candidato LCP della pagina. **Ma il titolo non resta fermo**: `transform` e `filter: blur()` non escludono dal calcolo (è la stessa riga della regola LCP che permette l'ingresso del ritratto in Home), quindi arriva **sfocato e si mette a fuoco**. Verificato in tutti e quattro i rami: `opacity` del titolo **sempre 1**.
+
+⚠ **L'EFFETTO DI SCROLL CHIESTO DA VLAD ERA GIÀ IL MECCANISMO CENTRALE DEL SITO.** «Voglio che la hero si rimpicciolisca e in tanto si blurri, e che la sezione sotto venga SOPRA la hero — non un effetto di scorrimento» è la definizione di M12: l'uscente resta `sticky`, l'entrante opaca le scorre sopra. Rimpicciolimento e spegnimento c'erano già nel rientro di `stage.ts`; **è stata aggiunta la sola sfocatura**, come **opt-in** (`blurOut` su `Handoff`) e non come default — `scale`/`opacity` stanno sul compositor, `filter: blur()` è **paint**, e accenderlo sui quattro handoff della Home significherebbe pagarlo dove nessuno l'ha chiesto. Il ramo senza blur resta il `to` di prima, quindi la Home non cambia di una virgola (`verify:stage` e `verify:anim` verdi).
+
+**Le decisioni sulle card:**
+- **Dritte, non ruotate** (richiesta esplicita: il riferimento le storce di ±2-5°). Non è solo gusto: le card storte hanno bisogno di margine per non tagliarsi a vicenda, e in una fascia alta un quinto di schermo quel margine si mangia l'altezza che serve a far vedere cosa c'è dentro.
+- ⚠ **DUE FORMATI (desktop 16/10 e mobile ~19,5/9) e non il 3/4 unico del riferimento.** Sono "demo di app e SITI": un sito desktop dentro un ritratto si vede per un terzo. E otto rettangoli identici che scorrono si leggono come un caricamento — le larghezze diverse danno un ritmo. L'altezza resta comune: in una fascia orizzontale è quella che deve allinearsi.
+- **Una sola card è vera** (il Network Day, con lo screenshot già nel repo). Le altre sette sono **wireframe disegnati**, quattro ricette diverse — stessa scelta dei reel di §30: un rettangolo grigio si legge come un difetto, un wireframe come una scelta, e dichiara da solo di essere un segnaposto.
+- ⚠ **NON SONO LINK**, ed è ciò che evita due problemi veri: metà non hanno una pagina dove andare, e la copia del marquee è `aria-hidden` — un `aria-hidden` che contiene elementi raggiungibili da tastiera è la violazione `aria-hidden-focus`, già dovuta risolvere a mano nel muro di §04.
+
+⚠ **DUE DIFETTI GEOMETRICI TROVATI MISURANDO, non guardando:**
+1. **La griglia si dimensionava sul max-content della traccia**: `.ph` era `display: grid` con la colonna implicita `auto`, quindi diventava larga **3058px** e il testo, centrato dentro *quella*, finiva mezzo fuori schermo. `grid-template-columns: minmax(0, 1fr)` — **la seconda volta che questo difetto morde in questo repo**, il primo è documentato per `.cta`.
+2. **La maschera del marquee sfumava fuori schermo**: senza un `overflow: clip` proprio, `.ph__marquee` era largo quanto la traccia, quindi la dissolvenza cadeva ai bordi della *traccia* e non della finestra.
+
+⚠ **E UNA TRAPPOLA DA NON RIPETERE, sulle viewport basse.** La hero misurava 788px su 720 e 811px su 800 — e siccome è lo `slot="out"` di un handoff, tutto ciò che sfora è **irraggiungibile per sempre** mentre è incollata. La leva ovvia (rimpicciolire le card) **rompe il marquee**: la larghezza delle card è un multiplo della loro altezza, quindi mezza traccia si accorcia con loro e scende sotto la larghezza della finestra — misurato, a `17vh` cadeva a 1296px contro i 1440 richiesti, cioè un buco ad ogni giro. **L'altezza si prende dal testo, non dalle card**: media query su altezza corta (la stessa famiglia di fix già applicata a FeaturedProjects), con un tetto in `svh` su titolo e lede.
+
+**Invarianti verificate via CDP a 1440×900, 1920×1080, 1440×720, 1280×800 e 390×844**: nessun pin-spacer, uscente sticky sopra i 900px e statico sotto, hero mai più alta della viewport, entrante sempre più alta di uno schermo, **mezza traccia sempre più larga della finestra** (1995 a 1440, 2206 a 1920), fascia larga quanto la colonna, zero overflow orizzontale. Handoff campionato lungo la corsa: `scale 0.9868 → 0.96`, `blur 4,6px → 14px`, `opacity 0,82 → 0,45`, progressivi e monotoni.
+
+Contrasti sui pixel dipinti: pill 8,16:1 · titolo 20,65:1 · coda 8,16:1 · lede 8,16:1 · didascalie delle card 8,16:1.
+
+⚠ **`verify:stage` NON è utilizzabile su questa pagina: CRASHA.** È scritto per la Home e dà per scontato il mazzo di §30 (`querySelector` che torna `null` → `.getBoundingClientRect` di `null`), quindi si porta giù prima di stampare gli assert già raccolti — la stessa classe di difetto già corretta una volta per la card `kind: 'call'`. Le invarianti M12 di /portfolio sono state verificate con una sonda dedicata. **Renderlo indipendente dalla pagina è un lavoro a parte, non fatto qui.**
+
 ### Convenzioni consolidate durante le rifiniture, da riusare (non nel piano originale)
 
 - **Sezioni "in"/"out" di un handoff M12 dichiarano SEMPRE il proprio `min-height: 100svh`** (grid + `align-content:center` per centrare il contenuto), invece di affidarsi a padding generoso per raggiungere l'altezza minima richiesta da `Handoff.astro`. Pattern in `Statement.astro`, `FeaturedProjects.astro`, `JourneyTeaser.astro`, `WhatIDo.astro`. Vale su tutti i breakpoint, mobile incluso — non è un bug, è "un'idea per viewport" applicato alla lettera.
@@ -854,6 +884,8 @@ Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrit
 | /chi-sono — pannello Adesso | "Disponibilità" dentro una pill a contorno, frase accorciata a "Aperto a nuovi progetti", pallino verde che ora respira come quello viola | /chi-sono — la hero (riga Disponibilità) |
 | /chi-sono — inventario | Titolo nuovo "Le mie altre lingue" + lede con due parole d'accento (gesto di `.jr__key`) | /chi-sono §03 — l'inventario |
 | /chi-sono — chiusura | Nuova sezione finale (M19, `Portale.astro` + `portal.ts`): una finestra che si apre sullo spazio scorrendo, dentro le due destinazioni. Sostituisce il bivio numerato, costruito e poi bocciato lo stesso giorno | /chi-sono §04 — il portale |
+| /portfolio — hero | Nuova hero "il taglio del nastro": pill, titolone a due registri, fascia di card che scorre (una vera + 7 wireframe). Scorrendo, la griglia dei lavori sale SOPRA la hero che si rimpicciolisce e si sfoca (M12 + `blurOut`) | /portfolio §00 — la hero |
+| Infrastruttura | `blurOut` opt-in su `Handoff` + `stage.ts`: sfocatura progressiva dell'uscente, spenta di default perché `filter` è paint | /portfolio §00 — la hero |
 | Infrastruttura | `@vercel/analytics` + `@vercel/speed-insights` montati in `BaseLayout.astro` | Telemetria Vercel |
 | `src/data/skills.ts` | "Strumenti AI" separato in una riga `SkillGroup` dedicata | (modifica di sessione precedente) |
 
@@ -866,6 +898,8 @@ Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrit
 | Contenuti | Progetti 02/03 e loghi 2-3 (ALSI, Reggiana) nascosti in attesa di contenuto vero | **Vlad** — "finché non chiedo il consenso" |
 | Contenuti | I due testi nuovi della timeline (bivio, primo sito online) sono scritti da me su indicazione di contenuto, non dettati parola per parola | **Vlad** — da rivedere/riscrivere se non convincono |
 | Contenuti | I testi della chiusura §04 (frase, kicker, titoli delle due strade) sono scritti da me su un suo esempio, che lui stesso aveva marcato «(Esempio)» | **Vlad** — da rivedere/riscrivere se non convincono |
+| Strumenti | `verify:stage` crasha su ogni pagina che non sia la Home (dà per scontato il mazzo di §30): le invarianti M12 di /portfolio sono verificate a mano | non affrontato, fuori dallo scope della hero |
+| Contenuti | Sette delle otto card della hero di /portfolio sono wireframe segnaposto: solo il Network Day è reale | **Vlad** — quando arrivano screenshot veri |
 | Difetto noto | `--color-text-3` è sotto AA (4.19:1) su fondo canvas nero — riga di palette, non un regresso | decisione di design da proporre |
 | Difetto noto | Numerazione sezioni `/chi-sono` salta da 00 a 02 a 03 (manca 01) | non affrontato, segnalato ma non richiesto |
 | Difetto noto | A 390px l'avviso "cantiere aperto" (192px) copre indice e prima riga del titolo di `/chi-sono` — conseguenza accettata di "l'avviso non deve spostare la pagina" | Vlad ha scelto così sapendolo; leva per il domani è accorciare il testo su mobile |

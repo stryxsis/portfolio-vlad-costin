@@ -1,0 +1,468 @@
+---
+/**
+ * §00 /portfolio — IL TAGLIO DEL NASTRO.
+ *
+ * Chiesta da Vlad (2026-08-14): «il cliente è qui per vedere la ciccia, dagli
+ * il benvenuto mettendo subito in chiaro che qui si guarda ai risultati
+ * concreti», portando un riferimento React (`AnimatedMarqueeHero`: pill +
+ * titolo a parole sfalsate + lede + bottone + una fascia di card che scorre).
+ *
+ * ⚠ IL TESTO È SUO, ma marcato «(Esempio)»: lo tengo quasi alla lettera e
+ * resta da rivedere con lui, come i testi della chiusura di /chi-sono.
+ *
+ * ⚠ SESTA VOLTA CHE UN RIFERIMENTO REACT ENTRA SENZA LE SUE DIPENDENZE.
+ * Fuori: `framer-motion`, `cn()`, `@/lib/utils`, la struttura `/components/ui`.
+ * Cosa è diventato ognuno dei suoi pezzi qui dentro:
+ *   - `motion.h1` con `staggerChildren`  → nessuno stagger sul titolo, vedi la
+ *     regola LCP qui sotto: è la sola parte del riferimento che NON si poteva
+ *     portare, e il perché è tecnico, non estetico;
+ *   - `FADE_IN_ANIMATION_VARIANTS` + `transition: {delay}` → animazioni CSS con
+ *     `animation-delay`, cioè lo stesso vocabolario della hero della Home
+ *     (`hero-in-fade`), zero JS e zero runtime;
+ *   - `motion.div animate={{x: ['-100%','0%']}}` → una `@keyframes` che trasla
+ *     di -50% su una traccia duplicata, cioè la tecnica del muro di §04;
+ *   - `whileHover={{scale:1.05}}` sul bottone → `Button` primitivo, che ha già
+ *     il suo riempimento in hover a costo zero;
+ *   - `backdrop-blur-sm` sulla pill → **tolto**: il backdrop-filter in questo
+ *     repo è vietato fuori dalla navbar senza una ragione misurata.
+ *
+ * ⚠ LE CARD SONO DRITTE (richiesta esplicita: il riferimento le ruota di
+ * ±2-5°). Vedi la nota in DemoCard.astro sul perché non è solo gusto.
+ *
+ * ⚠ CENTRATA, mentre le altre due hero del sito sono allineate a sinistra —
+ * ed è coerente, non un'eccezione: la regola del sito non è "sempre a
+ * sinistra", è "a sinistra dove esiste una colonna di contenuto, al centro
+ * dove il blocco è una DICHIARAZIONE" (Statement, la fascia del metodo, il
+ * contenuto del portale). Questa è una dichiarazione, e sotto ha una fascia
+ * simmetrica: un titolo appoggiato a sinistra sopra un marquee centrato
+ * sarebbe sbilanciato.
+ *
+ * ⚠ NIENTE `SectionIndex` QUI: resta sulla griglia dei lavori, che è il
+ * contenuto numerato. Questa è la copertina — stessa scelta della CTA della
+ * Home e del portale di /chi-sono, che portano una label mono senza numerale.
+ */
+import Button from '../primitives/Button.astro';
+import DemoCard from '../primitives/DemoCard.astro';
+import type { Demo } from '../primitives/DemoCard.astro';
+import netDayShot from '../../assets/progetti/network-day-desktop.png';
+
+interface Props {
+  /** Ancora del bottone: dove porta "Guarda i lavori". */
+  href?: string;
+}
+const { href = '#lavori' } = Astro.props;
+
+/**
+ * Le demo in vetrina.
+ *
+ * ⚠ UNA SOLA È VERA (il Network Day), ed è deliberato: Vlad ha chiesto «per
+ * adesso metti dei placeholder, in una card metti il sito del Network Day così
+ * almeno vediamo una card su un progetto vero». I sette segnaposto servono a
+ * giudicare lo STILE della card, non a fingere sette lavori — e infatti non
+ * portano un nome di cliente inventato, dicono "Segnaposto".
+ *
+ * ⚠ OTTO, E IL NUMERO È GEOMETRICO, non editoriale: la traccia contiene le
+ * card DUE volte e trasla di -50%, quindi METÀ TRACCIA deve essere più larga
+ * della finestra o ad ogni giro passa un buco — è la stessa invariante del
+ * muro di §04. Con cinque schermi larghi (~1,6× l'altezza) e tre stretti
+ * (~0,46×) mezza traccia misura ~2000px: copre 1440 e 1920. Togliendone o
+ * cambiando i formati, RIMISURARE.
+ *
+ * ⚠ L'ALTERNANZA desktop/mobile non è casuale: due schermi stretti non stanno
+ * mai attaccati, o si leggono come una card sola divisa in due.
+ */
+const DEMOS: Demo[] = [
+  {
+    titolo: 'Network Day',
+    meta: 'JEParma · 2026',
+    formato: 'desktop',
+    shot: netDayShot,
+    shotAlt:
+      "Il sito del Network Day 2026 di JEParma: la schermata di apertura con il countdown all'evento",
+  },
+  { titolo: 'App mobile', meta: 'Segnaposto', formato: 'mobile', wire: 2 },
+  { titolo: 'Gestionale', meta: 'Segnaposto', formato: 'desktop', wire: 1 },
+  { titolo: 'Catalogo', meta: 'Segnaposto', formato: 'desktop', wire: 3 },
+  { titolo: 'Agente vocale', meta: 'Segnaposto', formato: 'mobile', wire: 2 },
+  { titolo: 'Sito vetrina', meta: 'Segnaposto', formato: 'desktop', wire: 0 },
+  { titolo: 'Dashboard', meta: 'Segnaposto', formato: 'mobile', wire: 1 },
+  { titolo: 'Landing', meta: 'Segnaposto', formato: 'desktop', wire: 0 },
+];
+---
+
+<section class="ph" data-section id="portfolio">
+  <div class="ph__wrap">
+    {/* La pill del riferimento, senza il suo `backdrop-blur`. */}
+    <p class="ph__pill">Portfolio</p>
+
+    {
+      /* ⚠ NESSUNO STAGGER PER PAROLE SU QUESTO TITOLO, ed è l'unica parte del
+         riferimento che non si è potuta portare: è l'h1 sopra la piega, cioè
+         il candidato LCP della pagina, e la regola LCP del repo è esplicita —
+         un elemento che è stato a opacità zero anche solo per un istante viene
+         escluso dai candidati da Chrome. Lo stagger del riferimento è
+         `opacity: 0 → 1` per parola.
+         ⚠ MA NON RESTA FERMO: `transform` e `filter: blur()` NON escludono dal
+         calcolo, e sono esattamente ciò che la hero della Home usa già
+         (`hero-in-title`). Il titolo arriva SFOCATO e si mette a fuoco — che
+         per "ora basta chiacchiere, ecco i fatti" è anche il gesto giusto,
+         non un ripiego. */
+    }
+    <h1 class="ph__title">
+      Ok, le presentazioni le abbiamo fatte.<span class="ph__coda"
+        >Ora basta chiacchiere.</span
+      >
+    </h1>
+
+    <p class="ph__lede">
+      Qui è dove ti dimostro che tutto quello che hai letto finora non erano solo
+      belle parole, ma fatti concreti.
+    </p>
+
+    <div class="ph__cta">
+      <Button {href} variant="filled" tone="dark">Guarda i lavori</Button>
+    </div>
+  </div>
+
+  {
+    /* ---- LA VETRINA IN MOVIMENTO ------------------------------------------
+       ⚠ `aria-hidden` sull'INTERA fascia, non solo sulla copia. Nel muro di
+       §04 le card portano citazioni, cioè contenuto che deve arrivare anche a
+       chi non le vede; qui portano il nome di lavori che stanno tutti, per
+       esteso e con la loro pagina, nella griglia sotto. Annunciarli due volte
+       — e in ordine casuale rispetto a quello che si legge — sarebbe rumore.
+       È anche ciò che rende le card libere di NON essere link senza perdere
+       niente (vedi DemoCard.astro). */
+  }
+  <div class="ph__marquee" aria-hidden="true">
+    <div class="ph__track">
+      {DEMOS.map((d) => <DemoCard {...d} />)}
+      {
+        /* La seconda copia è ciò che rende il giro senza giunture: la traccia
+           trasla di -50% ed è lunga il doppio, quindi al termine del ciclo la
+           prima card della copia si trova esattamente dove stava la prima
+           dell'originale. */
+        DEMOS.map((d) => <DemoCard {...d} decorative />)
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .ph {
+    position: relative;
+    /* ⚠ `min-height` e non `height`: questa sezione è lo `slot="out"` di un
+       Handoff M12, e lì il vincolo è che NON superi la viewport (o la parte
+       che sfora resta irraggiungibile mentre è incollata). Ma con un contenuto
+       che non ci sta deve poter crescere invece di tagliarlo — verificato a
+       1440×900 e a 1440×720. */
+    min-height: 100svh;
+    display: grid;
+    /* ⚠ `minmax(0, 1fr)` E NON LA COLONNA IMPLICITA `auto`: una traccia `auto`
+       si dimensiona sul max-content del figlio, e il figlio qui è una traccia
+       larga 3000px. Misurato prima del fix: la griglia diventava larga 3058px
+       e il testo, centrato dentro DI QUELLA, finiva mezzo fuori schermo a
+       destra. È lo stesso difetto già documentato per `.cta` in CTASection —
+       la seconda volta che morde in questo repo. */
+    grid-template-columns: minmax(0, 1fr);
+    /* Il contenuto sta nella metà alta, la fascia occupa quella bassa: la
+       riga `1fr` è il testo, `auto` è la vetrina. */
+    grid-template-rows: 1fr auto;
+    overflow: clip;
+  }
+
+  .ph__wrap {
+    /* Centrato in orizzontale E in verticale dentro la propria riga: è la
+       "dichiarazione", non una colonna di contenuto. Vedi la nota in testa. */
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+    max-width: 90rem;
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    /* Riserva la navbar fissa, che sta fuori dal flusso e non lo farebbe da
+       sola. ⚠ NIENTE `--chrome-shift`: l'avviso "cantiere aperto" non deve
+       spostare il sito (richiesta esplicita e ripetuta di Vlad, vedi la nota
+       in chi-sono.astro). Si sovrappone, non spinge. */
+    padding-top: calc(var(--nav-h) + clamp(1.5rem, 4vh, 3rem));
+    padding-bottom: clamp(1rem, 3vh, 2rem);
+  }
+
+  .ph__pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  .ph__title {
+    margin-top: clamp(1.25rem, 3vh, 2rem);
+    max-width: 20ch;
+    /* ⚠ IL TETTO IN `svh` NON È DECORATIVO, ed è la stessa lezione già costata
+       un giro sul numero della 404 e sul corpo delle citazioni di §04: questa
+       hero deve stare in UNO SCHERMO (è lo `slot="out"` di un handoff M12) e
+       sotto il titolo ci sono ancora lede, bottone e una fascia di card. Con
+       la sola `vw` il titolo resta identico a 1440×900 e a 1440×700, mentre lo
+       spazio no — misurato PRIMA del tetto, con `--text-mega`: la sezione
+       arrivava a 1108px su una viewport da 900, cioè 208px irraggiungibili per
+       sempre mentre è incollata. Il termine `svh` fa cedere il corpo quando è
+       l'altezza a mancare. */
+    font-size: min(clamp(2.25rem, 4.6vw, 4.25rem), 8.5svh);
+    line-height: 0.94;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  /* Il secondo registro: la frase che chiude il pensiero. Stesso dispositivo
+     dei due registri dell'h1 di /chi-sono — al corpo pieno le due frasi
+     insieme sarebbero un muro, e la seconda è quella che porta il colpo. */
+  .ph__coda {
+    display: block;
+    margin-top: 0.12em;
+    color: var(--color-text-2);
+  }
+
+  .ph__lede {
+    margin-top: clamp(1.25rem, 3vh, 1.75rem);
+    max-width: 52ch;
+    font-size: var(--text-lede);
+    line-height: 1.55;
+    color: var(--color-text-2);
+    text-wrap: pretty;
+  }
+
+  .ph__cta {
+    margin-top: clamp(1.75rem, 4vh, 2.5rem);
+  }
+
+  /* ═══ LA VETRINA IN MOVIMENTO ══════════════════════════════════════════ */
+  .ph__marquee {
+    /* ⚠ `mask-image` e non un overlay a colore pieno: la fascia sfuma sopra il
+       fondo della sezione, e un `::after` con un gradiente dovrebbe indovinare
+       esattamente quel colore — cosa che smette di essere vera il giorno in cui
+       il fondo cambia. La maschera sfuma l'opacità reale. Stessa scelta già
+       fatta per il word-carousel della hero della Home.
+       Sfuma solo a SINISTRA e a DESTRA, non in alto: in alto la fascia deve
+       stare attaccata al testo, e una dissolvenza lì aprirebbe una banda vuota
+       proprio dove il titolo finisce. */
+    --fade: clamp(2rem, 8vw, 7rem);
+    /* ⚠ SENZA QUESTO IL RITAGLIO LO FA `.ph` E LA MASCHERA SBAGLIA BERSAGLIO:
+       la traccia è larga ~3000px, quindi senza un `overflow` proprio questo
+       elemento è largo quanto lei e la dissolvenza cade ai bordi della TRACCIA
+       — cioè fuori schermo, dove non la vede nessuno. Misurato: 3058px contro
+       i 1440 della finestra. Con `clip` la fascia è larga quanto la colonna e
+       la maschera sfuma dove serve.
+       ⚠ `clip` e non `hidden`: `hidden` creerebbe un contenitore di
+       scorrimento, e un contenitore di scorrimento su un antenato romperebbe
+       lo `sticky` dell'handoff che avvolge questa sezione. */
+    overflow: clip;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--fade),
+      black calc(100% - var(--fade)),
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--fade),
+      black calc(100% - var(--fade)),
+      transparent
+    );
+    padding-bottom: clamp(1.5rem, 4vh, 3rem);
+  }
+
+  .ph__track {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--dc-gap);
+    /* ⚠ IL `padding-right` PARI AL GAP È CIÒ CHE RENDE IL CONTO ESATTO, non un
+       margine estetico: senza, la larghezza della traccia è
+       `2N·c + (2N−1)·g` e il -50% non cade sul primo pixel della seconda
+       copia — compare uno scatto di mezzo gap ad ogni giro. Con il padding la
+       larghezza è `2N(c+g)` e il salto è invisibile. Stessa lezione, stesso
+       conto, del muro di §04.
+       ⚠ `width: max-content`: senza, il flex si comprimerebbe alla larghezza
+       del genitore e le card si schiaccerebbero invece di sfilare. */
+    --dc-gap: clamp(0.85rem, 1.6vw, 1.4rem);
+    /* ⚠ IL TERMINE IN `vh` È QUELLO CHE FA STARE LA HERO IN UNO SCHERMO, ed è
+       stato ritarato su una misura, non a occhio: con `25vh` la sezione
+       misurava 911px su una viewport da 900 — undici pixel che, essendo questa
+       lo `slot="out"` di un handoff M12, restano irraggiungibili per sempre
+       mentre è incollata. A `21.5vh` la sezione sta sotto il vincolo con
+       margine.
+       ⚠ Cambiandolo cambia anche la LARGHEZZA delle card (la detta l'altezza),
+       quindi cambia la lunghezza della traccia: rimisurare che mezza traccia
+       resti più larga della finestra, o il giro mostra un buco. */
+    --dc-h: clamp(8rem, 21.5vh, 13.5rem);
+    width: max-content;
+    padding-right: var(--dc-gap);
+  }
+
+  /* Nel ramo statico la traccia sta ferma dov'è: si vedono le prime card e
+     basta. Nessun `overflow: auto` — una barra di scorrimento orizzontale
+     dentro una hero è peggio di una fascia che non si muove. */
+  :global(html.js-anim) .ph__track {
+    animation: ph-scorri 52s linear infinite;
+  }
+
+  @keyframes ph-scorri {
+    to {
+      /* `translate3d` e non `translateX`: promuove la traccia a livello
+         composito, così le sedici card non vengono ridisegnate ad ogni
+         fotogramma. */
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  /* ⚠ 52s, non i 40 del riferimento: qui dentro c'è del testo (il nome del
+     lavoro sotto ogni card) e a 40s la fascia si legge come un carosello che
+     scappa. Deve essere una deriva di fondo, non un nastro trasportatore. */
+
+  /* ⚠ WCAG 2.2.2: un movimento automatico che dura più di 5 secondi deve
+     potersi fermare. Gated su `(hover: hover)` perché su touch non esiste uno
+     stato di passaggio e resterebbe appiccicato dopo un tap — stessa scelta
+     del muro di §04. */
+  @media (hover: hover) {
+    :global(html.js-anim) .ph__marquee:hover .ph__track {
+      animation-play-state: paused;
+    }
+  }
+
+  /* ⚠ SERVE UN BLOCCO REDUCE DEDICATO, e la regola globale di `global.css`
+     (`animation-iteration-count: 1`) NON basta: per uno scorrimento "una sola
+     iterazione" significa comunque cinquantadue secondi di movimento. Chi
+     chiede meno movimento non chiede meno ripetizioni, chiede fermo.
+     ⚠ E il selettore deve RIPETERE `html.js-anim`: una media query non
+     aggiunge specificità, quindi `.ph__track` da solo perderebbe contro
+     `html.js-anim .ph__track`. Corollario già costato le onde della CTA. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .ph__track {
+      animation: none;
+    }
+  }
+
+  /* ═══ VIEWPORT BASSE ═══════════════════════════════════════════════════
+     ⚠ NECESSARIA, e misurata: con la sola scala fluida questa hero misurava
+     788px su una viewport da 720 e 811px su una da 800 — e siccome è lo
+     `slot="out"` di un handoff M12, tutto ciò che sfora resta IRRAGGIUNGIBILE
+     per sempre mentre è incollata. La stessa famiglia di fix è già applicata a
+     FeaturedProjects (media query su altezza corta).
+
+     ⚠⚠ SI STRINGE IL TESTO, NON LE CARD, ed è la trappola da non ripetere.
+     Rimpicciolire `--dc-h` sembra la leva ovvia per guadagnare altezza, e
+     ROMPE il marquee: la larghezza delle card è un multiplo della loro
+     altezza, quindi mezza traccia si accorcia con loro e scende sotto la
+     larghezza della finestra — a quel punto ad ogni giro passa un buco.
+     Misurato: a `17vh` mezza traccia cade a 1296px contro i 1440 richiesti.
+     L'altezza va quindi presa dove non ha effetti collaterali: corpo del
+     testo, interlinee e respiri verticali. */
+  @media (max-height: 53.125rem) {
+    .ph__wrap {
+      padding-top: calc(var(--nav-h) + clamp(0.75rem, 2.5vh, 1.5rem));
+      padding-bottom: clamp(0.5rem, 2vh, 1rem);
+    }
+    .ph__title {
+      margin-top: clamp(0.5rem, 2vh, 1rem);
+      font-size: min(clamp(1.875rem, 4.6vw, 4.25rem), 7svh);
+    }
+    .ph__lede {
+      margin-top: clamp(0.5rem, 2vh, 1rem);
+      /* Stesso dispositivo del titolo: quando è l'ALTEZZA a mancare, è
+         l'altezza a dover dettare il corpo. Con la sola scala in `vw` la lede
+         resterebbe a 26px identica a 1440×900 e a 1440×720. */
+      font-size: min(var(--text-lede), 2.4svh);
+      line-height: 1.45;
+    }
+    .ph__cta {
+      margin-top: clamp(0.75rem, 2.5vh, 1.25rem);
+    }
+    .ph__marquee {
+      padding-bottom: clamp(0.75rem, 2.5vh, 1.25rem);
+    }
+  }
+
+  /* ═══ GLI INGRESSI ═════════════════════════════════════════════════════
+     Animazioni CSS e non ScrollTrigger, per la stessa ragione del pannello
+     "Adesso" di /chi-sono: questo blocco nasce SOPRA LA PIEGA, e un trigger
+     che nasce oltre la propria soglia è il caso che su quella pagina aveva
+     lasciato la bio invisibile per sempre. Sopra la piega il sito usa
+     animazioni CSS, e questa le segue. */
+
+  /* ⚠ IL TITOLO NON ANIMA `opacity` — REGOLA LCP, non negoziabile: Chrome
+     esclude dai candidati un elemento che sia stato a opacità zero anche solo
+     per un istante. `transform` e `filter` no. Stessi keyframe della hero
+     della Home, stesso nome di intenzione. */
+  @keyframes ph-fuoco {
+    from {
+      transform: translate3d(0, 0.18em, 0);
+      filter: blur(20px);
+    }
+  }
+  /* Generica per tutto ciò che NON è il candidato LCP: qui l'opacità è
+     ammessa perché nessuno di questi è mai l'elemento più grande sopra la
+     piega. */
+  @keyframes ph-entra {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translate3d(0, 8px, 0);
+    }
+  }
+
+  :global(html.js-anim) .ph__pill {
+    animation: ph-entra 600ms var(--ease-out-expo) 120ms both;
+  }
+  :global(html.js-anim) .ph__title {
+    animation: ph-fuoco 950ms var(--ease-out-expo) 260ms both;
+  }
+  /* La coda entra dopo la prima riga: sono due frasi, e arrivano in ordine.
+     ⚠ Anche lei senza `opacity`: è dentro l'h1, quindi fa parte dello stesso
+     candidato LCP. */
+  :global(html.js-anim) .ph__coda {
+    animation: ph-fuoco 900ms var(--ease-out-expo) 520ms both;
+  }
+  :global(html.js-anim) .ph__lede {
+    animation: ph-entra 700ms var(--ease-out-expo) 760ms both;
+  }
+  :global(html.js-anim) .ph__cta {
+    animation: ph-entra 700ms var(--ease-out-expo) 900ms both;
+  }
+  /* La fascia entra per ultima e da sotto: è il fondale che si alza, e deve
+     arrivare quando il testo ha già finito di parlare. */
+  :global(html.js-anim) .ph__marquee {
+    animation: ph-fascia 1100ms var(--ease-out-expo) 1000ms both;
+  }
+  @keyframes ph-fascia {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 40px, 0);
+    }
+  }
+
+  /* La regola globale di reduced-motion azzera le durate ma non garantisce lo
+     stato finale di un'animazione `both` che non parte: qui si dichiara. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .ph__pill,
+    :global(html.js-anim) .ph__title,
+    :global(html.js-anim) .ph__coda,
+    :global(html.js-anim) .ph__lede,
+    :global(html.js-anim) .ph__cta,
+    :global(html.js-anim) .ph__marquee {
+      animation: none;
+      opacity: 1;
+      filter: none;
+      transform: none;
+    }
+  }
+</style>

@@ -1,10 +1,27 @@
 ---
 /**
  * Indice del portfolio.
- * Milestone 5: elenco funzionante, così i link della navbar non sono rotti.
- * L'hero animato e la griglia non ortogonale arrivano nel milestone 8.
+ *
+ * ⚠ LA PAGINA È UN HANDOFF M12, e non un elenco di sezioni impilate: Vlad ha
+ * chiesto (2026-08-14) che scorrendo verso i progetti «la hero si rimpicciolisca
+ * e in tanto si blurri tutto progressivamente, e la sezione sotto venga SOPRA
+ * la hero — non voglio un effetto di scorrimento, voglio che sembri che la
+ * sezione sotto stia andando sopra».
+ *
+ * Quello è esattamente il meccanismo centrale del sito: l'uscente resta
+ * `position: sticky` e l'entrante, con fondo opaco, le scorre sopra
+ * occludendola (vedi Handoff.astro). Il rimpicciolimento e lo spegnimento sono
+ * già nel rientro M12 di stage.ts; la SFOCATURA è stata aggiunta lì come
+ * opt-in (`blurOut`) proprio per questa richiesta — vedi il perché del
+ * default-off accanto alla prop.
+ *
+ * ⚠ NIENTE `travel`: quello serve alle stage che devono svolgersi nel tempo
+ * (il mazzo di §30). Qui non c'è niente da far succedere fra la hero e la
+ * griglia, quindi sarebbe solo scroll morto.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Handoff from '../../components/sections/Handoff.astro';
+import PortfolioHero from '../../components/sections/PortfolioHero.astro';
 import SectionIndex from '../../components/primitives/SectionIndex.astro';
 import ProjectCard from '../../components/primitives/ProjectCard.astro';
 import { allProjects } from '../../lib/collections';
@@ -16,36 +33,46 @@ const projects = await allProjects();
   title="Portfolio"
   description="I lavori di Vlad Costin: case study con contesto, sfida, processo e risultato."
 >
-  <section class="pf" data-section>
-    <div class="pf__wrap">
-      <div class="pf__head">
-        <SectionIndex n="00" label={`Lavori · ${projects.length}`} />
-        <h1 class="pf__title">Lavori</h1>
-        <p class="pf__lede" data-split="lines">
-          Ogni progetto qui sotto ha una pagina che spiega il contesto, il problema,
-          come l'ho affrontato e cosa è cambiato dopo. Niente slide, niente mockup finti.
-        </p>
-      </div>
+  <Handoff name="lavori" tone="canvas" blurOut>
+    <PortfolioHero slot="out" href="#lavori" />
 
-      <ul class="pf__grid">
-        {
-          projects.map((p, i) => (
-            <li class="pf__item" data-span={p.data.span} data-reveal>
-              {/* level=2: sopra c'è solo l'h1 "Lavori", quindi h2 è il livello
-                  corretto e non salta nulla. */}
-              <ProjectCard
-                project={p}
-                index={i + 1}
-                level={2}
-                eager={i < 2}
-                sizes="(min-width: 56.25rem) 44vw, 92vw"
-              />
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </section>
+    {/* ⚠ L'entrante DEVE essere più alta di uno schermo perché l'occlusione
+        avvenga mentre l'uscente è ancora incollata (il vincolo geometrico è
+        scritto per esteso in Handoff.astro, e `.ho__in` lo impone con un
+        `min-height: 104svh`). Con tre progetti in griglia lo è ampiamente. */}
+    <section class="pf" data-section id="lavori" slot="in">
+      <div class="pf__wrap">
+        <div class="pf__head">
+          <SectionIndex n="01" label={`Lavori · ${projects.length}`} />
+          {/* h2 e non h1: l'h1 della pagina è il titolo della hero. Prima
+              questa sezione portava l'h1 perché la hero non esisteva. */}
+          <h2 class="pf__title">Lavori</h2>
+          <p class="pf__lede" data-split="lines">
+            Ogni progetto qui sotto ha una pagina che spiega il contesto, il problema,
+            come l'ho affrontato e cosa è cambiato dopo. Niente slide, niente mockup finti.
+          </p>
+        </div>
+
+        <ul class="pf__grid">
+          {
+            projects.map((p, i) => (
+              <li class="pf__item" data-span={p.data.span} data-reveal>
+                {/* level=3: sopra c'è l'h1 della hero e l'h2 "Lavori", quindi
+                    h3 è il livello corretto e non salta nulla. */}
+                <ProjectCard
+                  project={p}
+                  index={i + 1}
+                  level={3}
+                  eager={i < 2}
+                  sizes="(min-width: 56.25rem) 44vw, 92vw"
+                />
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+  </Handoff>
 </BaseLayout>
 
 <style>

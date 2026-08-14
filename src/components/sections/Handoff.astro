@@ -64,8 +64,24 @@ interface Props {
    * scroll a vuoto PRIMA che Dicono anche solo cominci a entrare.
    */
   bareIn?: boolean;
+  /**
+   * Aggiunge una SFOCATURA progressiva al rientro dell'uscente (stage.ts), oltre
+   * al rimpicciolimento e allo spegnimento che ci sono sempre.
+   *
+   * ⚠ OPT-IN E NON IL DEFAULT, e la ragione è un costo misurabile: `scale` e
+   * `opacity` stanno sul compositor (il commento di M12 in stage.ts promette
+   * "zero paint per frame", ed è vero), mentre `filter: blur()` è paint — su uno
+   * strato grande quanto la viewport si paga ad ogni fotogramma della
+   * transizione. Accenderlo per tutti gli handoff della Home significherebbe
+   * pagarlo quattro volte per un effetto che nessuno ha chiesto lì.
+   *
+   * Nato per la hero di /portfolio, dove Vlad l'ha chiesto esplicitamente
+   * (2026-08-14): «voglio che si rimpicciolisca e in tanto si blurri tutto
+   * progressivamente».
+   */
+  blurOut?: boolean;
 }
-const { name, tone, travel, bareIn = false } = Astro.props;
+const { name, tone, travel, bareIn = false, blurOut = false } = Astro.props;
 
 /* Le classi che in global.css riportano il focus ring a un colore leggibile
    sopra i fondi invertiti. */
@@ -75,7 +91,9 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
 <div class="ho" data-handoff={name}>
   <div class="ho__backdrop" aria-hidden="true"></div>
 
-  <div class="ho__out" data-screen={name}>
+  {/* `data-screen-blur` è un attributo e non una classe perché a leggerlo è
+      stage.ts, non il CSS: la sfocatura la scrive GSAP in scrub. */}
+  <div class="ho__out" data-screen={name} data-screen-blur={blurOut ? '' : undefined}>
     <slot name="out" />
   </div>
 
