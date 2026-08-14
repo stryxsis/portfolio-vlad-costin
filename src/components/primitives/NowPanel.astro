@@ -120,14 +120,21 @@ if (SITE.availability) {
         <div class="now__row">
           <dt class="now__label">{r.label}</dt>
           <dd class="now__val">
-            <span class="now__valore">
-              {/* Il pallino NON porta l'informazione: a voce resta
-                  "Disponibilità: accetto nuovi progetti freelance", che è già
-                  tutto. Un colore non è mai l'unico veicolo di un significato
-                  (WCAG 1.4.1). */}
-              {r.stato && <span class="now__ok" aria-hidden="true" />}
-              {r.valore}
-            </span>
+            {/* La riga di stato (Disponibilità) è l'unica a rompere la
+                convenzione "solo filetti, mai un box" del pannello: è una
+                pill a contorno, non testo pieno come le altre tre righe —
+                deliberato, per farla leggere come uno STATO e non come un
+                fatto anagrafico uguale agli altri. Il pallino NON porta
+                l'informazione da solo: a voce resta "Disponibilità: aperto
+                a nuovi progetti", che è già tutto (WCAG 1.4.1). */}
+            {r.stato ? (
+              <span class="now__badge">
+                <span class="now__ok" aria-hidden="true" />
+                {r.valore}
+              </span>
+            ) : (
+              <span class="now__valore">{r.valore}</span>
+            )}
             {/* Dettaglio e "da" sulla STESSA riga, separati dal punto medio
                 che il sito già usa negli indici: su tre righe erano tre
                 capoversi per fatto, cioè un pannello alto 311px che finiva
@@ -238,17 +245,40 @@ if (SITE.availability) {
     text-wrap: balance;
   }
 
-  /* Il pallino di stato. ⚠ NON pulsa, al contrario di `.now__dot` in testata:
-     quello respira perché il messaggio è "adesso" e il respiro è la terza
-     prova che quei fatti sono correnti; questo dice "aperto", uno stato che
-     non ha bisogno di essere ripetuto ogni tre secondi. Due puntini pulsanti
-     nello stesso pannello sarebbero anche una quinta eccezione al divieto di
-     loop infiniti, spesa per decorazione. */
+  /* ---- La pill di stato (Disponibilità) -----------------------------------
+     ⚠ L'UNICO ELEMENTO "SCATOLATO" DI QUESTO PANNELLO, e deliberato: il resto
+     del sito riserva i box a un solo caso misurato (le card di §04 Dicono),
+     tutto il resto è tenuto insieme da filetti — vedi la nota in cima a
+     `.now`. Qui però il valore non è un fatto anagrafico come lavoro/studio/
+     dove vivo, è uno STATO ("aperto"), e una pill lo separa visivamente dagli
+     altri tre invece di renderlo un quarto valore uguale ai primi tre. */
+  .now__badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.4rem 0.9rem 0.4rem 0.75rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: 999px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-1);
+  }
+
+  /* Il pallino di stato. ⚠ ORA PULSA come `.now__dot` in testata — decisione
+     RIBALTATA da Vlad il 2026-08-14: la prima stesura lo teneva fermo apposta
+     ("aperto" non ha bisogno di essere ripetuto ogni tre secondi, e sarebbe
+     stata una quinta eccezione al divieto di loop infiniti spesa per
+     decorazione). Richiesto esplicitamente lo stesso respiro del pallino
+     viola: qui diventa la SESTA eccezione dichiarata, non decorativa per lo
+     stesso motivo di quella — anche "aperto a nuovi progetti" è uno stato che
+     resta vero finché lo guardi, non un ingresso da annunciare una volta. */
   .now__ok {
     /* `inline-block` + `margin-right` e non un flex sul genitore: `.now__valore`
        porta testo che può andare a capo, e in un flex container il pallino
        resterebbe incolonnato accanto al blocco invece che accanto alla PRIMA
-       riga. Così scorre col testo, come una lettera. */
+       riga. Così scorre col testo, come una lettera. Dentro `.now__badge`
+       (già `inline-flex`) il `margin-right` funziona comunque da spaziatura,
+       e `vertical-align` è semplicemente ignorato dal layout flex — innocuo. */
     display: inline-block;
     width: 0.5rem;
     height: 0.5rem;
@@ -258,6 +288,10 @@ if (SITE.availability) {
     vertical-align: 0.12em;
     border-radius: 50%;
     background: var(--color-ok);
+    /* Nessun gate su `html.js-anim`: animazione CSS pura, gira anche senza
+       JS, e la regola globale di reduced-motion in global.css la ferma da
+       sola (stesso schema di `.now__dot` e `.tli__now`). */
+    animation: now-breathe 3.2s ease-in-out infinite;
   }
 
   .now__det {

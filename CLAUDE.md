@@ -612,8 +612,9 @@ Chiesta da Vlad: `DISPONIBILITÀ: Accetto nuovi progetti freelance`, con un pall
 - **Ultima delle quattro, e la posizione è il senso**: le tre righe sopra dicono cosa sta facendo, questa cosa può ancora prendere. È la conclusione di quell'elenco — sopra sarebbe un annuncio, in fondo è una risposta.
 - ⚠ **`availability` è una STRINGA e non un booleano con due testi.** Il pallino verde *significa* "aperto": non esiste una versione di questa riga che dica "non disponibile" — sarebbe un semaforo verde su un cartello di divieto. Quando Vlad smette di prendere progetti la riga si **toglie** (campo a stringa vuota, il render è già condizionato), non si capovolge.
 - ⚠ **`--color-ok: #4ade80` è un token nuovo, e la regola "un solo accento" RESTA IN PIEDI.** L'accento marca ciò che è *importante* e potrebbe essere di qualunque tinta; il verde qui non decora niente, **dice "aperto"** — una convenzione che il viola non sa esprimere (un pallino viola accanto a "accetto nuovi progetti" non significherebbe nulla). **Ha esattamente un utente.** Il giorno in cui ne spuntasse un secondo è il momento di chiedersi se il sito abbia due accenti, non di aggiungerne un terzo uso.
-- **Il pallino NON pulsa**, e non è una dimenticanza: `.now__dot` in testata al pannello respira perché lì il messaggio è "adesso" e il respiro è la terza prova che quei fatti sono correnti. Questo dice "aperto", uno stato che non ha bisogno di essere ripetuto ogni tre secondi — e due puntini pulsanti nello stesso pannello sarebbero una **quinta eccezione** al divieto di loop infiniti, spesa per decorazione.
-- **Il colore non è mai l'unico veicolo del significato** (WCAG 1.4.1): il pallino è `aria-hidden`, e a voce resta "Disponibilità: accetto nuovi progetti freelance", che è già tutto.
+- ⚠ **IL PALLINO PULSA, dal 2026-08-14, e questa nota diceva il contrario.** La prima stesura lo teneva fermo apposta, e il ragionamento era: `.now__dot` in testata respira perché lì il messaggio è "adesso", mentre "aperto" è uno stato che non ha bisogno di essere ripetuto ogni tre secondi — più il costo di una quinta eccezione al divieto di loop infiniti, spesa per decorazione. **Vlad ha chiesto esplicitamente lo stesso effetto del pallino viola**, quindi oggi riusa `now-breathe` (3,2s, nessun keyframe duplicato) ed è la **sesta eccezione dichiarata**. Regge la stessa giustificazione delle altre: descrive uno stato che resta vero finché lo guardi, non annuncia un ingresso. Verificato che sotto `prefers-reduced-motion` resti fermo a piena opacità.
+- ⚠ **DAL 2026-08-14 IL VALORE È DENTRO UNA PILL** (`.now__badge`, contorno hairline, angoli pieni), su richiesta di Vlad («fai più corta la frase e mettilo dentro un badge») — e la frase è scesa a **"Aperto a nuovi progetti"** (`SITE.availability`, era "Accetto nuovi progetti freelance"). È l'**unico elemento scatolato del pannello**, che altrove è tenuto insieme dai soli filetti: deliberato, perché questo valore non è un fatto anagrafico come lavoro/studio/dove vivo ma uno **stato**, e la pill lo separa dagli altri tre invece di renderlo un quarto valore uguale ai primi. Contrasto misurato sui pixel dipinti: 20,04:1.
+- **Il colore non è mai l'unico veicolo del significato** (WCAG 1.4.1): il pallino è `aria-hidden`, e a voce resta "Disponibilità: aperto a nuovi progetti", che è già tutto.
 - La riga non ha `dettaglio` né `da`: `Riga` li ha resi opzionali. Il valore è già tutta l'informazione, e un secondo rigo grigio sotto avrebbe chiesto di inventare qualcosa da scriverci.
 
 ⚠ **LE COLONNE DEL PANNELLO SONO PASSATE A `subgrid`, e le due stesure precedenti erano entrambe sbagliate.** `.now__row` aveva `grid-template-columns: 5.5rem minmax(0,1fr)`: funzionava per caso, finché tutte le etichette ci stavano dentro. "DISPONIBILITÀ" — 13 caratteri mono maiuscoli con 0,12em di spaziatura, ~112px — sfondava la colonna e finiva **addosso al pallino** (visto in uno screenshot, non dedotto). ⚠ E il primo fix, `minmax(5.5rem, auto)` riga per riga, era **peggio del difetto**: ogni `.now__row` è una griglia **indipendente**, quindi la riga lunga allargava solo sé stessa e i valori delle altre tre restavano indietro di ~24px — il pannello perdeva l'asse verticale che è l'unica ragione per cui le etichette stanno in colonna. Le colonne vivono ora sul `<dl>` e le righe le ereditano con `grid-template-columns: subgrid`: dichiara la cosa vera ("sono LE STESSE colonne"), e nessuna etichetta futura richiederà di ritarare un numero.
@@ -684,6 +685,53 @@ Scelta da Vlad fra tre proposte, insieme al testo. ⚠ **Il testo NON porta i pu
 ⚠ **Difetto trovato nello screenshot e non nel codice**: nodo e testo della coda finivano nella colonna dell'anno (tratteggio a 80px invece che a 180, frase spezzata su tre righe dentro una colonna larga 40px). Causa: la `@media` che li ricolloca era scritta **prima** delle regole base — e **una media query non aggiunge specificità**, corollario già scritto in questo file a proposito dei blocchi reduce, ripetuto qui perché è la seconda volta che morde.
 
 Contrasti sui pixel dipinti: lede 7,92:1 · parole d'accento 5,70:1 · testo della coda 7,92:1. Nessun overflow a 390. `verify:anim` e `verify:stage` tutti i controlli superati.
+
+#### La coda partiva PRIMA che il filo pieno avesse finito (2026-08-14)
+
+Segnalato da Vlad: «quando scrollo in fondo alla timeline mi appare la linea tratteggiata prima che la linea non tratteggiata abbia finito il suo percorso». Quello che deve succedere è che il filo continuo finisca la sua corsa e **solo allora** partano tratteggio e frase.
+
+⚠ **La causa è che i due elementi usavano due soglie DIVERSE, e nessuna delle due era sbagliata di per sé.** Il filo pieno è M11b in scrub e chiude a `end: 'bottom 65%'` su `.tl__track`; la coda è M14 (`data-activate`) e si accendeva alla **soglia condivisa dell'80%**. Siccome `.tl__end` sta subito sotto `.tl__track` senza margine, il suo `top` **è** il `bottom` del track: leggere lo stesso punto geometrico a due percentuali diverse significa scattare in due momenti diversi. Misurato via CDP: `is-in` scattava con il rail a `scaleY 0,97`.
+
+**Fix**: `data-in="NN"` in `reveal.ts`, un override opzionale della PRIMA soglia (default 80), e `data-in="65"` su `.tl__end` — cioè lo **stesso numero** dell'`end` del rail, non un valore indovinato. Oggi `is-in` scatta con il rail esattamente a `scaleY 1`.
+
+⚠ **Non è il `data-on` provato e RIMOSSO lo stesso giorno per `.ap`** (vedi la nota in cima a `reveal.ts`), e la differenza è il criterio da riusare: lì il problema era impastare **due soglie sullo stesso elemento** più vicine di quanto durasse l'animazione fra loro — un problema di TEMPO, che si risolve con un ritardo. Qui è **una soglia sola**, tarata su un punto geometrico **condiviso con un altro elemento** — un problema di SPAZIO, che si risolve con la soglia. ⚠ Chi tocca `end` del rail in `reveal.ts` deve toccare `data-in` con lui: sono lo stesso numero scritto in due posti, e il commento in `Timeline.astro` lo dice.
+
+⚠ **Verificato disattivando il fix**, non solo applicandolo: con `data-in` tolto e ricostruito, `is-in` torna a scattare a `scaleY 0,97`. Un assert che non l'avesse visto rosso non avrebbe dimostrato niente.
+
+### /chi-sono §03 — l'inventario ha un titolo nuovo (2026-08-14)
+
+`SkillsGrid.astro`. Vlad ha dettato titolo e lede: **"Le mie altre lingue"** (era "Gli strumenti, elencati senza percentuali inventate.") più una lede sotto.
+
+⚠ **Il titolo gioca su un'ambiguità, ed è il senso**: "lingue" può leggersi come i linguaggi di programmazione — il primo gruppo dell'elenco è letteralmente `Linguaggi` — o come le lingue parlate, che sono l'ultimo gruppo. La lede scioglie il gioco di parole per chi non lo coglie al volo.
+
+⚠ **QUESTO RIBALTA "nessun accento in questa sezione: è quella tranquilla"**, che stava in testa al file e che ho aggiornato invece di lasciarla a mentire. Due parole della lede ora si accendono (`lato puramente tecnico`, `lingue che parlo correntemente`) con **lo stesso identico gesto di `.jr__key`** (§02 Percorso, stessa pagina): filetto d'accento che si tira sotto, non l'alone di `.ap__key` — quello vive su un testo da 42px dove un `text-shadow` sfumato legge come luce, qui il corpo è 19px e sarebbe solo una sbavatura. Stessa sequenza a tempo (titolo M1 → lede a +550ms → parole a +1350ms, sfalsate di 180ms), ancorata a `is-in` e non a una seconda soglia.
+
+Contrasti sui pixel dipinti: lede 7,92:1 · parole accese 5,70:1. Verificati anche il ramo reduced-motion (parole già accese, lede a opacità 1) e quello senza JS (titolo e lede completi nell'HTML).
+
+### /chi-sono §04 — la chiusura: il bivio (2026-08-14)
+
+`Bivio.astro`. Chiesta da Vlad come "Call to Action (Il ritorno al Business)": «Un bivio chiaro. O guardano i lavori, o ti contattano.» Fra tre forme proposte ha scelto **il bivio numerato** (due strade divise da un filetto, col dispositivo mono `01/02`) su superficie **slate**.
+
+⚠ **IL TESTO È SCRITTO DA ME**, non dettato: il suo brief lo marcava «(Esempio)». Stessa condizione delle due voci nuove della timeline — da rivedere con lui, non da difendere.
+
+⚠⚠ **IL PREFISSO DI CLASSE NON PUÒ ESSERE `cta`, e non è una preferenza.** Il footer decide da solo se accendere il proprio bagliore leggendo `body:has(.cta)` (vedi §80): quel bagliore esiste per raccogliere la **coda** della luce del cielo viola della Home, e la geometria del suo gradiente è la continuazione di quella sorgente. Su `/chi-sono` non c'è nessun cielo sopra — chiamare la sezione `.cta` accenderebbe una luce che non continua niente, cioè **un secondo picco che comincia dal nulla**: esattamente il difetto che quella regola esiste per evitare. Da qui `bv`. **Verificato a schermo**: con la sezione in pagina il footer resta a `glow opacity 0` e col suo filetto dichiarato.
+
+**Le decisioni, e il perché:**
+- **Nessun numero d'indice**, come la fascia del metodo e come la CTA della Home — che infatti porta una label mono senza numerale ("Il pezzo che manca"). È un'uscita, non un capitolo. Conseguenza voluta: la numerazione di `/chi-sono` resta 00 → 02 → 03 e questa sezione chiude senza uno suo.
+- **Non riusa il gesto della CTA della Home** (quattro righe a cascata, un bottone, il cielo di onde). Le due chiusure si vedono nella stessa sessione, e ripetere quel dispositivo le farebbe leggere come la stessa pagina finita due volte — l'errore già evitato fra §04 Dicono e lo Statement. Stessa famiglia, gesto diverso: lì una dichiarazione, qui una scelta.
+- **Nessuna parola d'accento nella prosa**, benché sia il dispositivo che questa pagina usa di più: `.ap__key`, `.jr__key` e `.sk__key` lo fanno già **tre volte** prima di arrivare qui. Una quarta è un tic, non un'enfasi.
+- ⚠ **Il rombo è il nodo `bivio` della timeline, ma QUI è d'accento e là no** — e non è un'incoerenza: la regola è che in questo sito l'accento significa "adesso", ed è per questo che un bivio del 2024 non lo porta (è già stato scelto). Questo bivio è adesso. È l'unico accento della sezione.
+- **I binari tratteggiati sono la ricetta di `.tl__tail`** (5px di tratto, 6px di vuoto): là il tratteggio dice "questa parte non è ancora scritta", qui lo dice di due strade che chi legge non ha ancora preso.
+- **`subgrid` per le righe delle due strade**, stessa lezione già costata due stesure in `NowPanel`: due griglie indipendenti si dimensionano separatamente, quindi un titolo che va a capo in una sola colonna sfaserebbe testo e bottone dell'altra. Misurato: titoli e bottoni allineati al pixel (`titleTops` e `actTops` identici).
+- **Un solo bottone pieno**: due primari affiancati non sono un bivio. Il secondario è `outline`, e le due altezze diverse sono allineate **in alto** (`align-self: start`) — così la differenza legge come gerarchia invece che come disallineamento.
+- **`/contatti` non esiste ancora** (M8 in pausa) ed è comunque il target giusto: navbar, hero e CTA della Home puntano già tutte lì. Un bersaglio diverso qui sarebbe l'unico link fuori sincrono il giorno in cui la pagina viene costruita.
+- **Sequenza nel TEMPO e non a soglie** (stessa lezione di Approach: la sezione sta in uno schermo e non si attraversa, quindi chi guarda è fermo). Misurato con scroll reale: filetto a 1000ms, rombo a 1500, strade a 1700/1850. Il filetto passa da **0px a 1310px dipinti**.
+
+⚠ **Un difetto tipografico trovato NELLO SCREENSHOT e poi MISURATO**: l'h2 cadeva a metà frase ("Ora sai / da dove vengo"). Corretto con `<br />` manuale — la convenzione della hero, "la spezzatura è parte del testo" — ma questo ha prodotto **"ragiono." orfana** su una terza riga, lo stesso difetto già corretto due volte in questo file. ⚠ **Il colpevole non era il corpo, era `max-width: 24ch`**: misurato via CDP, la seconda frase è larga 1001px a 1440 (17,88em, rapporto costante a 1280 e 1024 perché è una proprietà del testo) mentre la colonna ne offre 1310 — il vincolo stringeva più del necessario. `28ch` (lo stesso valore di `.jr__title`, ricavato dallo stesso difetto) sta sopra la frase e sotto la colonna a tutti e tre i breakpoint.
+
+⚠ **Falso allarme da NON ripetere, ed è uno strumento sbagliato che accusa il sito.** Una sonda CDP ha riportato il titolo come «Ora **&nbsp;ai** da dove vengo» — una lettera mangiata da SplitText, cioè il difetto peggiore possibile su un titolo. **Era la sonda.** Le sequenze di escape dentro i template literal della sonda si erano perse (`/\s+/` diventato `/s+/`, `matrix\(` diventato un gruppo di cattura), quindi la regex sostituiva **ogni "s" con uno spazio** — e "sai" è l'unica parola con la s in quella frase, il che rendeva il risultato perfettamente plausibile. Letto `innerHTML` **senza regex**, il DOM è intatto e M1 produce due righe corrette. Nelle sonde di questo repo: niente regex dentro i template literal, si leggono le stringhe così come sono.
+
+Contrasti sui pixel dipinti: label 7,13:1 · titolo 18,03:1 · numerali `01/02` **5,00:1** · titoli delle strade 18,03:1 · testi 7,13:1. ⚠ I numerali usano `--color-text-3`, che **su slate è in regola** (5,00:1) mentre sul canvas nero è il difetto di palette noto (4,19:1) — è una delle ragioni per cui questa sezione sta sullo slate.
 
 ### /chi-sono — la fascia del metodo, subito dopo la hero (2026-08-13)
 
@@ -766,3 +814,50 @@ Questo repo è tracciato su GitHub (`portfolio-vlad-costin`, pubblico). L'utente
 - Push al remote periodicamente, come parte dello stesso flusso.
 
 Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrittura della history) senza conferma esplicita.
+
+## Riepilogo — fatto e da fare (aggiornato 2026-08-14)
+
+⚠ Questa tabella è uno **snapshot**, non una fonte di verità: per il dettaglio di ogni riga, la sezione dedicata più sopra resta quella corretta. Se le due divergono un giorno, vince il corpo del file, non la tabella.
+
+### ✅ Fatto
+
+| Area | Cosa | Sezione di riferimento |
+|---|---|---|
+| Home §01/§02 | Passate da superficie chiara a `.theme-slate`; loghi §02 con accensione differenziata desktop/touch; Reggiana Packaging da wordmark a SVG vero | §01/§02, §02 Dove |
+| Home §03 | Carosello a piatti (M9) sostituito dal mazzo di card sovrapposte (M16) + vetrina viva (M17); titolo riportato in gerarchia; gestione robusta da 1 a N card | M16/M17, §03 |
+| Home §04 Statement | Da riga singola a manifesto in tre registri + parola-fantasma + timbro editoriale | §04 Statement |
+| Home §04 Dicono | Doppio impianto (Focus 1-5 / Muro 6+ scelto in automatico); card riscritte, monogramma, social accessibili | §04 Dicono, M18 |
+| Home §05 Percorso | JEParma aggiunto al teaser, vincolo di uno schermo rispettato | §05 Percorso |
+| Home §07 CTA | Da fondo accento pieno a fondo scuro con cielo di onde animate | Sistema visivo, Regole animazioni |
+| Home §-1 | Velo di prima visita (loader), copre solo il primo download della Home | §-1 |
+| Home §00 | Avviso "cantiere aperto", chrome ristrutturata in contenitore unico, testo dettato da Vlad | §00 |
+| Home §80 Footer | Ridisegnato: bagliore che continua la luce della CTA, tre canali di contatto | §80 Footer |
+| M1/M2 | Fix del bug "il titolo despawna risalendo" (`once` + ScrollTrigger vivo a tempo indeterminato) | M1/M2 |
+| /404 | Pagina intera: fondo globo (`cobe`), cielo di stelle, segnaposto Parma, comando pausa (poi rimosso su richiesta) | /404, Il cielo di stelle |
+| /chi-sono — bio | Bug `once: true` che rendeva la bio invisibile per sempre, corretto (`settleSplits`) | §-1 (seguito 2026-08-11) |
+| /chi-sono — hero | Nuovo titolo a due registri, lede in prima persona (`bioIo`), pannello "Adesso" con 4 righe (lavoro/studio/dove vivo/disponibilità), hero alta uno schermo | /chi-sono — la hero |
+| /chi-sono — bug avviso | L'avviso "cantiere aperto" non sposta più la hero (`--chrome-shift` non sommato, `SectionIndex` forzato `static`) | Il seguito, 2026-08-14 |
+| /chi-sono — fascia del metodo | Nuova sezione "Il Superpotere" sotto la hero: citazione pura, poi parole d'accento animate (caffè/nottate/ossessione), alone di sfondo, sequenza a tempo | /chi-sono — la fascia del metodo (4 giri) |
+| /chi-sono — timeline | Aggiunti il "primo grande bivio" (giu 2024) e la pubblicazione del primo sito (ago 2026) come voci-momento; coda finale animata ("Vediamo cosa mi aspetta…"); titolo e lede riscritti con parole d'accento | /chi-sono §02 — la timeline |
+| /chi-sono — coda timeline | La coda tratteggiata partiva prima che il filo pieno finisse la corsa: `data-in="65"` in `reveal.ts` allinea la soglia a quella del rail | La coda partiva PRIMA (2026-08-14) |
+| /chi-sono — pannello Adesso | "Disponibilità" dentro una pill a contorno, frase accorciata a "Aperto a nuovi progetti", pallino verde che ora respira come quello viola | /chi-sono — la hero (riga Disponibilità) |
+| /chi-sono — inventario | Titolo nuovo "Le mie altre lingue" + lede con due parole d'accento (gesto di `.jr__key`) | /chi-sono §03 — l'inventario |
+| /chi-sono — chiusura | Nuova sezione finale: il bivio numerato 01/02 su slate, due strade con binari tratteggiati, rombo d'accento, Portfolio (primario) e Contatti (secondario) | /chi-sono §04 — il bivio |
+| Infrastruttura | `@vercel/analytics` + `@vercel/speed-insights` montati in `BaseLayout.astro` | Telemetria Vercel |
+| `src/data/skills.ts` | "Strumenti AI" separato in una riga `SkillGroup` dedicata | (modifica di sessione precedente) |
+
+### ⏳ Da fare / in sospeso
+
+| Area | Cosa | Chi decide / blocco |
+|---|---|---|
+| Piano generale | M8 (Portfolio/Contatti) resta fermo; Lighthouse non va eseguito | **Vlad** — pausa in vigore finché non la revoca a voce |
+| Contenuti | Testimonianze vere al posto dei 9 segnaposto NATO in `data/testimonials.ts` | **Vlad** — flag `SITE.features.testimonials` oggi `false` |
+| Contenuti | Progetti 02/03 e loghi 2-3 (ALSI, Reggiana) nascosti in attesa di contenuto vero | **Vlad** — "finché non chiedo il consenso" |
+| Contenuti | I due testi nuovi della timeline (bivio, primo sito online) sono scritti da me su indicazione di contenuto, non dettati parola per parola | **Vlad** — da rivedere/riscrivere se non convincono |
+| Contenuti | I testi della chiusura §04 (titoli e descrizioni delle due strade) sono scritti da me su un suo esempio, che lui stesso aveva marcato «(Esempio)» | **Vlad** — da rivedere/riscrivere se non convincono |
+| Difetto noto | `--color-text-3` è sotto AA (4.19:1) su fondo canvas nero — riga di palette, non un regresso | decisione di design da proporre |
+| Difetto noto | Numerazione sezioni `/chi-sono` salta da 00 a 02 a 03 (manca 01) | non affrontato, segnalato ma non richiesto |
+| Difetto noto | A 390px l'avviso "cantiere aperto" (192px) copre indice e prima riga del titolo di `/chi-sono` — conseguenza accettata di "l'avviso non deve spostare la pagina" | Vlad ha scelto così sapendolo; leva per il domani è accorciare il testo su mobile |
+| Difetto noto pre-esistente | `/chi-sono` §05 Percorso a 1440×720 (viewport basso) misura 823px, oltre il vincolo di uno schermo — non introdotto da questa sessione | non nello scope finora |
+| Esperimento aperto | Onde della CTA triggerate da §05 Percorso invece che dalla CTA stessa: ancora nel codice, selettore precedente conservato in commento | **Vlad** non ha ancora detto se tenerla |
+| Accessibilità dichiarata | Comando di pausa del globo in /404 rimosso su richiesta di Vlad — riapre il requisito WCAG 2.2.2 (movimento continuo >5s deve essere fermabile) | debito noto, non richiuso |

@@ -42,6 +42,14 @@
  *                           `.ap__key` in Approach.astro. Se un giorno
  *                           riservisse davvero, il problema da risolvere è
  *                           quasi certamente un altro.
+ *                           ⚠ `data-in="NN"` esiste comunque, ma non è quel
+ *                           `data-on`: sposta la PRIMA soglia (default 80), per
+ *                           un elemento solo (`.tl__end` in Timeline.astro) che
+ *                           deve sincronizzarsi con un evento ESTERNO — la fine
+ *                           dello scrub del filetto M11b — non con la propria
+ *                           seconda soglia. Una soglia sola, tarata su un punto
+ *                           geometrico condiviso con un altro elemento, non un
+ *                           tempo fra due battute dello stesso elemento.
  *
  * ⚠ `data-activate` NON VA MAI COMBINATO CON `data-reveal` SULLO STESSO
  * ELEMENTO. Costato un bug reale, due volte: se condividono la soglia
@@ -498,11 +506,25 @@ export function initReveal(): void {
          `is-instant` azzera durate e ritardi quando il blocco è già USCITO
          sopra la viewport: un'accensione di cui nessuno ha visto l'inizio non
          è un'animazione, è solo un ritardo (stessa regola del ramo `onLeave`). */
+      /* `data-in="NN"` sposta SOLO la prima soglia (default 80), per un
+         elemento il cui ingresso deve sincronizzarsi con un evento ESTERNO
+         invece che con la propria posizione a schermo — oggi solo `.tl__end`
+         (vedi Timeline.astro): la coda tratteggiata deve accendersi esattamente
+         quando il filetto pieno finisce di disegnarsi (M11b, scrub fino a
+         `bottom 65%` su `.tl__track`), e `.tl__end` gli sta subito sotto senza
+         margine, quindi la STESSA soglia (65%) letta sul SUO `top` coincide col
+         medesimo istante. Non è il `data-on` provato e tolto lo stesso giorno
+         per `.ap` (vedi la nota in cima al file): lì il problema era impastare
+         DUE soglie sullo STESSO elemento più vicine di quanto l'animazione fra
+         loro durasse; qui è UNA soglia sola, tarata su un punto geometrico
+         esatto condiviso con un altro elemento, non su un tempo. */
+      const inThreshold = (el: HTMLElement): number => Number(el.dataset.in) || 80;
+
       const settle = (): void => {
         for (const el of activatable) {
           const r = el.getBoundingClientRect();
           if (r.bottom < 0) el.classList.add('is-instant', 'is-in', 'is-on');
-          if (r.top < window.innerHeight * 0.8) el.classList.add('is-in');
+          if (r.top < window.innerHeight * (inThreshold(el) / 100)) el.classList.add('is-in');
           if (r.top < window.innerHeight * 0.4) el.classList.add('is-on');
         }
       };
@@ -537,7 +559,7 @@ export function initReveal(): void {
         };
         ScrollTrigger.create({
           trigger: el,
-          start: 'clamp(top 80%)',
+          start: `clamp(top ${inThreshold(el)}%)`,
           onEnter: turnOn('is-in'),
           onEnterBack: turnOn('is-in'),
           onLeave: skipToEnd,

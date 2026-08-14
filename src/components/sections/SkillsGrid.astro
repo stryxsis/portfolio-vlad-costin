@@ -12,9 +12,18 @@
  * `columns`) e non a nuvola di chip, perché una lista incolonnata si scorre con
  * l'occhio mentre una nuvola va letta tutta.
  *
- * Nessun accento in questa sezione: è quella tranquilla, e il budget
- * dell'accento serve altrove.
- */
+ * ⚠ IL TITOLO GIOCA SU UN'AMBIGUITÀ, chiesto da Vlad (2026-08-14): "Le mie
+ * altre lingue" può leggersi come linguaggi di programmazione (il gruppo
+ * `Lingue` qui sotto è in realtà l'ULTIMO di una lista che comincia con
+ * JavaScript/PHP/Python/…) o come lingue parlate (l'ultimo gruppo davvero lo
+ * è). La lede sotto scioglie il gioco di parole per chi non l'ha colto.
+ *
+ * ⚠ QUESTO RIBALTA "nessun accento in questa sezione", nota che stava qui
+ * prima: due parole della lede si accendono con lo STESSO gesto di `.jr__key`
+ * in chi-sono.astro (§02 Percorso) — filetto che si tira sotto, non l'alone di
+ * `.ap__key` in Approach.astro, perché a questo corpo (16-19px) un
+ * text-shadow sfumato sarebbe solo una sbavatura, non luce. Vedi la nota
+ * accanto a `.jr__key` per il perché estende. */
 import SectionIndex from '../primitives/SectionIndex.astro';
 import { SKILLS, LANGUAGES } from '../../data/skills';
 
@@ -33,9 +42,17 @@ const { n = '03', id = 'competenze' } = Astro.props;
     </div>
 
     <div class="sk__body">
-      <h2 class="sk__title" data-split="lines">
-        Gli strumenti, elencati senza percentuali inventate.
-      </h2>
+      {/* `data-activate` sul contenitore, `data-split` sul titolo: mai sullo
+          stesso elemento (vedi reveal.ts). Stesso schema di `.jr__head` in
+          chi-sono.astro, da cui questo blocco riusa il gesto. */}
+      <div class="sk__intro" data-activate>
+        <h2 class="sk__title" data-split="lines">
+          Le mie altre lingue
+        </h2>
+        <p class="sk__lede">
+          Se ti interessa il <strong class="sk__key" style="--i: 0">lato puramente tecnico</strong> (o se sei un altro sviluppatore venuto qui per spulciare come lavoro), ecco le <strong class="sk__key" style="--i: 1">lingue che parlo correntemente</strong> quando non parlo italiano:
+        </p>
+      </div>
 
       <div class="sk__groups">
         {
@@ -112,6 +129,87 @@ const { n = '03', id = 'competenze' } = Astro.props;
     font-size: var(--text-h2);
     line-height: 1.05;
     letter-spacing: -0.025em;
+  }
+
+  /* La lede sotto il titolo: scioglie il gioco di parole per chi non l'ha
+     colto al volo. Stessa misura e stesso colore di `.jr__lede`. */
+  .sk__lede {
+    margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+    max-width: 62ch;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+  :global(html.js-anim) .sk__lede {
+    opacity: 0;
+    transform: translateY(0.5rem);
+    /* Entra DOPO il titolo: M1 spacca l'h2 in righe e le fa salire in ~1s
+       (0,9s + stagger). 550ms la fa arrivare mentre il titolo si sta ancora
+       posando, senza aspettare che finisca — stessi numeri di `.jr__lede`,
+       stesso meccanismo sottostante (M1 non è cambiato). */
+    transition:
+      opacity 700ms var(--ease-out-expo) 550ms,
+      transform 700ms var(--ease-out-expo) 550ms;
+  }
+  :global(html.js-anim) .sk__intro.is-in .sk__lede {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ---- Le parole chiave della lede ----------------------------------------
+     ⚠ STESSO GESTO di `.jr__key` in chi-sono.astro (§02 Percorso): filetto
+     che si tira sotto, non l'alone di `.ap__key` in Approach.astro — quel
+     testo è a 42px, dove un text-shadow sfumato si legge come luce; qui il
+     corpo è 16-19px e lo stesso alone sarebbe solo una sbavatura. */
+  .sk__key {
+    position: relative;
+    font-weight: 500;
+    /* Stato finale: è anche quello del ramo senza JS e di reduced-motion. */
+    color: var(--color-accent);
+  }
+  .sk__key::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.15em;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform-origin: left;
+  }
+
+  /* Nel ramo animato partono spente — dello stesso grigio del testo intorno,
+     mai invisibili: è l'invariante di M14 (la pausa trattiene colore, non
+     informazione). */
+  :global(html.js-anim) .sk__key {
+    color: var(--color-text-2);
+    transition: color 500ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .sk__key::after {
+    transform: scaleX(0);
+    transition: transform 600ms var(--ease-out-expo);
+  }
+  /* Ancorate a `is-in` con un RITARDO, non a `is-on`: due soglie di scroll
+     vicine si sovrappongono per chi scorre veloce e restano separate per
+     sempre per chi si ferma — vedi la stessa lezione in Approach.astro.
+     1350ms = il reveal del titolo (~1s) più la lede che entra a 550ms, così
+     le parole si accendono su una frase già arrivata e ferma. */
+  :global(html.js-anim) .sk__intro.is-in .sk__key {
+    color: var(--color-accent);
+    transition-delay: calc(1350ms + var(--i, 0) * 180ms);
+  }
+  :global(html.js-anim) .sk__intro.is-in .sk__key::after {
+    transform: scaleX(1);
+    transition-delay: calc(1350ms + var(--i, 0) * 180ms);
+  }
+
+  /* Salto d'ancora o tasto Fine: stato finale senza attesa. Deve restare DOPO
+     le regole di `is-in`, che hanno la stessa specificità. */
+  :global(html.js-anim) .sk__intro.is-instant .sk__lede,
+  :global(html.js-anim) .sk__intro.is-instant .sk__key,
+  :global(html.js-anim) .sk__intro.is-instant .sk__key::after {
+    transition-duration: 0s;
+    transition-delay: 0s;
   }
 
   .sk__groups {

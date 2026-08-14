@@ -179,7 +179,7 @@ export const SITE = {
    * un cartello di divieto. Quando Vlad non prende più progetti, la riga si
    * TOGLIE (questo campo a stringa vuota), non si capovolge.
    */
-  availability: 'Accetto nuovi progetti freelance',
+  availability: 'Aperto a nuovi progetti',
 
   /**
    * FEATURE FLAG — sezioni la cui esistenza dipende da contenuti che non ci

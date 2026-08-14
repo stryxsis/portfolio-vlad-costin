@@ -87,7 +87,13 @@ const items = limit ? entries.slice(0, limit) : entries;
 
   {
     closing && (
-      <div class="tl__end" data-activate>
+      /* `data-in="65"` deve restare uguale a `end: 'bottom 65%'` del rail in
+         reveal.ts (M11b): `.tl__end` sta subito sotto `.tl__track` senza
+         margine, quindi il SUO `top` a 65% coincide con l'istante in cui il
+         `bottom` di `.tl__track` (cioè il filetto pieno) raggiunge lo stesso
+         punto. Col default condiviso (80%) la coda si accendeva ~90-130px di
+         scroll prima che il filo pieno finisse di disegnarsi. */
+      <div class="tl__end" data-activate data-in="65">
         <span class="tl__tail" aria-hidden="true" />
         <span class="tl__end-node" aria-hidden="true" />
         {/* I tre punti sono `aria-hidden` e NON stanno nel testo: a voce

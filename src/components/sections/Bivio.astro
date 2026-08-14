@@ -1,0 +1,455 @@
+---
+/**
+ * IL BIVIO — la chiusura di /chi-sono: il racconto finisce, e chi legge sceglie.
+ *
+ * Chiesta da Vlad (2026-08-14) come "Call to Action (Il ritorno al Business)":
+ * «Un bivio chiaro. O guardano i lavori, o ti contattano.» Fra le forme
+ * proposte ha scelto lui il BIVIO NUMERATO (due strade divise da un filetto,
+ * col dispositivo mono 01/02) su superficie SLATE.
+ *
+ * ⚠ IL TESTO È SCRITTO DA ME su un suo esempio, NON dettato parola per parola
+ * — lui l'aveva marcato «(Esempio)». Stessa condizione delle due voci nuove
+ * della timeline: se non convince, è da riscrivere, non da difendere.
+ *
+ * ⚠⚠ IL PREFISSO DI CLASSE NON PUÒ ESSERE `cta`, E NON È UNA PREFERENZA.
+ * Il footer decide da solo se accendere il proprio bagliore leggendo
+ * `body:has(.cta)` (vedi §80 in Footer.astro): quel bagliore esiste per
+ * raccogliere la CODA della luce del cielo viola della Home, e la geometria
+ * del suo gradiente è la continuazione di quella sorgente. Qui sopra non c'è
+ * nessun cielo — chiamare questa sezione `.cta` accenderebbe in fondo a
+ * /chi-sono una luce che non continua niente, cioè un secondo picco che
+ * comincia dal nulla: esattamente il difetto che quella regola esiste per
+ * evitare. Da qui `bv`.
+ *
+ * ⚠ NESSUN NUMERO D'INDICE, ed è la regola del sito applicata: `SectionIndex`
+ * non si usa nelle sezioni che dichiarano invece di raccontare, e la CTA della
+ * Home infatti porta una label mono senza numerale ("Il pezzo che manca"),
+ * non un indice. Questa è la stessa cosa: un'uscita, non un capitolo.
+ * Conseguenza voluta: la numerazione di /chi-sono resta 00 → 02 → 03 e questa
+ * sezione sta in fondo senza uno suo, come la fascia del metodo sta in mezzo
+ * senza uno suo.
+ *
+ * ⚠ NON RIUSA IL GESTO DELLA CTA DELLA HOME (quattro righe che salgono a
+ * cascata, un bottone, il cielo di onde). Le due chiusure si vedono nella
+ * stessa sessione, e ripetere quel dispositivo le farebbe leggere come la
+ * stessa pagina finita due volte — è l'errore già evitato fra §04 Dicono e
+ * lo Statement. Stessa famiglia (una chiusura che chiede un'azione), gesto
+ * diverso: lì una dichiarazione, qui una scelta fra due strade.
+ *
+ * ⚠ E NON PORTA PAROLE D'ACCENTO nella prosa, benché sia il dispositivo che
+ * questa pagina usa più spesso: `.ap__key` (fascia del metodo), `.jr__key`
+ * (titolo del percorso) e `.sk__key` (inventario) lo fanno già tre volte
+ * prima di arrivare qui. Una quarta sarebbe un tic, non un'enfasi. L'unico
+ * accento della sezione è il rombo — vedi lì il perché.
+ */
+import Button from '../primitives/Button.astro';
+
+interface Props {
+  id?: string;
+}
+const { id = 'e-adesso' } = Astro.props;
+
+/**
+ * Le due strade.
+ *
+ * In un array e non scritte a mano nel markup per la stessa ragione delle
+ * righe della CTA in Home: l'ORDINE è informazione che il CSS legge (lo
+ * scaglione d'ingresso è un `nth-child`), e una strada aggiunta nel posto
+ * sbagliato romperebbe la sequenza in silenzio.
+ *
+ * ⚠ `/contatti` NON ESISTE ANCORA (è M8, in pausa), ed è comunque il target
+ * giusto: navbar, hero e CTA della Home puntano già tutte lì. Inventare qui
+ * un bersaglio diverso (un `mailto:`, un'ancora alla Home) farebbe di questo
+ * l'unico link fuori sincrono il giorno in cui la pagina viene costruita.
+ */
+interface Strada {
+  n: string;
+  titolo: string;
+  testo: string;
+  href: string;
+  cta: string;
+  /** Una sola delle due è l'azione primaria: due bottoni pieni affiancati
+   *  non sono un bivio, sono due primari che competono. */
+  primaria?: boolean;
+}
+const STRADE: Strada[] = [
+  {
+    n: '01',
+    titolo: 'Vedi come lavoro',
+    testo: 'Tutta questa energia applicata a progetti veri, con le scelte raccontate una per una.',
+    href: '/portfolio',
+    cta: 'Vai al portfolio',
+    primaria: true,
+  },
+  {
+    n: '02',
+    titolo: 'Scrivimi due righe',
+    testo: 'Se hai già in mente qualcosa, la strada più corta per scoprire se posso aiutarti è dirmelo.',
+    href: '/contatti',
+    cta: 'Parliamone ora',
+  },
+];
+---
+
+{
+  /* `.theme-slate` sul <section>: il tema ridichiara i token E si dipinge da
+     solo, quindi la fascia è a tutta larghezza senza nessun trucco full-bleed.
+     Slate e non canvas perché la pagina diventa così hero nera → metodo slate
+     → percorso nero → inventario nero → chiusura slate: le due bande slate
+     fanno da parentesi al racconto, e questa sezione si stacca dall'inventario
+     invece di sembrarne l'ultima riga.
+
+     `data-activate` (M14) sulla SEZIONE e non su un wrapper interno, come in
+     Approach.astro e per la ragione identica: le classi devono governare cose
+     che stanno a livelli diversi dell'albero (il filetto, il rombo, le due
+     strade). Marcando un wrapper servirebbe un `:has()` per risalire.
+     ⚠ E la sezione NON porta anche `data-reveal`: i due non vanno mai insieme
+     (vedi reveal.ts), o il fade generico di M4 coprirebbe tutto questo. */
+}
+<section class="bv theme-slate" {id} data-activate>
+  <div class="bv__wrap">
+    {/* Label mono senza numerale: vedi la nota sull'indice in testa al file. */}
+    <p class="bv__label">E adesso?</p>
+
+    {
+      /* `data-split="lines"` (M1) sull'h2, `data-activate` sulla sezione: mai
+         sullo stesso elemento. È un <h2> e non un <p> anche perché una
+         <section> senza heading è un landmark senza nome, e qui non c'è nessun
+         altro candidato. */
+    }
+    {
+      /* ⚠ IL `<br />` È MANUALE, ed è la convenzione già scritta per l'h1 della
+         hero: la spezzatura è parte del TESTO, non un accidente della
+         larghezza. Sono due frasi con due lavori diversi — una chiude il
+         racconto, l'altra dice cosa il lettore ha adesso in mano — e lasciate
+         andare a capo da sole cadevano a metà della seconda ("Ora sai / da
+         dove vengo"), visto nello screenshot. Una `max-width` non può
+         risolverlo: per far cadere il capo dopo "biografia." dovrebbe essere
+         più STRETTA della prima frase, e a quel punto spezzerebbe anche
+         quella. */
+    }
+    <h2 class="bv__say" data-split="lines">
+      Ok, fine della biografia.<br />Ora sai da dove vengo e come ragiono.
+    </h2>
+
+    {
+      /* IL PUNTO IN CUI LA STRADA SI DIVIDE. Decorativo al 100%: l'informazione
+         è tutta nel testo delle due strade, quindi `aria-hidden`.
+         ⚠ IL FILETTO E IL ROMBO SONO DUE ELEMENTI FRATELLI, non un contenitore
+         che scala col figlio dentro: l'ingresso del filetto è uno `scaleX`, e
+         un rombo dentro un antenato scalato in X verrebbe schiacciato con lui.
+         Separati, ognuno anima la propria trasformazione. */
+    }
+    <div class="bv__split" aria-hidden="true">
+      <span class="bv__rule"></span>
+      <span class="bv__node"></span>
+    </div>
+
+    <div class="bv__fork">
+      {
+        STRADE.map((s) => (
+          <div class="bv__road">
+            <p class="bv__n">{s.n}</p>
+            <h3 class="bv__road-title">{s.titolo}</h3>
+            <p class="bv__road-text">{s.testo}</p>
+            {
+              /* Il bottone sta in un wrapper e non da solo nella cella: gli
+                 stili scoped di Astro non raggiungono la radice di un
+                 componente figlio (vedi la nota in Timeline.astro), quindi
+                 senza wrapper non c'è modo di posizionarlo da qui. */
+            }
+            <div class="bv__act">
+              <Button
+                href={s.href}
+                variant={s.primaria ? 'filled' : 'outline'}
+                tone="dark"
+              >
+                {s.cta}
+              </Button>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .bv {
+    /* Non `100svh`: è una chiusura, non una tappa da attraversare. Si
+       dimensiona sul contenuto più l'aria intorno, come la fascia del metodo.
+       Il padding-bottom è più generoso di quello alto perché sotto c'è il
+       footer: l'ultimo gesto della pagina non deve toccarlo. */
+    padding-top: clamp(4.5rem, 12vh, 8rem);
+    padding-bottom: clamp(5.5rem, 15vh, 10rem);
+  }
+
+  .bv__wrap {
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  .bv__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* `text-2` e non `text-3`: è mono da 11-12px, taglia che pretende 4,5:1.
+       Su slate `text-3` sarebbe in regola (5,00:1), ma la label resta
+       allineata a come la scrivono CTASection e NowPanel — un solo criterio
+       per tutte le label mono del sito, non uno per superficie. */
+    color: var(--color-text-2);
+  }
+
+  .bv__say {
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+    /* ⚠ 28ch È MISURATO, NON SCELTO, e la prima stesura (24ch) aveva un difetto
+       vero: lasciava "ragiono." ORFANA su una terza riga — lo stesso difetto
+       già corretto sull'h1 della hero e sul titolo di §02 Percorso, che infatti
+       porta anche lui 28ch.
+       Il colpevole NON era il corpo: misurato via CDP, la seconda frase è larga
+       1001px a 1440 (17,88em, e quel rapporto resta identico a 1280 e 1024
+       perché è una proprietà del testo, non della viewport), mentre la colonna
+       disponibile ne offre 1310. Era `max-width: 24ch` = 904px a stringere più
+       del necessario. 28ch vale 1055px a 1440, 982 a 1280, 866 a 1024: sempre
+       sopra la frase e sempre sotto la colonna.
+       Resta in `ch` e non in px perché fissa i CARATTERI per riga: il numero di
+       righe non cambia al variare del corpo prodotto dalla scala fluida.
+       ⚠ Ritoccando il testo della seconda frase, rimisurare: è lei a dettare
+       questo numero. */
+    max-width: 28ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  /* ---- Il punto in cui la strada si divide -------------------------------- */
+  .bv__split {
+    position: relative;
+    display: grid;
+    place-items: center;
+    /* L'altezza è quella del rombo: il filetto ci sta dentro in assoluto. */
+    height: 0.5rem;
+    margin-top: clamp(3rem, 7vw, 5rem);
+  }
+
+  .bv__rule {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 1px;
+    background-color: var(--color-hairline);
+    /* Cresce dal centro verso i due lati: il filetto non "arriva" da un bordo,
+       si APRE dal punto in cui la strada si divide. */
+    transform-origin: center;
+  }
+
+  /* ⚠ IL ROMBO È IL NODO `bivio` DELLA TIMELINE, e la citazione è deliberata:
+     §02 si apre con la voce "Il primo grande bivio" segnata da quella forma,
+     e la pagina si chiude con la stessa forma girata verso chi legge. Vuoto
+     dentro per la stessa ragione di là: non è una tappa raggiunta, è un punto
+     in cui si sceglie.
+     ⚠ MA QUI È D'ACCENTO E NELLA TIMELINE NO, e non è un'incoerenza: quella
+     nota dice che l'accento in questo sito significa "adesso", ed è per questo
+     che un bivio del 2024 non lo porta — è già stato scelto. Questo bivio è
+     adesso, ed è l'unico accento della sezione.
+     `transform` in CSS è sicuro: GSAP non tocca questo elemento (il divieto
+     riguarda `translate`/`scale`/`rotate` indipendenti su elementi animati da
+     GSAP, e qui la trasformazione è una sola proprietà). */
+  .bv__node {
+    position: relative;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--color-accent);
+    /* Il fondo copre il filetto che gli passa dietro, esattamente come i nodi
+       della timeline coprono il proprio filo. Su `.theme-slate` questo token
+       vale #14141a, cioè il fondo di questa sezione. */
+    background-color: var(--color-canvas);
+    transform: rotate(45deg);
+  }
+
+  /* ---- Le due strade ------------------------------------------------------ */
+  .bv__fork {
+    display: grid;
+    gap: clamp(2.25rem, 5vw, 3rem);
+    /* Le righe interne di ogni strada. Dichiarate qui e non nel figlio perché
+       su desktop il figlio le EREDITA con `subgrid` — vedi lì. */
+    --bv-row-gap: 0.7rem;
+  }
+
+  .bv__road {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: var(--bv-row-gap);
+    /* Spazio per il binario tratteggiato qui sotto. */
+    padding-left: clamp(1.125rem, 2.2vw, 1.75rem);
+  }
+
+  /* ⚠ IL BINARIO TRATTEGGIATO È LA STESSA RICETTA DELLA CODA DELLA TIMELINE
+     (`.tl__tail`, 5px di tratto e 6px di vuoto), e il richiamo è il senso:
+     là il tratteggio dice "questa parte non è ancora scritta", qui dice la
+     stessa cosa di due strade che chi legge non ha ancora preso.
+     `repeating-linear-gradient` e non `border-left: dashed`: il tratteggio
+     nativo non ha lunghezza né spaziatura controllabili e a 1px i browser lo
+     rendono come una fila di puntini irregolari. */
+  .bv__road::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--color-hairline) 0 5px,
+      transparent 5px 11px
+    );
+    /* Scende dal bivio verso il basso, come il filo della timeline. */
+    transform-origin: top;
+  }
+
+  .bv__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    /* Su `.theme-slate` `--color-text-3` è #85858b (5,00:1), cioè in regola —
+       al contrario dello stesso token sul canvas nero, che è il difetto di
+       palette dichiarato in CLAUDE.md. È una delle ragioni per cui questa
+       sezione sta sullo slate. */
+    color: var(--color-text-3);
+  }
+
+  .bv__road-title {
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--color-text-1);
+  }
+
+  .bv__road-text {
+    max-width: 34ch;
+    font-size: var(--text-base);
+    line-height: 1.55;
+    color: var(--color-text-2);
+  }
+
+  .bv__act {
+    margin-top: clamp(0.75rem, 2vw, 1.25rem);
+    /* `start` su entrambi gli assi: i due bottoni hanno altezze diverse
+       (`filled` 3,75rem contro `outline` 2,75rem) ed è così che si legge la
+       gerarchia. Allineati in ALTO la differenza è gerarchia; stirati o
+       allineati in basso sarebbe un disallineamento. */
+    align-self: start;
+    justify-self: start;
+  }
+
+  @media (min-width: 56.25rem) {
+    .bv__fork {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      /* ⚠ LE RIGHE VIVONO SUL CONTENITORE E LE STRADE LE EREDITANO CON
+         `subgrid`, ed è la stessa lezione già costata due stesure in
+         NowPanel.astro: due griglie INDIPENDENTI si dimensionano
+         separatamente, quindi un titolo che va a capo in una sola delle due
+         colonne sfaserebbe testo e bottone dell'altra di un'intera riga.
+         Con `subgrid` numerale, titolo, testo e azione stanno sulle STESSE
+         quattro righe per entrambe — che è la cosa vera, e nessun numero da
+         ritarare quando il testo cambia. */
+      grid-template-rows: auto auto auto auto;
+      column-gap: clamp(2rem, 5vw, 4.5rem);
+      row-gap: var(--bv-row-gap);
+    }
+
+    .bv__road {
+      grid-row: 1 / -1;
+      grid-template-rows: subgrid;
+    }
+  }
+
+  /* ═══ IL REVEAL (M14) ══════════════════════════════════════════════════
+     `reveal.ts` commuta solo le classi; tutta l'animazione è qui. Lo stato
+     spento vive ESCLUSIVAMENTE sotto `html.js-anim`: senza JS, con JS rotto,
+     per un crawler o con movimento ridotto la sezione è completa dal primo
+     paint. Nessun loop infinito: è una chiusura, non uno stato.
+
+     ⚠ LA SEQUENZA È NEL TEMPO E NON IN UNA SECONDA SOGLIA DI SCROLL, ed è la
+     lezione già costata un giro sulla fascia del metodo (vedi Approach.astro):
+     questa sezione sta tutta in uno schermo e non si attraversa, quindi chi la
+     guarda è FERMO davanti e l'unica cosa che scorre è il tempo. Due soglie
+     vicine si sovrapporrebbero per chi scorre veloce e resterebbero separate
+     per sempre per chi si ferma.
+     I ritardi contano dal reveal M1 dell'h2, che dura ~0,98s (0,9 + 0,08 di
+     stagger su 2 righe): ritoccando durata o stagger in reveal.ts, vanno
+     ritoccati con loro. */
+  :global(html.js-anim) .bv__rule {
+    transform: scaleX(0);
+    transition: transform 800ms var(--ease-out-expo) 1000ms;
+  }
+  :global(html.js-anim) .bv.is-in .bv__rule {
+    transform: scaleX(1);
+  }
+
+  /* Il rombo arriva quando il filetto ha quasi finito di aprirsi: è il punto
+     che quel gesto sta disegnando, quindi non può precederlo. */
+  :global(html.js-anim) .bv__node {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.4);
+    transition:
+      opacity 500ms var(--ease-out-expo) 1500ms,
+      transform 500ms var(--ease-out-expo) 1500ms;
+  }
+  :global(html.js-anim) .bv.is-in .bv__node {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+
+  /* Le strade salgono dopo il rombo, una dopo l'altra: sono due opzioni in
+     ordine, e mostrarle insieme le farebbe leggere come un blocco solo.
+     ⚠ Si animano `opacity` e `translate`, mai proprietà che partecipano al
+     layout: lo spazio è occupato dal primo paint, quindi nessun layout shift. */
+  :global(html.js-anim) .bv__road {
+    opacity: 0;
+    translate: 0 18px;
+    transition:
+      opacity 800ms var(--ease-out-expo) 1700ms,
+      translate 800ms var(--ease-out-expo) 1700ms;
+  }
+  :global(html.js-anim) .bv__road:nth-child(2) {
+    transition-delay: 1850ms;
+  }
+  :global(html.js-anim) .bv.is-in .bv__road {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* Il binario si disegna con la propria strada, non prima: un tratteggio che
+     scende verso un'opzione ancora invisibile indicherebbe il vuoto. */
+  :global(html.js-anim) .bv__road::before {
+    transform: scaleY(0);
+    transition: transform 900ms var(--ease-out-expo) 1850ms;
+  }
+  :global(html.js-anim) .bv__road:nth-child(2)::before {
+    transition-delay: 2000ms;
+  }
+  :global(html.js-anim) .bv.is-in .bv__road::before {
+    transform: scaleY(1);
+  }
+
+  /* ⚠ `is-instant` azzera DURATA E RITARDO, non solo il ritardo — la lezione è
+     già costata due volte nel repo (vedi M14 in CLAUDE.md), e qui il conto
+     sarebbe il peggiore della pagina: 2s di ritardo sopra 900ms di durata
+     lascerebbero i due bottoni invisibili per quasi tre secondi dopo un salto
+     al fondo. Chi arriva con un salto non ha visto cominciare niente.
+     ⚠ Deve restare DOPO le regole di `is-in`, che hanno la stessa
+     specificità: a decidere è l'ordine nel file. */
+  :global(html.js-anim) .bv.is-instant .bv__rule,
+  :global(html.js-anim) .bv.is-instant .bv__node,
+  :global(html.js-anim) .bv.is-instant .bv__road,
+  :global(html.js-anim) .bv.is-instant .bv__road::before {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+</style>
