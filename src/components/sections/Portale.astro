@@ -1,0 +1,423 @@
+---
+/**
+ * IL PORTALE — la chiusura di /chi-sono: una finestra che si apre sullo spazio.
+ *
+ * Chiesta da Vlad (2026-08-14) dopo aver bocciato la prima chiusura (il bivio
+ * numerato, cancellato): «cambiamo lo stile completamente», portando uno
+ * snippet React (`ScrollExpand`) e chiedendo «non l'immagine di sfondo che c'è
+ * lì ma qualcosa tipo con lo spazio, quindi stelle, ovviamente tutto elegante e
+ * in maniera smooth». Fra tre varianti proposte ha scelto **il portale** (la
+ * frase FUORI dal riquadro, che si allontana aprendosi) e la durata
+ * **cinematografica** (~1,55 schermi di corsa).
+ *
+ * ⚠ IL TESTO È SCRITTO DA ME, non dettato: il suo brief lo marcava «(Esempio)».
+ * Da rivedere con lui, non da difendere.
+ *
+ * ⚠ COSA RESTA DEL BIVIO CANCELLATO: le DUE destinazioni alla pari
+ * (portfolio/contatti) col dispositivo mono `01/02`. Non è inerzia — è la sua
+ * richiesta originale («Un bivio chiaro. O guardano i lavori, o ti contattano»),
+ * che la bocciatura non ha revocato: a cambiare era lo stile, non lo scopo.
+ * Quello che è sparito col bivio: i binari tratteggiati, il rombo, il filetto
+ * orizzontale, la superficie slate come protagonista.
+ *
+ * ⚠⚠ IL PREFISSO NON PUÒ ESSERE `cta`, e vale ANCHE QUI (era già la nota del
+ * bivio): il footer accende il proprio bagliore leggendo `body:has(.cta)` per
+ * raccogliere la coda del cielo viola della Home. Su questa pagina non c'è
+ * nessun cielo viola da continuare, quindi si accenderebbe una luce che non
+ * continua niente. Da qui `pt`. **Verificato a schermo.**
+ *
+ * ⚠ NESSUN NUMERO D'INDICE, come la fascia del metodo e come la CTA della Home
+ * (che porta una label mono senza numerale): è un'uscita, non un capitolo.
+ *
+ * ⚠ NIENTE SCRIM, al contrario del riferimento. Il suo `.scroll-expand__scrim`
+ * è un gradiente nero che entra aprendosi, e serve a rendere leggibile il testo
+ * sopra una FOTO. Qui sotto il testo c'è nero e stelle: su /404 lo stesso
+ * accostamento è stato misurato a 19,92:1 sui pixel dipinti. Uno scrim qui
+ * sarebbe uno strato di paint in più per risolvere un problema che non c'è.
+ */
+import Button from '../primitives/Button.astro';
+import Starfield from '../primitives/Starfield.astro';
+
+interface Props {
+  id?: string;
+}
+const { id = 'e-adesso' } = Astro.props;
+
+/**
+ * Le due destinazioni.
+ *
+ * ⚠ `/contatti` NON ESISTE ANCORA (è M8, in pausa) ed è comunque il target
+ * giusto: navbar, hero e CTA della Home puntano già tutte lì. Un bersaglio
+ * diverso qui sarebbe l'unico link fuori sincrono il giorno in cui la pagina
+ * viene costruita.
+ */
+interface Strada {
+  n: string;
+  titolo: string;
+  href: string;
+  cta: string;
+  /** Una sola è l'azione primaria: due bottoni pieni affiancati non sono una
+   *  scelta, sono due primari che competono. */
+  primaria?: boolean;
+}
+const STRADE: Strada[] = [
+  { n: '01', titolo: 'Vedi come lavoro', href: '/portfolio', cta: 'Vai al portfolio', primaria: true },
+  { n: '02', titolo: 'Parliamone', href: '/contatti', cta: 'Scrivimi due righe' },
+];
+---
+
+{
+  /* `.pt` è il TRACK: alto più di uno schermo (vedi `--pt-track`), è lui a
+     creare la distanza di scroll. `.pt__stage` dentro è lo schermo incollato.
+     Nessun `pin`, nessun pin-spacer: lo sticky è dichiarato in CSS e
+     `portal.ts` legge soltanto il progresso. */
+}
+<section class="pt" {id} data-portal>
+  <div class="pt__stage">
+    {
+      /* LO STRATO SLATE, cioè "la pagina" che il portale sta per coprire.
+         ⚠ È UN FRATELLO DEL RIQUADRO E NON UN ANTENATO, ed è l'unico modo di
+         avere le due superfici insieme senza scrivere un hex a mano:
+         `.theme-slate` RIDICHIARA `--color-canvas` (#14141a) per sé e per tutti
+         i propri discendenti, quindi se fosse sulla sezione anche il riquadro
+         "nero" dentro sarebbe carbone. Da fratello dipinge solo sé stesso, e il
+         riquadro legge il `--color-canvas` di `:root`, che è il nero vero. */
+      <div class="pt__fondo theme-slate" aria-hidden="true" />
+    }
+
+    {
+      /* IL RIQUADRO. Parte piccolo e si apre: la geometria è tutta nel
+         `clip-path` qui sotto, guidato dall'unica variabile `--pt-p`. */
+    }
+    <div class="pt__frame" data-portal-frame>
+      <div class="pt__sky" data-portal-sky>
+        <Starfield />
+      </div>
+    </div>
+
+    {
+      /* LA FRASE. Fratello del riquadro e NON figlio: è la differenza fra la
+         variante scelta ("il portale") e quella scartata ("la finestra porta il
+         messaggio"). Da figlia sarebbe ritagliata dal `clip-path`, cioè
+         apparterrebbe allo spazio; da fratello sta sulla superficie della
+         pagina, davanti alla finestra, e se ne va quando lo spazio prende il
+         sopravvento. */
+    }
+    <div class="pt__say" data-portal-say>
+      <p class="pt__label">E adesso?</p>
+      <h2 class="pt__title">
+        Ok, fine della biografia.<br />Ora sai da dove vengo e come ragiono.
+      </h2>
+    </div>
+
+    {
+      /* IL CONTENUTO, che compare quando lo spazio ha preso tutto. Anche lui
+         fratello del riquadro: non ha bisogno di essere ritagliato (a quel
+         punto la finestra è lo schermo intero) e così il testo non vive dentro
+         un livello promosso a `will-change: clip-path`. */
+    }
+    <div class="pt__inside" data-portal-inside>
+      <p class="pt__kicker">Due strade, scegli tu</p>
+      <ol class="pt__roads">
+        {
+          STRADE.map((s) => (
+            <li class="pt__road">
+              <p class="pt__n">{s.n}</p>
+              <h3 class="pt__road-title">{s.titolo}</h3>
+              {
+                /* Il bottone in un wrapper: gli stili scoped di Astro non
+                   raggiungono la radice di un componente figlio (vedi la nota
+                   in Timeline.astro). */
+              }
+              <div class="pt__act">
+                <Button href={s.href} variant={s.primaria ? 'filled' : 'outline'} tone="dark">
+                  {s.cta}
+                </Button>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+
+    {
+      /* L'invito a scorrere. `aria-hidden`: è un'affordance del gesto visivo,
+         e chi naviga con uno screen reader ha già tutto il contenuto in pagina
+         senza dover aprire niente. */
+    }
+    <p class="pt__hint" data-portal-hint aria-hidden="true">Scorri</p>
+  </div>
+</section>
+
+<style>
+  /* ═══ IL TRACK E LO SCHERMO INCOLLATO ══════════════════════════════════ */
+  .pt {
+    position: relative;
+    /* Nel ramo statico il track è alto uno schermo: non c'è nessuna corsa da
+       percorrere, la sezione è già aperta. L'altezza vera arriva più sotto,
+       gated insieme allo sticky. */
+  }
+
+  .pt__stage {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    gap: clamp(2.5rem, 6vh, 4rem);
+    padding-block: clamp(4rem, 12vh, 7rem);
+    padding-inline: var(--spacing-gutter);
+    /* ⚠ `clip` e NON `hidden`: il cielo sborda di proposito (`.sky` è a
+       `inset: -2%`, così la sua deriva non apre mai una fascia vuota sul
+       bordo) e va ritagliato, ma `hidden` creerebbe un CONTENITORE DI
+       SCORRIMENTO — e un contenitore di scorrimento romperebbe lo `sticky`
+       qui sotto. Stessa nota già scritta in CTASection e Statement. */
+    overflow: clip;
+  }
+
+  /* Lo strato slate: la superficie della pagina, sotto tutto. */
+  .pt__fondo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* ═══ IL RIQUADRO ══════════════════════════════════════════════════════
+     ⚠ UNA SOLA VARIABILE (`--pt-p`, 0 = chiuso, 1 = aperto) E LA GEOMETRIA È
+     QUI, non in JS. Il riferimento scrive cinque `style.setProperty` dentro un
+     callback per frame; così invece le proporzioni del riquadro si leggono e
+     si ritoccano accanto a ciò che descrivono, e il JS scrive un numero solo.
+
+     ⚠ IL VALORE BASE È `1`, CIOÈ APERTO. Senza JS, con JS rotto, con movimento
+     ridotto o sotto i 900px la sezione è una CTA completa e ferma. Il contrario
+     — nascere chiuso e contare su un `gsap.set` per aprirsi — è esattamente il
+     difetto che ha reso §03 un rettangolo nero e vuoto quando il codice usciva
+     prima (vedi CLAUDE.md): una sezione che dipende dal JS per essere visibile
+     si rompe in silenzio.
+
+     ⚠ GLI INSET NON SONO SIMMETRICI IN VERTICALE (30% sopra, 12% sotto): la
+     finestra parte più in basso del centro per lasciare aria alla frase, che
+     le sta davanti. Con un riquadro centrato la frase gli finiva addosso. */
+  .pt__frame {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    --pt-p: 1;
+    /* `--color-canvas` qui è quello di `:root` (#050505, il nero vero) perché
+       `.theme-slate` è un FRATELLO e non un antenato — vedi la nota nel
+       markup. È questa differenza di superficie, insieme alle stelle, a far
+       leggere il bordo della finestra: dark su dark è volutamente sottile. */
+    background-color: var(--color-canvas);
+    clip-path: inset(
+      calc(30% * (1 - var(--pt-p))) calc(29% * (1 - var(--pt-p)))
+        calc(12% * (1 - var(--pt-p))) calc(29% * (1 - var(--pt-p))) round
+        calc(26px * (1 - var(--pt-p)))
+    );
+    /* Nessun `will-change` statico: lo accende `portal.ts` per la sola durata
+       della corsa. `clip-path` è paint, non composizione — un livello promosso
+       a vita costerebbe memoria per tutta la pagina. */
+  }
+
+  .pt__sky {
+    position: absolute;
+    inset: 0;
+    /* ⚠ NESSUN `transform`/`scale`/`translate` DICHIARATO QUI: è GSAP a
+       scriverne uno (lo zoom del cielo), e le proprietà CSS indipendenti
+       verrebbero ricompilate dentro la sua matrice — cioè applicate due volte.
+       Divieto esplicito del repo, già costato una griglia sperimentale. */
+  }
+
+  /* ═══ LA FRASE ═════════════════════════════════════════════════════════ */
+  .pt__say {
+    position: relative;
+    z-index: 2;
+    justify-self: start;
+    max-width: 90rem;
+    /* `center` come origine dello `scale` che GSAP applica uscendo: da un
+       angolo il testo "scivolerebbe" invece di passare accanto. */
+    transform-origin: center;
+  }
+
+  .pt__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* `text-2` e non `text-3`: mono da 11-12px pretende 4,5:1. */
+    color: var(--color-text-2);
+  }
+
+  .pt__title {
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+    /* ⚠ 28ch È MISURATO, non scelto, ed è lo stesso valore di `.jr__title`
+       ricavato dallo stesso difetto: a 24ch la seconda frase (larga 17,88em,
+       rapporto costante a ogni breakpoint) andava a capo e lasciava "ragiono."
+       ORFANA su una terza riga. Ritoccando quella frase, rimisurare.
+       Il `<br />` è manuale come nell'h1 della hero: sono due frasi con due
+       lavori diversi, e la spezzatura è parte del testo. */
+    max-width: 28ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  /* ═══ IL CONTENUTO DENTRO LO SPAZIO ════════════════════════════════════ */
+  /* ⚠ CENTRATO, al contrario della frase che è allineata a sinistra come ogni
+     altra sezione del sito — e la differenza è il senso, non una svista: la
+     frase sta sulla PAGINA, il contenuto sta NELLO SPAZIO. Una volta che la
+     finestra è tutto lo schermo non c'è più una colonna a cui allinearsi, e un
+     blocco appoggiato a sinistra con mezzo schermo di stelle vuote a destra
+     legge come contenuto rimasto indietro invece che come una scelta al
+     centro della scena. Le due impaginazioni non si vedono mai insieme: una
+     esce mentre l'altra entra. */
+  .pt__inside {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .pt__kicker {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  .pt__roads {
+    /* Nessun pallino: il divieto di liste puntate del sito vale anche qui, e
+       l'enumerazione la porta il dispositivo mono `01/02`. `<ol>` resta perché
+       le due voci SONO un elenco ordinato di opzioni, e per uno screen reader
+       "elenco di 2 elementi" è informazione utile. */
+    list-style: none;
+    margin: clamp(1.75rem, 4vh, 2.5rem) 0 0;
+    padding: 0;
+    display: grid;
+    gap: clamp(2rem, 5vh, 2.75rem);
+  }
+
+  .pt__road {
+    display: grid;
+    /* `start` in verticale: le due voci si allineano in ALTO, così i due
+       bottoni di altezza diversa (`filled` 3,75rem contro `outline` 2,75rem)
+       leggono come gerarchia e non come disallineamento. */
+    align-content: start;
+    gap: 0.5rem;
+    justify-items: center;
+  }
+
+  .pt__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    /* ⚠ `text-2` e NON `text-3`: qui sotto il fondo è il nero di `:root`, dove
+       `text-3` fa 4,19:1 — sotto AA, il difetto di palette dichiarato in
+       CLAUDE.md. Nel bivio cancellato questi numerali potevano stare a
+       `text-3` solo perché quella sezione era interamente su slate. */
+    color: var(--color-text-2);
+  }
+
+  .pt__road-title {
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--color-text-1);
+  }
+
+  .pt__act {
+    margin-top: 0.75rem;
+  }
+
+  /* ═══ L'INVITO A SCORRERE ══════════════════════════════════════════════ */
+  .pt__hint {
+    /* Nel ramo statico non esiste: non c'è nessuna corsa da percorrere, e un
+       invito a scorrere davanti a una sezione già aperta è una bugia. */
+    display: none;
+  }
+
+  /* ═══ IL RAMO ANIMATO ══════════════════════════════════════════════════
+     Gated su `html.js-anim` E sui 900px, cioè la stessa condizione del
+     `PORTAL_QUERY` di `portal.ts` (`js-anim` codifica già "JS attivo e
+     movimento consentito"). Se le due divergessero, il CSS preparerebbe uno
+     stato che nessun tween verrà mai a sciogliere.
+
+     ⚠ E se il boot fallisce, `showEverything()` TOGLIE `js-anim` dall'<html>:
+     tutte queste regole smettono di applicarsi in blocco e la sezione torna
+     quella statica. È il motivo per cui lo stato nascosto va gated LÌ e non
+     scritto in JS. */
+  @media (min-width: 56.25rem) {
+    /* Il track diventa alto: è questa altezza a creare la distanza di scroll.
+       ⚠ 255svh = 100 (lo schermo incollato) + 155 di corsa, e quel 155 è il
+       "cinematografico" scelto da Vlad: ~1,2 schermi di apertura + ~0,35 di
+       coda ferma. Il RAPPORTO fra i due lo decide `portal.ts` (APERTURA/FERMO):
+       cambiare uno solo dei due file comprime o dilata l'apertura dentro una
+       corsa che non è cambiata. */
+    :global(html.js-anim) .pt {
+      min-height: 255svh;
+    }
+
+    :global(html.js-anim) .pt__stage {
+      position: sticky;
+      top: 0;
+      /* `height` e non `min-height`: lo schermo incollato deve essere ALTO
+         ESATTAMENTE una viewport, o la parte che sfora resterebbe
+         irraggiungibile mentre è incollata — è il vincolo di M12, valido qui
+         per la stessa ragione geometrica anche senza handoff. */
+      height: 100svh;
+    }
+
+    /* Frase e contenuto si sovrappongono e si scambiano: occupano lo stesso
+       posto, uno esce mentre l'altro entra. Nel ramo statico restano invece
+       impilati in flusso, che è l'unica impaginazione sensata quando sono
+       visibili entrambi insieme. */
+    :global(html.js-anim) .pt__say,
+    :global(html.js-anim) .pt__inside {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      padding-inline: var(--spacing-gutter);
+      margin-inline: auto;
+    }
+
+    /* Lo stato di partenza del contenuto. Lo scioglie il tween di `portal.ts`;
+       se quel tween non arriva mai, arriva `showEverything()` a togliere
+       `js-anim` e questa regola con lui. */
+    :global(html.js-anim) .pt__inside {
+      opacity: 0;
+    }
+
+    :global(html.js-anim) .pt__frame {
+      --pt-p: 0;
+    }
+
+    /* Le due strade affiancate: nello spazio a schermo pieno c'è larghezza da
+       vendere e nessuna ragione per impilarle. Sotto i 900px restano una sopra
+       l'altra, che è anche il ramo statico. */
+    .pt__roads {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    :global(html.js-anim) .pt__hint {
+      display: block;
+      position: absolute;
+      z-index: 2;
+      left: 0;
+      right: 0;
+      bottom: clamp(1.5rem, 4vh, 2.5rem);
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: var(--text-micro);
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-text-2);
+    }
+  }
+</style>

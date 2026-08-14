@@ -15,7 +15,7 @@ import Timeline from '../components/primitives/Timeline.astro';
 import NowPanel from '../components/primitives/NowPanel.astro';
 import Approach from '../components/sections/Approach.astro';
 import SkillsGrid from '../components/sections/SkillsGrid.astro';
-import Bivio from '../components/sections/Bivio.astro';
+import Portale from '../components/sections/Portale.astro';
 import { TIMELINE } from '../data/timeline';
 import { SITE } from '../lib/site';
 ---
@@ -100,11 +100,11 @@ import { SITE } from '../lib/site';
 
   <SkillsGrid n="03" />
 
-  {/* La chiusura: il racconto finisce e chi legge sceglie una delle due
-      strade. Senza numero d'indice come la fascia del metodo — vedi
-      Bivio.astro per il perché, e per il motivo per cui NON può chiamarsi
-      `.cta` (il footer legge quella classe per accendersi). */}
-  <Bivio />
+  {/* La chiusura: una finestra sullo spazio che si apre scorrendo, e dentro
+      le due destinazioni. Senza numero d'indice come la fascia del metodo —
+      vedi Portale.astro per il perché, e per il motivo per cui NON può
+      chiamarsi `.cta` (il footer legge quella classe per accendersi). */}
+  <Portale />
 </BaseLayout>
 
 <style>

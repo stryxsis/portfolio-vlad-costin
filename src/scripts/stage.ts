@@ -13,6 +13,12 @@
  *   M17  [data-reel] / [data-call]        ciò che accade DENTRO una card, §30
  *   M6   [data-drift]                     micro-deriva orizzontale in scrub
  *
+ * M19 ([data-portal], la finestra che si apre sullo spazio in fondo a
+ * /chi-sono) è una stage a tutti gli effetti e sta in `portal.ts`: stesso
+ * vocabolario (sticky in CSS, scrub che legge solo il progresso, zero pin), ma
+ * un file suo perché ha una sola sezione utente e un'origine da raccontare per
+ * esteso. Se un giorno ne nascesse una seconda, è il momento di portarla qui.
+ *
  * M9 ([data-plates]/[data-plate], i "piatti" che si scambiavano uno alla volta
  * in §30) NON ESISTE PIÙ: sostituito da M16, che tiene tutte le card in scena e
  * le fa sovrapporre invece di alternarle. Nessun file lo usa più.
