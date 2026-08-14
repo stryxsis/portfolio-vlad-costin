@@ -20,7 +20,9 @@
  *     `animation-delay`, cioè lo stesso vocabolario della hero della Home
  *     (`hero-in-fade`), zero JS e zero runtime;
  *   - `motion.div animate={{x: ['-100%','0%']}}` → una `@keyframes` che trasla
- *     di -50% su una traccia duplicata, cioè la tecnica del muro di §04;
+ *     di una copia su una traccia ripetuta, cioè la tecnica del muro di §04 —
+ *     ma qui il numero di copie e la durata li calcola il frontmatter, e la
+ *     fascia parte ferma finché i lavori non bastano (vedi `SI_MUOVE`);
  *   - `whileHover={{scale:1.05}}` sul bottone → `Button` primitivo, che ha già
  *     il suo riempimento in hover a costo zero;
  *   - `backdrop-blur-sm` sulla pill → **tolto**: il backdrop-filter in questo
@@ -37,12 +39,23 @@
  * simmetrica: un titolo appoggiato a sinistra sopra un marquee centrato
  * sarebbe sbilanciato.
  *
- * ⚠ NIENTE `SectionIndex` QUI: resta sulla griglia dei lavori, che è il
- * contenuto numerato. Questa è la copertina — stessa scelta della CTA della
- * Home e del portale di /chi-sono, che portano una label mono senza numerale.
+ * ⚠ LA PILL DEL RIFERIMENTO È DIVENTATA `SectionIndex` (richiesta di Vlad,
+ * 2026-08-14: «non voglio una pill che dice Portfolio, voglio 00 · PORTFOLIO
+ * come in tutte le altre pagine, deve essere coerente»). La nota precedente
+ * qui diceva l'opposto — che la copertina non è contenuto numerato, come la CTA
+ * della Home e il portale di /chi-sono — e va corretta invece di lasciarla a
+ * mentire: quelle due sono AZIONI in fondo a una pagina, questa è l'apertura di
+ * una pagina, cioè lo stesso ruolo che su ogni altra pagina del sito porta il
+ * "00". La griglia dei lavori era già "01": la numerazione ora è completa.
+ *
+ * ⚠ IL FONDALE è un componente a parte (`Lightfall.astro`), da un SETTIMO
+ * riferimento React portato da Vlad — e la ragione per cui `ogl` non è stato
+ * installato è scritta lì, perché è diversa dalla solita.
  */
 import Button from '../primitives/Button.astro';
 import DemoCard from '../primitives/DemoCard.astro';
+import Lightfall from '../primitives/Lightfall.astro';
+import SectionIndex from '../primitives/SectionIndex.astro';
 import type { Demo } from '../primitives/DemoCard.astro';
 import netDayShot from '../../assets/progetti/network-day-desktop.png';
 
@@ -55,23 +68,10 @@ const { href = '#lavori' } = Astro.props;
 /**
  * Le demo in vetrina.
  *
- * ⚠ UNA SOLA È VERA (il Network Day), ed è deliberato: Vlad ha chiesto «per
- * adesso metti dei placeholder, in una card metti il sito del Network Day così
- * almeno vediamo una card su un progetto vero». I sette segnaposto servono a
- * giudicare lo STILE della card, non a fingere sette lavori — e infatti non
- * portano un nome di cliente inventato, dicono "Segnaposto".
- *
- * ⚠ OTTO, E IL NUMERO È GEOMETRICO, non editoriale: la traccia contiene le
- * card DUE volte e trasla di -50%, quindi METÀ TRACCIA deve essere più larga
- * della finestra o ad ogni giro passa un buco — è la stessa invariante del
- * muro di §04. Con cinque schermi larghi (~1,6× l'altezza) e tre stretti
- * (~0,46×) mezza traccia misura ~2000px: copre 1440 e 1920. Togliendone o
- * cambiando i formati, RIMISURARE.
- *
  * ⚠ L'ALTERNANZA desktop/mobile non è casuale: due schermi stretti non stanno
  * mai attaccati, o si leggono come una card sola divisa in due.
  */
-const DEMOS: Demo[] = [
+const DEMO: Demo[] = [
   {
     titolo: 'Network Day',
     meta: 'JEParma · 2026',
@@ -88,12 +88,114 @@ const DEMOS: Demo[] = [
   { titolo: 'Dashboard', meta: 'Segnaposto', formato: 'mobile', wire: 1 },
   { titolo: 'Landing', meta: 'Segnaposto', formato: 'desktop', wire: 0 },
 ];
+
+/**
+ * ⚠ IN VETRINA C'È SOLO IL NETWORK DAY, cioè l'unico lavoro vero (richiesta di
+ * Vlad, 2026-08-14). Le sette voci qui sopra restano perché servivano — e
+ * servono ancora — a giudicare lo STILE della card: si riaccendono allargando
+ * lo slice, si sostituiscono scrivendo i lavori veri al loro posto. È lo stesso
+ * dispositivo, riconoscibile a vista e reversibile in una riga, già usato per
+ * `VISIBLE_SHOWCASE` in FeaturedProjects e `VISIBLE_LOGOS` in SocialProof.
+ *
+ * ⚠ NON ALLARGARLO DI PROPRIA INIZIATIVA: i segnaposto tornano visibili quando
+ * lo chiede Vlad o quando al loro posto c'è un lavoro vero.
+ */
+const VISIBILI = DEMO.slice(0, 1);
+
+/* ═══ QUANDO LA FASCIA COMINCIA A MUOVERSI ══════════════════════════════
+   ⚠ CHIESTO DA VLAD: «per adesso ho pochi progetti per avere la barra che si
+   muove — fai in maniera tale che aggiungendo altri progetti, quando raggiungo
+   un limite, la barra inizi a muoversi da sola». Quindi il movimento non è una
+   proprietà della sezione, è una CONSEGUENZA di quanti lavori ci sono: qui
+   sotto c'è tutto quello che serve perché succeda da sé.
+
+   ⚠ E IL LIMITE NON È UN CONTEGGIO DI CARD, è una MISURA — «la sequenza è più
+   lunga di uno schermo» — e la prima stesura sbagliava proprio questo. Con un
+   numero fisso (erano cinque) bastava che due dei cinque lavori fossero in
+   formato telefono perché la sequenza restasse corta 1220px su una finestra da
+   1440: misurato, il Network Day compariva DUE VOLTE nello stesso fotogramma.
+   La misura invece si aggiusta da sé al mix di formati che Vlad metterà.
+
+   ⚠ Ed è UNA regola con DUE giustificazioni che coincidono, il che è il motivo
+   per cui è quella giusta:
+     - GEOMETRICA — una traccia in loop più corta della finestra che la mostra
+       fa passare un BUCO ad ogni giro (stessa invariante del muro di §04), o,
+       se si aggiungono copie per turare il buco, mostra la stessa card due
+       volte.
+     - EDITORIALE — una fascia che scorre DICE "ce ne sono più di quanti ne
+       stiano in uno schermo". Con tre lavori è una bugia, e per giunta una
+       bugia silenziosa: non si rompe niente, sembra solo un caricamento.
+   Le due dicono la stessa cosa: si muove quando la sequenza supera lo schermo.
+
+   Sotto la soglia la fascia resta ferma e centrata: una vetrina, non un nastro
+   trasportatore che gira a vuoto. */
+
+/* Il rapporto d'aspetto di ogni formato, che è ciò che lega LARGHEZZA e
+   ALTEZZA della card (vedi DemoCard). Duplicato qui e non importato perché
+   serve un NUMERO a build time, mentre lì è una dichiarazione CSS. */
+const AR = { desktop: 1.6, mobile: 0.462 } as const;
+/* Il pavimento dei due `clamp()` che governano la fascia (`--dc-h` e
+   `--dc-gap`, più sotto nel foglio di stile): il caso peggiore, cioè la finestra
+   LARGA E BASSA in cui le card sono al minimo e la traccia più corta. È lì che
+   il buco comparirebbe, non a 1440×900 — ed è il caso che la versione
+   precedente di questa fascia non copriva. */
+const H_MIN = 128; /* 8rem   */
+const G_MIN = 13.6; /* 0.85rem */
+/** La finestra più larga per cui si garantisce un giro senza giunture. */
+const W_PROMESSA = 1920;
+
+const SOMMA_AR = VISIBILI.reduce((t, d) => t + AR[d.formato ?? 'desktop'], 0);
+const COPIA_MIN = SOMMA_AR * H_MIN + VISIBILI.length * G_MIN;
+
+/* La finestra desktop di RIFERIMENTO su cui si decide se la fascia scorre, con
+   i valori che i due `clamp()` assumono lì: `--dc-h` = min(21,5vh, 13,5rem) a
+   900 di altezza, `--dc-gap` = min(1,6vw, 1,4rem) a 1440 di larghezza. Non è il
+   caso peggiore (quello serve alle COPIE, sotto): è la finestra su cui si
+   giudica se la fascia ha abbastanza da mostrare. */
+const COPIA_RIF = SOMMA_AR * 193.5 + VISIBILI.length * 22.4;
+const SI_MUOVE = COPIA_RIF >= 1440;
+
+/**
+ * Quante volte la sequenza è ripetuta nella traccia.
+ *
+ * ⚠ NON È SEMPRE DUE, e capirne il perché è ciò che rende questa fascia
+ * robusta invece che tarata su una finestra sola. Con K copie la traccia trasla
+ * di -100%/K per giro, quindi la parte SEMPRE piena è `(K-1)` copie: perché non
+ * si apra mai un buco serve `(K-1) × larghezza_copia ≥ larghezza_finestra`.
+ * Con K=2 questo significa "una copia più larga della finestra", che con pochi
+ * lavori è impossibile — ed è esattamente il motivo per cui la versione
+ * precedente, fissa a due copie, mostrava un buco su una finestra larga e bassa
+ * (1920×595: mezza traccia 1310px contro 1920 richiesti).
+ *
+ * ⚠ IL PREZZO, dichiarato: su una finestra più larga di una copia si vede una
+ * card ripassare. È il male minore e la scelta è deliberata — una ripetizione è
+ * una composizione, un buco è un difetto.
+ */
+const COPIE = SI_MUOVE ? Math.max(2, Math.ceil(W_PROMESSA / COPIA_MIN) + 1) : 1;
+
+/**
+ * ⚠ LA DURATA È RICAVATA DALLA LUNGHEZZA, non dichiarata, ed è ciò che tiene la
+ * VELOCITÀ costante mentre i lavori aumentano: un ciclo copre una copia, quindi
+ * una durata fissa significherebbe una fascia che accelera ad ogni progetto
+ * aggiunto. Le due costanti sono tarate sui 52s che la fascia aveva con otto
+ * card — cioè su una velocità già guardata e approvata, non su un numero tondo.
+ */
+const DURATA = (SOMMA_AR * 5 + VISIBILI.length * 0.65).toFixed(1);
 ---
 
 <section class="ph" data-section id="portfolio">
+  <Lightfall />
+
   <div class="ph__wrap">
-    {/* La pill del riferimento, senza il suo `backdrop-blur`. */}
-    <p class="ph__pill">Portfolio</p>
+    {
+      /* ⚠ IL WRAPPER NON È DECORATIVO: gli stili scopati di questo file non
+         raggiungono l'elemento radice di un componente figlio (`.idx` porta
+         l'attributo di scope di SectionIndex, non il nostro), quindi senza un
+         elemento nostro attorno non ci sarebbe niente su cui appendere né
+         l'ingresso né la correzione dello sticky qui sotto. Trappola già
+         costata due volte in questo repo. */
+    }
+    <div class="ph__idx"><SectionIndex n="00" label="Portfolio" /></div>
 
     {
       /* ⚠ NESSUNO STAGGER PER PAROLE SU QUESTO TITOLO, ed è l'unica parte del
@@ -135,14 +237,18 @@ const DEMOS: Demo[] = [
        niente (vedi DemoCard.astro). */
   }
   <div class="ph__marquee" aria-hidden="true">
-    <div class="ph__track">
-      {DEMOS.map((d) => <DemoCard {...d} />)}
+    <div
+      class:list={['ph__track', SI_MUOVE ? 'ph__track--scorre' : 'ph__track--fermo']}
+      style={`--ph-copie: ${COPIE}; --ph-dur: ${DURATA}s`}
+    >
       {
-        /* La seconda copia è ciò che rende il giro senza giunture: la traccia
-           trasla di -50% ed è lunga il doppio, quindi al termine del ciclo la
-           prima card della copia si trova esattamente dove stava la prima
-           dell'originale. */
-        DEMOS.map((d) => <DemoCard {...d} decorative />)
+        /* Le copie oltre la prima sono ciò che rende il giro senza giunture: la
+           traccia trasla di -100%/COPIE, quindi al termine del ciclo la prima
+           card della copia successiva si trova esattamente dove stava la prima
+           dell'originale. Ferma, la traccia ha una copia sola. */
+        Array.from({ length: COPIE }, (_, c) =>
+          VISIBILI.map((d) => <DemoCard {...d} decorative={c > 0} />)
+        )
       }
     </div>
   </div>
@@ -172,6 +278,12 @@ const DEMOS: Demo[] = [
   }
 
   .ph__wrap {
+    /* ⚠ SOPRA IL FONDALE, e non basta l'ordine nel DOM: `.lf` è
+       `position: absolute`, quindi dipinge nel livello dei discendenti
+       posizionati, che sta sopra il contenuto in flusso dei fratelli NON
+       posizionati. Stesso ragionamento di `.cta__wrap` sopra il cielo. */
+    position: relative;
+    z-index: 1;
     /* Centrato in orizzontale E in verticale dentro la propria riga: è la
        "dichiarazione", non una colonna di contenuto. Vedi la nota in testa. */
     display: grid;
@@ -190,18 +302,19 @@ const DEMOS: Demo[] = [
     padding-bottom: clamp(1rem, 3vh, 2rem);
   }
 
-  .ph__pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.45rem 1rem;
-    border: 1px solid var(--color-hairline-strong);
-    border-radius: var(--radius-pill);
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-text-2);
+  /* ⚠ QUI L'INDICE NON DEVE ESSERE STICKY, ed è la stessa riga già presente in
+     404.astro e nella hero di /chi-sono, per la stessa ragione: `SectionIndex`
+     è `position: sticky` perché è pensato per sezioni ALTE che si attraversano
+     scorrendo, e questa è alta uno schermo. Peggio: con l'avviso "cantiere
+     aperto" aperto la sua ancora (`--nav-h` + `--chrome-shift` + 1.5rem) cade
+     più in basso della sua posizione naturale, quindi lo sticky lo spingerebbe
+     giù ADDOSSO al titolo — che è precisamente il difetto che Vlad ha chiesto
+     di chiudere («l'avviso non deve essere un elemento che influenza il
+     sito»). E c'è un secondo motivo, solo di questa pagina: la sezione è
+     l'uscente di un handoff M12, quindi è già lei a essere incollata — uno
+     sticky dentro uno sticky si àncora al contenitore sbagliato. */
+  .ph__idx :global([data-section-index]) {
+    position: static;
   }
 
   .ph__title {
@@ -244,8 +357,11 @@ const DEMOS: Demo[] = [
     margin-top: clamp(1.75rem, 4vh, 2.5rem);
   }
 
-  /* ═══ LA VETRINA IN MOVIMENTO ══════════════════════════════════════════ */
+  /* ═══ LA VETRINA ═══════════════════════════════════════════════════════ */
   .ph__marquee {
+    /* Sopra il fondale, come `.ph__wrap`: vedi la nota lì. */
+    position: relative;
+    z-index: 1;
     /* ⚠ `mask-image` e non un overlay a colore pieno: la fascia sfuma sopra il
        fondo della sezione, e un `::after` con un gradiente dovrebbe indovinare
        esattamente quel colore — cosa che smette di essere vera il giorno in cui
@@ -286,14 +402,6 @@ const DEMOS: Demo[] = [
     display: flex;
     align-items: flex-end;
     gap: var(--dc-gap);
-    /* ⚠ IL `padding-right` PARI AL GAP È CIÒ CHE RENDE IL CONTO ESATTO, non un
-       margine estetico: senza, la larghezza della traccia è
-       `2N·c + (2N−1)·g` e il -50% non cade sul primo pixel della seconda
-       copia — compare uno scatto di mezzo gap ad ogni giro. Con il padding la
-       larghezza è `2N(c+g)` e il salto è invisibile. Stessa lezione, stesso
-       conto, del muro di §04.
-       ⚠ `width: max-content`: senza, il flex si comprimerebbe alla larghezza
-       del genitore e le card si schiaccerebbero invece di sfilare. */
     --dc-gap: clamp(0.85rem, 1.6vw, 1.4rem);
     /* ⚠ IL TERMINE IN `vh` È QUELLO CHE FA STARE LA HERO IN UNO SCHERMO, ed è
        stato ritarato su una misura, non a occhio: con `25vh` la sezione
@@ -305,36 +413,59 @@ const DEMOS: Demo[] = [
        quindi cambia la lunghezza della traccia: rimisurare che mezza traccia
        resti più larga della finestra, o il giro mostra un buco. */
     --dc-h: clamp(8rem, 21.5vh, 13.5rem);
+  }
+
+  /* ---- Ferma: una vetrina ------------------------------------------------
+     Sotto la soglia (vedi la nota nel frontmatter) le card stanno al centro e
+     basta. ⚠ `safe center` e non `center`: se un giorno le poche card non ci
+     stessero in larghezza — succede su telefono già da tre — `center` le
+     farebbe sbordare da ENTRAMBI i lati, cioè taglierebbe la PRIMA. Con `safe`
+     il centraggio cede a un allineamento a sinistra nel momento in cui
+     comincerebbe a nascondere qualcosa. */
+  .ph__track--fermo {
+    width: 100%;
+    justify-content: safe center;
+  }
+
+  /* ---- In corsa ---------------------------------------------------------- */
+  .ph__track--scorre {
+    /* ⚠ IL `padding-right` PARI AL GAP È CIÒ CHE RENDE IL CONTO ESATTO, non un
+       margine estetico: senza, la larghezza della traccia è
+       `K·N·c + (K·N−1)·g` e il -100%/K non cade sul primo pixel della copia
+       successiva — compare uno scatto di mezzo gap ad ogni giro. Con il padding
+       la larghezza è `K·N(c+g)` e il salto è invisibile. Stessa lezione, stesso
+       conto, del muro di §04.
+       ⚠ `width: max-content`: senza, il flex si comprimerebbe alla larghezza
+       del genitore e le card si schiaccerebbero invece di sfilare. */
     width: max-content;
     padding-right: var(--dc-gap);
   }
 
-  /* Nel ramo statico la traccia sta ferma dov'è: si vedono le prime card e
-     basta. Nessun `overflow: auto` — una barra di scorrimento orizzontale
-     dentro una hero è peggio di una fascia che non si muove. */
-  :global(html.js-anim) .ph__track {
-    animation: ph-scorri 52s linear infinite;
+  /* Senza JS la traccia sta ferma dov'è: si vedono le prime card e basta.
+     Nessun `overflow: auto` — una barra di scorrimento orizzontale dentro una
+     hero è peggio di una fascia che non si muove. */
+  :global(html.js-anim) .ph__track--scorre {
+    animation: ph-scorri var(--ph-dur) linear infinite;
   }
 
+  /* ⚠ LA CORSA È `-100%/COPIE`, non `-50%` fisso: il numero di copie lo decide
+     il frontmatter in base a quanti lavori ci sono e a quanto sono larghi (vedi
+     `COPIE` lì). Scrivere qui un valore fisso rimetterebbe in un posto solo un
+     conto che deve tornare in due. */
   @keyframes ph-scorri {
     to {
       /* `translate3d` e non `translateX`: promuove la traccia a livello
-         composito, così le sedici card non vengono ridisegnate ad ogni
-         fotogramma. */
-      transform: translate3d(-50%, 0, 0);
+         composito, così le card non vengono ridisegnate ad ogni fotogramma. */
+      transform: translate3d(calc(-100% / var(--ph-copie)), 0, 0);
     }
   }
-
-  /* ⚠ 52s, non i 40 del riferimento: qui dentro c'è del testo (il nome del
-     lavoro sotto ogni card) e a 40s la fascia si legge come un carosello che
-     scappa. Deve essere una deriva di fondo, non un nastro trasportatore. */
 
   /* ⚠ WCAG 2.2.2: un movimento automatico che dura più di 5 secondi deve
      potersi fermare. Gated su `(hover: hover)` perché su touch non esiste uno
      stato di passaggio e resterebbe appiccicato dopo un tap — stessa scelta
      del muro di §04. */
   @media (hover: hover) {
-    :global(html.js-anim) .ph__marquee:hover .ph__track {
+    :global(html.js-anim) .ph__marquee:hover .ph__track--scorre {
       animation-play-state: paused;
     }
   }
@@ -347,7 +478,7 @@ const DEMOS: Demo[] = [
      aggiunge specificità, quindi `.ph__track` da solo perderebbe contro
      `html.js-anim .ph__track`. Corollario già costato le onde della CTA. */
   @media (prefers-reduced-motion: reduce) {
-    :global(html.js-anim) .ph__track {
+    :global(html.js-anim) .ph__track--scorre {
       animation: none;
     }
   }
@@ -420,7 +551,7 @@ const DEMOS: Demo[] = [
     }
   }
 
-  :global(html.js-anim) .ph__pill {
+  :global(html.js-anim) .ph__idx {
     animation: ph-entra 600ms var(--ease-out-expo) 120ms both;
   }
   :global(html.js-anim) .ph__title {
@@ -453,7 +584,7 @@ const DEMOS: Demo[] = [
   /* La regola globale di reduced-motion azzera le durate ma non garantisce lo
      stato finale di un'animazione `both` che non parte: qui si dichiara. */
   @media (prefers-reduced-motion: reduce) {
-    :global(html.js-anim) .ph__pill,
+    :global(html.js-anim) .ph__idx,
     :global(html.js-anim) .ph__title,
     :global(html.js-anim) .ph__coda,
     :global(html.js-anim) .ph__lede,

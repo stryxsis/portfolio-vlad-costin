@@ -1,0 +1,296 @@
+---
+/**
+ * IL FONDALE DELLA HERO DI /portfolio — la luce che cade.
+ *
+ * Una sorgente che entra dal bordo alto e un pettine di fasci che scendono a
+ * velocità diverse, in parallasse. Zero JS, zero WebGL, zero librerie: due
+ * gradienti e nove elementi che traslano.
+ *
+ * ⚠ ORIGINE: uno snippet React + `ogl` portato da Vlad (`Lightfall`, un
+ * fragment shader raymarched). **`ogl` NON è stato installato — ed è la SECONDA
+ * volta che questa libreria in particolare viene lasciata fuori**, dopo il cielo
+ * di stelle della 404. La ragione è la stessa di allora e vale la pena
+ * ripeterla, perché NON è "è una libreria": il criterio fissato con `cobe`
+ * (vanilla, zero dipendenze, una funzione sola) ammetterebbe `ogl` senza
+ * problemi. È che **per questo effetto WebGL non serve**. Lo shader del
+ * riferimento traccia una sfera con 39 iterazioni PER PIXEL ad ogni fotogramma;
+ * qui la stessa lettura — luce che cade, in profondità — la fanno nove elementi
+ * che il compositor sposta senza ridisegnare nulla.
+ *
+ * ⚠ Cosa è stato scartato del riferimento, oltre a React e a `ogl`:
+ *   - **La tavolozza a tre colori** (`#A6C8FF` azzurro, `#5227FF` viola,
+ *     `#FF9FFC` rosa) e soprattutto il **fondo `#0A29FF`**, che è un blu
+ *     elettrico pieno: in questo sito sarebbe stata insieme una seconda e una
+ *     terza tinta d'accento E un'inversione di palette a tutta pagina. Qui c'è
+ *     UN accento e la variazione la fa la LUMINANZA — `--color-accent-hi` dove
+ *     la luce è forte, `--color-accent-deep` nella coda della sorgente.
+ *   - **`mouseInteraction`**: il sito ha una regola esplicita — niente hover
+ *     come innesco, tranne i link. Un fondale che reagisce al puntatore è
+ *     esattamente quello che la regola esclude.
+ *   - **`twinkle`** (l'oscillazione di luminosità per fascio): sarebbe un
+ *     secondo movimento sovrapposto al primo, sulla stessa scala e sullo stesso
+ *     colore — il criterio già scritto per le due animazioni della CTA dice che
+ *     due movimenti che condividono scala E tinta si leggono come un unico
+ *     battito confuso. La varietà qui la danno durate e larghezze diverse.
+ *
+ * ⚠ IL VENTAGLIO È GEOMETRIA, NON UN ANGOLO A CASO PER FASCIO: la rotazione di
+ * ogni fascio è ricavata dalla sua posizione (`--r` sotto), così tutti puntano
+ * allo stesso punto di fuga sopra la sezione. È il pezzo di prospettiva che
+ * rende il riferimento un TUNNEL invece di una pioggia — l'unica parte del suo
+ * raymarching che valeva la pena di riprodurre, e costa una moltiplicazione.
+ *
+ * ⚠ LO STATO FERMO È QUELLO BASE, non uno spento: i valori dichiarati su
+ * `.lf__beam` sono il PRIMO FOTOGRAMMA della corsa (posizione e opacità
+ * calcolate qui sotto da `p0`), quindi senza JS e con `prefers-reduced-motion`
+ * si vede la stessa composizione, ferma. Chi chiede meno movimento non deve
+ * ricevere meno design — è la lezione già scritta per le onde della CTA, dove
+ * lo stato base "spento" avrebbe lasciato un rettangolo nero.
+ */
+
+/**
+ * I fasci.
+ *   x   posizione orizzontale, in % della sezione
+ *   w   larghezza in px (una LUNGHEZZA, non una percentuale: un raggio di luce
+ *       ha uno spessore, non una proporzione del contenitore — stessa lezione
+ *       della cornice del telefono nella vetrina di §30)
+ *   h   lunghezza del fascio, in % dell'altezza della sezione
+ *   o   opacità di regime
+ *   d   durata di una caduta, in secondi
+ *   b   raggio di sfocatura in px
+ *   p0  a che punto della propria corsa si trova al caricamento (0-1)
+ */
+type Fascio = { x: number; w: number; h: number; o: number; d: number; b: number; p0: number };
+
+/**
+ * ⚠ `p0` STA SEMPRE FRA 0,16 E 0,60, e non è un intervallo scelto a caso: è il
+ * plateau della `@keyframes` qui sotto, cioè il tratto in cui il fascio è alla
+ * sua opacità piena. Tenendocisi tutti, l'opacità di partenza È `--o` e non va
+ * calcolata — e soprattutto lo stato fermo non mostra mai un fascio a metà
+ * dissolvenza, che è precisamente il difetto che i ritardi negativi avevano
+ * causato alle onde della CTA.
+ *
+ * ⚠ E QUI IL RITARDO NEGATIVO È CORRETTO, al contrario di quel caso: la
+ * differenza non è il segno del ritardo, è se il fotogramma intermedio sia uno
+ * stato presentabile. Lì era un'onda mezza nata sotto un `play-state: paused`;
+ * qui è "il fascio è già sceso un po'", cioè una composizione valida — che è
+ * esattamente ciò che serve perché la hero non si apra su un fondale vuoto che
+ * si popola in mezzo minuto.
+ */
+const FASCI: Fascio[] = [
+  { x: 5, w: 3, h: 46, o: 0.42, d: 17, b: 6, p0: 0.18 },
+  { x: 13, w: 2, h: 34, o: 0.28, d: 25, b: 4, p0: 0.52 },
+  { x: 22, w: 5, h: 58, o: 0.5, d: 17, b: 8, p0: 0.31 },
+  { x: 31, w: 2, h: 30, o: 0.24, d: 29, b: 4, p0: 0.58 },
+  { x: 47, w: 3, h: 42, o: 0.32, d: 22, b: 6, p0: 0.24 },
+  { x: 61, w: 2, h: 32, o: 0.26, d: 27, b: 4, p0: 0.44 },
+  { x: 71, w: 5, h: 54, o: 0.48, d: 18, b: 8, p0: 0.37 },
+  { x: 82, w: 3, h: 38, o: 0.32, d: 23, b: 6, p0: 0.16 },
+  { x: 93, w: 2, h: 44, o: 0.28, d: 30, b: 5, p0: 0.49 },
+];
+
+/** L'apertura massima del ventaglio, ai due bordi. Oltre i ~10° i fasci
+ *  laterali escono di scena a metà corsa invece di attraversare la sezione. */
+const APERTURA = 7;
+---
+
+{/* Interamente decorativo: non porta informazione, e annunciarlo sarebbe
+    rumore. Stessa dichiarazione del cielo della CTA. */}
+<div class="lf" aria-hidden="true">
+  {/* La sorgente: un bagliore statico appena fuori dal bordo alto. Un paint,
+      una volta. Dentro la sezione se ne vede solo il decadimento — è il
+      dispositivo del `.cta__core`, ruotato di novanta gradi. */}
+  <span class="lf__core"></span>
+
+  <div class="lf__rays">
+    {
+      FASCI.map((f) => (
+        <span
+          class="lf__ray"
+          style={[
+            `--x: ${f.x}%`,
+            /* ⚠ La rotazione è RICAVATA dalla posizione, non dichiarata: un
+               fascio a sinistra si apre a sinistra, uno a destra a destra, e
+               tutti convergono nello stesso punto sopra la sezione. In CSS una
+               rotazione positiva porta il basso dell'elemento verso sinistra,
+               da cui il segno. */
+            `--r: ${(((50 - f.x) / 50) * APERTURA).toFixed(2)}deg`,
+            `--w: ${f.w}px`,
+            `--h: ${f.h}`,
+            `--o: ${f.o}`,
+            `--d: ${f.d}s`,
+            `--b: ${f.b}px`,
+            `--t: ${(-f.p0 * f.d).toFixed(2)}s`,
+            /* La posizione al caricamento: dove la corsa si trova a `p0`.
+               Calcolata invece che scritta a mano, o lo stato fermo e quello in
+               movimento divergerebbero al primo ritocco di una durata. */
+            `--s: ${(-f.h + f.p0 * (100 + f.h)).toFixed(2)}`,
+          ].join('; ')}
+        >
+          <i class="lf__beam"></i>
+        </span>
+      ))
+    }
+  </div>
+
+  {/* La velatura. ⚠ NON È DECORAZIONE, È LA GARANZIA DI CONTRASTO — stessa
+      ragione, stesse parole, dello `.cta__scrim`: qui sopra ci sta del testo, e
+      il fondo sotto di lui CAMBIA nel tempo. Senza, il contrasto della lede
+      dipenderebbe da quale fascio le sta passando dietro in quel fotogramma,
+      cioè sarebbe fortunato invece che conforme. Tiene la colonna del testo sul
+      nero e lascia liberi i bordi e la fascia alta, che è dove la luce serve. */}
+  <span class="lf__scrim"></span>
+</div>
+
+<style>
+  .lf {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* ⚠ `container-type: size` NON è un vezzo: le `cqh` qui sotto sono l'unico
+       modo di dire "lunga il 46% DELLA SEZIONE" a un elemento la cui `height`
+       in percentuale si risolverebbe sul genitore sbagliato, e di far viaggiare
+       la corsa in unità della sezione invece che dell'elemento (una
+       `translateY` in % si risolve sull'altezza dell'ELEMENTO, quindi il
+       tragitto sarebbe diverso per ogni fascio). Porta con sé il contenimento
+       di layout e dimensione, che qui è gratis: la scatola è un assoluto con
+       `inset: 0`, la sua dimensione non dipende da cosa contiene. */
+    container-type: size;
+    overflow: clip;
+  }
+
+  /* ⚠ IL BAGLIORE È POSIZIONATO (`at 50% -6%`), non ricavato dalla geometria
+     dell'elemento: la sorgente sta FUORI, sopra il bordo, e dentro si vede solo
+     la sua coda. È la correzione già pagata una volta sul `.cta__core`, dove un
+     `closest-side` faceva cadere il nucleo dove capitava a seconda della
+     proporzione della finestra.
+     I tre toni sono lo STESSO accento a tre luminanze — non tre colori. */
+  .lf__core {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      120% 62% at 50% -6%,
+      var(--color-accent-hi) 0%,
+      var(--color-accent) 18%,
+      var(--color-accent-deep) 38%,
+      transparent 72%
+    );
+    opacity: 0.26;
+  }
+
+  /* La luce cade e si spegne prima della fascia delle card: una maschera, non
+     un overlay a colore pieno, perché sotto non c'è un colore da indovinare —
+     e la fascia sotto ha un fondo proprio che un overlay tingerebbe. */
+  .lf__rays {
+    position: absolute;
+    inset: 0;
+    mask-image: linear-gradient(to bottom, black 0%, black 48%, transparent 92%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 48%, transparent 92%);
+  }
+
+  .lf__ray {
+    position: absolute;
+    top: 0;
+    left: var(--x);
+    width: var(--w);
+    height: 100cqh;
+    transform: rotate(var(--r));
+    /* Il perno in cima: è lui a far convergere i fasci verso l'alto invece che
+       verso il centro della sezione. */
+    transform-origin: 50% 0;
+  }
+
+  .lf__beam {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: calc(var(--h) * 1cqh);
+    /* Il fascio si accende e si spegne alle proprie estremità: un rettangolo
+       pieno avrebbe due tagli netti che si leggono come un oggetto, non come
+       luce. */
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--color-accent-hi) 38%,
+      var(--color-accent-hi) 62%,
+      transparent
+    );
+    /* ⚠ IL BLUR È STATICO E SI ANIMANO SOLO `transform` E `opacity`, ed è la
+       distinzione che rende ammissibile un `filter` su nove elementi: il filtro
+       viene rasterizzato UNA volta sul layer, e da lì in poi spostarlo è puro
+       compositing — zero paint per fotogramma. È lo stesso ragionamento già
+       scritto per l'alone del bottone della CTA, dove la scala in loop era stata
+       esclusa proprio perché avrebbe forzato una ri-rasterizzazione continua. */
+    filter: blur(var(--b));
+
+    /* ⚠ VALORI BASE = PRIMO FOTOGRAMMA DELLA CORSA, non stato spento: sono ciò
+       che si vede quando l'animazione non c'è (senza JS, con movimento
+       ridotto). Vedi la nota in testa al file. */
+    transform: translate3d(0, calc(var(--s) * 1cqh), 0);
+    opacity: var(--o);
+
+    /* ⚠ NESSUN GATE SU `html.js-anim`: è `animation` CSS pura e deve esistere
+       anche senza JS — un fondale che compare solo a bundle caricato è un
+       fondale che manca proprio nella finestra in cui la pagina si presenta.
+       ⚠ NESSUN `will-change`: nove strati promossi a vita costerebbero memoria
+       di compositing per tutta la durata della pagina, e un `transform` in
+       animazione il browser lo promuove da sé per il tempo che serve. Stessa
+       scelta delle onde della CTA. */
+    animation: lf-cade var(--d) linear var(--t) infinite;
+  }
+
+  /* `linear` e non un easing: la luce non parte e non si ferma, attraversa. */
+  @keyframes lf-cade {
+    0% {
+      transform: translate3d(0, calc(-1 * var(--h) * 1cqh), 0);
+      opacity: 0;
+    }
+    16% {
+      opacity: var(--o);
+    }
+    60% {
+      opacity: var(--o);
+    }
+    100% {
+      transform: translate3d(0, 100cqh, 0);
+      opacity: 0;
+    }
+  }
+
+  .lf__scrim {
+    position: absolute;
+    inset: 0;
+    /* Ellittico e centrato sul blocco di testo, non sul centro geometrico: il
+       testo sta nella metà alta (la fascia delle card occupa quella bassa). */
+    background: radial-gradient(
+      56% 44% at 50% 40%,
+      var(--color-canvas) 0%,
+      var(--color-canvas) 44%,
+      color-mix(in oklab, var(--color-canvas) 58%, transparent) 70%,
+      transparent 90%
+    );
+  }
+
+  /* Su telefono restano i cinque fasci dispari: la sezione è larga un terzo,
+     quindi nove diventerebbero un reticolo fitto invece di un ventaglio — e
+     sono cinque strati sfocati in meno da comporre su un dispositivo che ha
+     meno budget di tutti. */
+  @media (max-width: 56.24rem) {
+    .lf__ray:nth-child(even) {
+      display: none;
+    }
+  }
+
+  /* ⚠ SERVE UN BLOCCO DEDICATO, e la regola globale di `global.css`
+     (`animation-iteration-count: 1`) NON basta: per una caduta significherebbe
+     comunque venti secondi di movimento, più un fascio fermo sull'ULTIMO
+     fotogramma, che è `opacity: 0` — cioè metà fondale sparito. Spegnendo il
+     NOME, ogni fascio ricade sui propri valori base: la composizione ferma.
+     ⚠ Nessun `html.js-anim` da ripetere nel selettore qui, perché
+     l'animazione non è gated su quella classe: la specificità è già pari. */
+  @media (prefers-reduced-motion: reduce) {
+    .lf__beam {
+      animation-name: none;
+    }
+  }
+</style>
