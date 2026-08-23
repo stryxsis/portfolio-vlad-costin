@@ -27,6 +27,26 @@
  * Il filetto in cima alla fascia è anche il PAVIMENTO della hero: chiude lo
  * schermo di apertura senza bisogno di un bordo sulla sezione.
  *
+ * ⚠ SEGUITO, STESSO GIORNO: SU DESKTOP LE QUATTRO CELLE ERANO A COLONNE
+ * UGUALI DIVISE DA FILETTI VERTICALI — e Vlad l'ha bocciato secco: «la
+ * tabella in basso non mi piace per niente, su pc no». Aveva ragione, ed è
+ * un difetto di VOCABOLARIO più che di gusto: il resto del sito non separa
+ * MAI col filetto verticale — ogni divisione qui dentro è orizzontale
+ * (`.idx__line`, i filetti della timeline, il footer) o è semplicemente
+ * spazio bianco. Quattro colonne di larghezza IDENTICA più un bordo verticale
+ * fra ognuna è, letteralmente, il disegno di una tabella — un dispositivo che
+ * il sito non usa da nessun'altra parte, comparso qui per inerzia (era il modo
+ * più ovvio di dividere quattro celle in CSS Grid, non una scelta).
+ * ⚠ IL FIX NON È SOLO TOGLIERE IL BORDO: un `grid` a colonne large uguali
+ * SENZA bordo è ancora una tabella, solo senza le righe — l'allineamento
+ * rigido rigo-per-rigo è lui stesso il segnale. Le celle sono passate da
+ * `display: grid` a `display: flex; flex-wrap: wrap`, ciascuna larga quanto
+ * il PROPRIO contenuto (fino a un tetto) invece che 1/4 dello spazio a
+ * prescindere: "Colorno" resta corto, "Laurea triennale in Ingegneria
+ * Informatica" resta largo. Sono celle di taglie diverse tenute insieme da
+ * spazio generoso, non colonne di un modulo — la stessa differenza che c'è
+ * fra un elenco di tag e uno spreadsheet.
+ *
  * ⚠ QUESTO COMPONENTE NON HA DATI PROPRI, ED È LA DECISIONE CHE LO REGGE.
  * La tentazione era un `src/data/adesso.ts` con dentro le tre righe. Sarebbe
  * stato sbagliato: due di quei tre fatti ESISTONO GIÀ in `data/timeline.ts`,
@@ -347,13 +367,12 @@ if (SITE.availability) {
   }
 
   /* ---- Da 900px in su: la fascia orizzontale ------------------------------
-     ⚠ `grid-auto-flow: column` con `grid-auto-columns: minmax(0, 1fr)` e NON
-     un `repeat(4, …)` scritto a mano: il numero di celle dipende da quante
-     voci della timeline sono `current` (vedi la nota in testa al file), e un
-     4 inchiodato qui diventerebbe una colonna vuota il giorno in cui una
-     delle due sparisce. Il `minmax(0, …)` è obbligatorio: senza, il valore
-     più lungo (il titolo del corso di laurea) allargherebbe la propria
-     traccia oltre la griglia invece di andare a capo. */
+     ⚠ NIENTE PIÙ COLONNE UGUALI NÉ FILETTI VERTICALI — vedi la nota in testa
+     al file (2026-08-23, «la tabella in basso non mi piace per niente»).
+     `.now__list` è un `flex-wrap`: ogni cella prende solo la larghezza che il
+     proprio contenuto richiede (fino a `max-width`), quindi "Colorno" resta
+     corto e il titolo di laurea resta largo — è lo spazio, non un bordo o una
+     griglia rigida, a separare le celle. */
   @media (min-width: 56.25rem) {
     .now__band {
       grid-template-columns: auto minmax(0, 1fr);
@@ -368,16 +387,25 @@ if (SITE.availability) {
     }
 
     .now__list {
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(0, 1fr);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      /* Il gap fa il lavoro che prima faceva il filetto verticale: separa
+         senza disegnare un confine. Più ampio in orizzontale che in
+         verticale, perché in verticale un a-capo è già una separazione da
+         solo — non gli serve anche lo spazio di un filetto. */
+      gap: clamp(1.5rem, 3vh, 2rem) clamp(2rem, 3.5vw, 3.25rem);
     }
 
-    /* I separatori. Sulla cella e non nel gap perché devono essere alti quanto
-       la cella più alta, che è ciò che li fa leggere come le divisioni di uno
-       strumento invece che come trattini. */
-    .now__cell + .now__cell {
-      padding-left: clamp(1rem, 2.2vw, 2.25rem);
-      border-left: 1px solid var(--color-hairline);
+    /* ⚠ `max-width`, NON una larghezza fissa o un `flex: 1`: un tetto lascia
+       che ogni cella respiri quanto il proprio contenuto chiede fino a un
+       certo punto, dopo il quale va a capo — è ciò che rende "Colorno" un
+       terzo della larghezza del titolo di laurea invece di occupare la
+       stessa colonna. Il numero è quello che teneva ciascuna delle vecchie
+       quattro colonne uguali, così il paragrafo più lungo va a capo dove
+       andava già prima e non cambia altezza della fascia. */
+    .now__cell {
+      max-width: clamp(11rem, 21vw, 17.5rem);
     }
 
     /* Il "da" su una riga sua — vedi la nota nel markup. La griglia serve a
