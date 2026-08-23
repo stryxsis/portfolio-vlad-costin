@@ -14,31 +14,31 @@
  * decisione si prende con lo stesso criterio (cielo di stelle della 404,
  * fondale di /portfolio). Qui non è nemmeno una rinuncia: un campo di glifi
  * che commutano È testo, e il browser sa già disegnare testo. Un canvas
- * avrebbe voluto dire ridisegnare 864 glifi ad ogni fotogramma per far
+ * avrebbe voluto dire ridisegnare 1440 glifi ad ogni fotogramma per far
  * cambiare i due o tre che stanno cambiando davvero.
  *
  * ⚠ IL COSTO PER FOTOGRAMMA È QUASI ZERO, ED È IL PUNTO DI TUTTO IL DISEGNO:
- * l'ingresso è un'animazione che FINISCE (864 animazioni che dopo ~1,7s
- * escono dalla lista attiva), e le commutazioni sono ~90 cicli lunghi 7-11s
+ * l'ingresso è un'animazione che FINISCE (1440 animazioni che dopo ~1,7s
+ * escono dalla lista attiva), e le commutazioni sono ~230 cicli lunghi 7-11s
  * in cui il cambiamento visibile dura ~150ms. In un fotogramma qualunque
  * stanno cambiando due o tre glifi da 13px: l'area ridipinta è una manciata
  * di pixel. È l'opposto di una pioggia di caratteri, che li ridipinge tutti.
  *
- * ⚠ UNA SOLA GRIGLIA, 36 COLONNE SEMPRE, e su telefono se ne NASCONDE UNA SÌ
+ * ⚠ UNA SOLA GRIGLIA, 48 COLONNE SEMPRE, e su telefono se ne NASCONDE UNA SÌ
  * E UNA NO invece di ridistribuire le celle su meno colonne. Sembra la scelta
  * pigra e non lo è: la banda d'ingresso di ogni cella è calcolata QUI, a
- * build time, sulla sua posizione nella griglia a 36 colonne. Un riflusso su
- * 18 colonne manderebbe la cella 18 sotto la 0 invece che accanto alla 17, e
+ * build time, sulla sua posizione nella griglia a 48 colonne. Un riflusso su
+ * 24 colonne manderebbe la cella 24 sotto la 0 invece che accanto alla 23, e
  * l'onda — che è una funzione della POSIZIONE — si vedrebbe ripartire a righe
  * alterne. Nascondendo una colonna su due si campiona lo stesso campo a
  * densità dimezzata, e la propagazione resta quella giusta. (Funziona perché
- * 36 è pari: con `nth-child(2n)` su una griglia a colonne pari gli indici
+ * 48 è pari: con `nth-child(2n)` su una griglia a colonne pari gli indici
  * pari cadono sempre sulle stesse colonne, invece di zigzagare.)
  *
  * ⚠ LA COMMUTAZIONE È UN SOLO ELEMENTO, NON DUE GLIFI SOVRAPPOSTI: la cifra
  * di base è il testo della cella, quella commutata è uno `::after` con un
  * fondo `--color-canvas` OPACO che la copre. Due nodi per cella sarebbero
- * stati 1728 elementi invece di 864. Il fondo opaco funziona perché dietro il
+ * stati 2880 elementi invece di 1440. Il fondo opaco funziona perché dietro il
  * campo c'è davvero il canvas e nient'altro — chi un domani volesse metterci
  * un bagliore dietro deve tornare ai due glifi in dissolvenza. E l'opacità di
  * riposo della cella non lo rompe: `opacity` appiattisce il GRUPPO, quindi lo
@@ -58,17 +58,18 @@
  * campo, e un diff di `dist/` non si riempie di rumore ad ogni rebuild.
  */
 
-/* La griglia logica. 36×24 a 1440×900 dà celle di 40×37px: quasi quadrate,
-   con un glifo da 13px al centro — un campo arioso, non un muro di cifre. */
-const COLONNE = 36;
-const RIGHE = 24;
+/* La griglia logica. ⚠ PORTATA DA 36×24 A 48×30 IL 2026-08-23, su richiesta
+   di Vlad («più densità di numeri»): 1440 celle contro 864, celle di
+   30×30px a 1440×900 — ancora quadrate, il glifo resta leggibile perché
+   `font-size` è in `vw` e non dipende dal numero di colonne. */
+const COLONNE = 48;
+const RIGHE = 30;
 
 /** Quante "onde" discrete. Ogni cella cade in una banda e la banda È il suo
- *  ritardo: 30 gradini da 40ms fanno un fronte che attraversa lo schermo in
- *  ~1,2s. Discretizzare invece di scrivere un ritardo per cella non è
- *  un'ottimizzazione di byte — è ciò che rende il fronte LEGGIBILE come
- *  fronte: gruppi che si accendono insieme, non un gradiente continuo. */
-const BANDE = 30;
+ *  ritardo: con più celle un fronte a 30 gradini si vedrebbe più "a scatti"
+ *  (ogni banda raccoglie più celle), quindi sale con la densità — 38 gradini
+ *  da 32ms tengono lo stesso fronte in ~1,2s con passi più fini. */
+const BANDE = 38;
 
 /** L'origine dell'onda, in frazione della griglia. ⚠ NON è il centro: cade
  *  dove il titolo comparirà un istante dopo. Il campo sembra così emesso dal
@@ -90,20 +91,34 @@ const DISORDINE = 1.35;
 
 /** Le sequenze: file di bit adiacenti che commutano uno dopo l'altro.
  *  `riga` e `da` sono in celle, `quante` la lunghezza della fila. */
+/* ⚠ RIPOSIZIONATE IL 2026-08-23 per la griglia 48×30 (prima erano tarate su
+   36×24): le colonne sono ricalcolate in proporzione, le righe distribuite
+   sulle 30 disponibili invece che sulle 24 di prima. Il numero di sequenze
+   è quasi raddoppiato — «aumenta i numeri che cambiano stato» — restando
+   comunque una minoranza netta della griglia (vedi QUOTA_SOLITARIE). */
 const SEQUENZE: Array<{ riga: number; da: number; quante: number }> = [
-  { riga: 2, da: 21, quante: 8 },
-  { riga: 5, da: 4, quante: 6 },
-  { riga: 7, da: 26, quante: 7 },
-  { riga: 11, da: 24, quante: 9 },
-  { riga: 14, da: 2, quante: 5 },
-  { riga: 17, da: 19, quante: 8 },
-  { riga: 20, da: 7, quante: 6 },
-  { riga: 22, da: 28, quante: 5 },
+  { riga: 1, da: 6, quante: 6 },
+  { riga: 3, da: 28, quante: 9 },
+  { riga: 5, da: 15, quante: 7 },
+  { riga: 7, da: 35, quante: 8 },
+  { riga: 9, da: 3, quante: 6 },
+  { riga: 11, da: 32, quante: 10 },
+  { riga: 13, da: 19, quante: 5 },
+  { riga: 15, da: 40, quante: 7 },
+  { riga: 17, da: 8, quante: 9 },
+  { riga: 19, da: 25, quante: 6 },
+  { riga: 21, da: 2, quante: 8 },
+  { riga: 23, da: 36, quante: 7 },
+  { riga: 25, da: 12, quante: 9 },
+  { riga: 27, da: 30, quante: 6 },
+  { riga: 29, da: 5, quante: 8 },
 ];
 
-/** Quante celle, fra quelle non già in sequenza, commutano da sole. Basso di
- *  proposito: la richiesta era «solo alcune». */
-const QUOTA_SOLITARIE = 0.045;
+/** Quante celle, fra quelle non già in sequenza, commutano da sole.
+ *  ⚠ RADDOPPIATA IL 2026-08-23 (era 0.045): stessa richiesta delle sequenze,
+ *  «aumenta i numeri che cambiano stato» — resta comunque una minoranza,
+ *  non «tutte». */
+const QUOTA_SOLITARIE = 0.09;
 
 /** Quante celle portano l'accento invece del grigio. Un pizzico: sono la
  *  texture di colore del campo, non una seconda tinta. */
@@ -138,11 +153,11 @@ const DURATA_INGRESSO = 430;
  *  scritto anche in CSS (`calc(var(--b) * 40ms)`): cambiarne uno solo
  *  scollega il ritardo delle commutazioni dal fronte che devono seguire. */
 const PARTENZA = 80;
-const PASSO = 40;
+const PASSO = 32;
 
 /** Quanti livelli di opacità. ⚠ QUANTIZZATA E NON CONTINUA, e non è
- *  pignoleria: il valore finisce in un attributo `style` su 864 elementi, e
- *  864 numeri tutti diversi sono 864 stringhe che la compressione non può
+ *  pignoleria: il valore finisce in un attributo `style` su 1440 elementi, e
+ *  1440 numeri tutti diversi sono 1440 stringhe che la compressione non può
  *  ricondurre l'una all'altra. Sedici livelli sono sedici stringhe ripetute,
  *  e a occhio non si distinguono da una rampa continua. */
 const LIVELLI = 16;
@@ -245,11 +260,11 @@ for (const cella of celle) {
 }
 
 /** Da 0-1 alla stringa CSS (`.34`). Lo zero iniziale è tolto: è legale in CSS
- *  ed è un byte per cella, moltiplicato per 864. */
+ *  ed è un byte per cella, moltiplicato per 1440. */
 const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
 ---
 
-{/* Interamente decorativo. Un lettore di schermo che annunciasse 864 cifre
+{/* Interamente decorativo. Un lettore di schermo che annunciasse 1440 cifre
     binarie renderebbe la pagina inutilizzabile — ed è anche letteralmente
     vero che non dicono niente. */}
 <div class="bf" aria-hidden="true">
@@ -308,7 +323,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        finisce. Il ritaglio lo fa `overflow: clip` sulla sezione ospite. */
     inset: -1.5% 0;
     display: grid;
-    grid-template-columns: repeat(36, minmax(0, 1fr));
+    grid-template-columns: repeat(48, minmax(0, 1fr));
     grid-auto-rows: minmax(0, 1fr);
     font-family: var(--font-mono);
     /* 9px su telefono, 16px su un monitor largo: la cella cresce con la
@@ -329,7 +344,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
     --bf-c: var(--color-text-3);
 
     /* ⚠ `align-self: center` e non un `display: grid` per cella: centrare
-       verticalmente 864 glifi con altrettanti contenitori di layout costa 864
+       verticalmente 1440 glifi con altrettanti contenitori di layout costa 1440
        formattazioni in più per un risultato identico. Così la cella è alta
        quanto la propria riga di testo e la traccia la centra. */
     align-self: center;
@@ -340,7 +355,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        movimento non deve ricevere meno design.
        ⚠ `--bf-dim` MOLTIPLICA qui, cella per cella, invece di essere una
        `opacity` sul contenitore: una opacità sul contenitore ne farebbe un
-       gruppo di compositing da 864 elementi, e soprattutto smorzerebbe anche
+       gruppo di compositing da 1440 elementi, e soprattutto smorzerebbe anche
        la VELATURA, che gli sta dentro e che esiste proprio per non essere
        smorzata. Serve su telefono, dove il testo copre tutta la larghezza e
        non esiste una zona di campo libero da proteggere. */
@@ -522,7 +537,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
      alterne. */
   @media (max-width: 56.24rem) {
     .bf__grid {
-      grid-template-columns: repeat(18, minmax(0, 1fr));
+      grid-template-columns: repeat(24, minmax(0, 1fr));
       /* ⚠ IL CAMPO SI SMORZA, e non è gusto: su desktop il testo lascia
          scoperta la fascia destra e la velatura può essere shaped su di lui,
          qui il testo occupa TUTTA la larghezza e non esiste una zona da
