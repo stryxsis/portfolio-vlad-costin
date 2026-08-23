@@ -99,32 +99,30 @@ const DISORDINE = 1.35;
 
 /** Le sequenze: file di bit adiacenti che commutano uno dopo l'altro.
  *  `riga` e `da` sono in celle, `quante` la lunghezza della fila. */
-/* ⚠ RIPOSIZIONATE IL 2026-08-23 per la griglia 42×26 (la seconda volta in
-   una sessione: prima erano tarate su 36×24, poi su 48×30). Tredici
-   sequenze — più delle otto originali, meno delle quindici della stesura
-   troppo pesante — restano comunque una minoranza netta della griglia
-   (vedi QUOTA_SOLITARIE). */
+/* ⚠ RIDOTTE DA TREDICI A SETTE, STESSO GIORNO (2026-08-23), NON PER LA
+   STESSA RAGIONE DEI GIRI PRECEDENTI: quelli inseguivano «più densità»,
+   questo insegue «meno lag». Ogni sequenza (come ogni cella solitaria)
+   è una cella che porta un'`Animation` infinita per sempre — vedi la nota
+   su `.bf__c--f::after` per il perché quel numero conta più del totale
+   della griglia. Dimezzarle è la seconda leva del fix del lag, insieme
+   alla fusione di `bf-flash` in `bf-flip` qui sotto: le due si
+   moltiplicano, non si sommano. */
 const SEQUENZE: Array<{ riga: number; da: number; quante: number }> = [
-  { riga: 1, da: 5, quante: 7 },
-  { riga: 3, da: 24, quante: 8 },
-  { riga: 5, da: 13, quante: 6 },
-  { riga: 7, da: 30, quante: 7 },
-  { riga: 9, da: 3, quante: 6 },
-  { riga: 11, da: 27, quante: 9 },
-  { riga: 13, da: 16, quante: 5 },
-  { riga: 15, da: 34, quante: 6 },
-  { riga: 17, da: 7, quante: 8 },
-  { riga: 19, da: 21, quante: 6 },
-  { riga: 21, da: 2, quante: 7 },
-  { riga: 23, da: 31, quante: 6 },
-  { riga: 25, da: 10, quante: 8 },
+  { riga: 2, da: 8, quante: 7 },
+  { riga: 6, da: 27, quante: 8 },
+  { riga: 10, da: 14, quante: 6 },
+  { riga: 14, da: 33, quante: 7 },
+  { riga: 18, da: 4, quante: 8 },
+  { riga: 21, da: 22, quante: 6 },
+  { riga: 24, da: 11, quante: 7 },
 ];
 
 /** Quante celle, fra quelle non già in sequenza, commutano da sole.
- *  ⚠ RADDOPPIATA IL 2026-08-23 (era 0.045): stessa richiesta delle sequenze,
- *  «aumenta i numeri che cambiano stato» — resta comunque una minoranza,
- *  non «tutte». */
-const QUOTA_SOLITARIE = 0.09;
+ *  ⚠ RIPORTATA A 0,045 (era stata raddoppiata a 0,09 per «più densità»,
+ *  poi ridotta di nuovo per il lag): stessa ragione delle sequenze qui
+ *  sopra — ogni cella solitaria è un'`Animation` per sempre, non un
+ *  ornamento gratis. */
+const QUOTA_SOLITARIE = 0.045;
 
 /** Quante celle portano l'accento invece del grigio. Un pizzico: sono la
  *  texture di colore del campo, non una seconda tinta. */
@@ -320,6 +318,15 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        sopra: è un fondo, non un contenuto. */
     pointer-events: none;
     user-select: none;
+    /* ⚠ SECONDO GIRO DI OTTIMIZZAZIONE (2026-08-23): `contain: strict` isola
+       questo sottoalbero — nessun cambiamento FUORI da qui (l'avviso che
+       spinge la chrome, `.is-active` che commuta sull'indice, l'hover della
+       navbar) forza mai un ricalcolo di stile o layout dentro queste ~1092
+       celle, e viceversa. È legale perché la dimensione di `.bf` non dipende
+       dal contenuto: è un assoluto con `inset: 0`, la dimensiona il genitore.
+       `strict` = `size layout style paint` insieme: nessuno dei quattro
+       richiede di sapere cosa succede fuori da questo elemento. */
+    contain: strict;
   }
 
   .bf__grid {
@@ -379,9 +386,10 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        `--color-accent-hi` e si posa sul proprio grigio, quindi il bordo
        dell'onda è una linea di luce che attraversa lo schermo invece di un
        semplice riempimento. È la differenza fra "compaiono" e "si accendono".
-       ⚠ SOLO `bf-in` QUI. `bf-flash` (il lampo della commutazione) vive
-       SOLO su `.bf__c--f` più sotto — vedi quella nota per il perché: non è
-       stile, è la correzione di un vero costo, segnalato da Vlad come lag. */
+       ⚠ SOLO `bf-in` QUI, E DA QUESTO SECONDO GIRO DI OTTIMIZZAZIONE (Vlad ha
+       segnalato lag residuo) NON C'È PIÙ NESSUNA `bf-flash`: il lampo della
+       commutazione è stato fuso dentro `bf-flip`, l'unica animazione che vive
+       su `.bf__c--f::after` più sotto — vedi quella nota per il perché. */
     animation: bf-in 430ms var(--ease-snappy) calc(var(--b) * 40ms + 80ms) both;
   }
 
@@ -433,25 +441,26 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
      finestra di transizione è l'1,6% del ciclo: su 7-11s sono 110-180ms, cioè
      un tempo che si legge come un cambio deliberato e non come uno sfarfallio
      (che a schermo si scambia per un difetto di rendering). */
-  /* ⚠ OTTIMIZZAZIONE DEL 2026-08-23, segnalata come lag da Vlad: `bf-flash`
-     stava sul selettore `.bf__c` di BASE, cioè su TUTTE le celle — comprese
-     le ~5/6 che non commutano mai. Anche con `--fd` a `0s` di default, ogni
-     elemento otteneva un secondo oggetto `Animation` a durata zero e a
-     iterazione infinita: non fa niente di visibile, ma il motore lo tiene
-     comunque vivo e lo ricalcola. Su una griglia da mille-e-passa celle sono
-     centinaia di animazioni completamente inutili. Spostando `bf-flash` SOLO
-     su `.bf__c--f` (le celle che davvero commutano, ~1/6 del totale), il
-     numero di animazioni continue attive scende della stessa proporzione —
-     stesso identico effetto a schermo, perché le celle senza questa classe
-     non lampeggiavano comunque. `bf-in` va ripetuto qui perché lo shorthand
-     `animation` non si "somma" fra due regole: la seconda dichiarazione
-     sovrascrive per intero la prima sulle celle che hanno ENTRAMBE le
-     classi. */
+  /* ⚠ SECONDO GIRO DI OTTIMIZZAZIONE (2026-08-23), Vlad ha segnalato lag
+     ancora presente dopo il primo (che aveva spostato `bf-flash` da TUTTE le
+     celle a solo quelle che commutano). Il primo giro era corretto ma non
+     bastava: le celle che commutano restavano comunque con DUE animazioni
+     infinite PERSISTENTI — `bf-flash` sulla cella e `bf-flip` sul suo
+     `::after` — e un'animazione di `opacity` infinita tiene il proprio
+     elemento promosso a un layer di compositing PER TUTTA LA VITA DELLA
+     PAGINA, non solo mentre lampeggia davvero. Con ~200 celle che commutano
+     erano ~200 layer di compositing permanenti (uno per ogni `::after`),
+     più altrettante `Animation` per il lampo sulla cella: il motore deve
+     comporli TUTTI ad ogni fotogramma, per sempre, anche quando il 95% del
+     tempo non cambia nulla.
+     ⚠ FUSE IN UNA SOLA: `bf-flash` non esiste più. `bf-flip` ora controlla
+     ANCHE il colore (vedi sotto), quindi ogni cella che commuta ha UN SOLO
+     oggetto `Animation` invece di due — metà del costo permanente, a parità
+     di celle che commutano. `.bf__c--f` non dichiara più `animation`: eredita
+     il solo `bf-in` dalla regola di base, perché non le serve più nulla
+     d'altro. */
   .bf__c--f {
     position: relative;
-    animation:
-      bf-in 430ms var(--ease-snappy) calc(var(--b) * 40ms + 80ms) both,
-      bf-flash var(--fd) linear var(--ft) infinite;
   }
 
   .bf__c--f::after {
@@ -468,44 +477,32 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
     content: '0';
   }
 
+  /* Lo `::after` porta la cifra opposta, la copre con un fondo opaco, e
+     lampeggia mentre lo fa: `color` non serve dichiararlo su un secondo
+     elemento come prima, la cifra coperta è già SUA — un solo fotogramma in
+     più nello stesso `@keyframes`, zero animazioni in più per il motore.
+     ⚠ Il fotogramma a 0% e quello a 100% dichiarano lo STESSO colore
+     (`--bf-c`): un ciclo che finisce altrove salta ad ogni giro. Il lampo
+     dura da 44% a 50% (~6% del ciclo, 420-660ms su 7-11s): breve abbastanza
+     da leggersi come una scintilla, non come uno sbiadire. */
   @keyframes bf-flip {
     0%,
     42.4% {
       opacity: 0;
+      color: var(--bf-c);
     }
-    44%,
+    44% {
+      opacity: 1;
+      color: var(--color-accent-hi);
+    }
+    50%,
     92.4% {
       opacity: 1;
+      color: var(--bf-c);
     }
     94%,
     100% {
       opacity: 0;
-    }
-  }
-
-  /* Il lampo che accompagna la commutazione, sulla cella (quindi su entrambe
-     le cifre). ⚠ Due animazioni e non una sola perché il lampo deve battere ai
-     DUE cambi — all'andata e al ritorno — mentre lo `::after` è acceso solo per
-     metà ciclo. Condividono `--fd` e `--ft`, quindi restano in fase per
-     costruzione invece che per taratura.
-     ⚠ Il fotogramma a 0% e quello a 100% dichiarano lo STESSO colore: un ciclo
-     che finisce altrove salta ad ogni giro. */
-  @keyframes bf-flash {
-    0%,
-    42% {
-      color: var(--bf-c);
-    }
-    44.5% {
-      color: var(--color-accent-hi);
-    }
-    54%,
-    91% {
-      color: var(--bf-c);
-    }
-    94% {
-      color: var(--color-accent-hi);
-    }
-    100% {
       color: var(--bf-c);
     }
   }
