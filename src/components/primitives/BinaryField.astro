@@ -1,0 +1,556 @@
+---
+/**
+ * IL CAMPO BINARIO — il fondale della hero di /chi-sono.
+ *
+ * Una griglia di 0 e 1 che si accende con un'onda che si propaga da un punto,
+ * e che poi resta viva: alcune cifre commutano il proprio stato, e alcune lo
+ * fanno in SEQUENZA — una fila di bit riscritti uno dopo l'altro, come una
+ * parola che cambia valore. Chiesto da Vlad il 2026-08-23, con due vincoli
+ * espliciti: «non voglio che lo facciano tutte, solo alcune e alcune
+ * sequenze», e «prima compaiono gli 0 e 1, con un bell'effetto (esempio con
+ * la propagazione), subito dopo le scritte».
+ *
+ * ⚠ ZERO JS, ZERO LIBRERIE, ZERO WEBGL — ed è la terza volta che questa
+ * decisione si prende con lo stesso criterio (cielo di stelle della 404,
+ * fondale di /portfolio). Qui non è nemmeno una rinuncia: un campo di glifi
+ * che commutano È testo, e il browser sa già disegnare testo. Un canvas
+ * avrebbe voluto dire ridisegnare 864 glifi ad ogni fotogramma per far
+ * cambiare i due o tre che stanno cambiando davvero.
+ *
+ * ⚠ IL COSTO PER FOTOGRAMMA È QUASI ZERO, ED È IL PUNTO DI TUTTO IL DISEGNO:
+ * l'ingresso è un'animazione che FINISCE (864 animazioni che dopo ~1,7s
+ * escono dalla lista attiva), e le commutazioni sono ~90 cicli lunghi 7-11s
+ * in cui il cambiamento visibile dura ~150ms. In un fotogramma qualunque
+ * stanno cambiando due o tre glifi da 13px: l'area ridipinta è una manciata
+ * di pixel. È l'opposto di una pioggia di caratteri, che li ridipinge tutti.
+ *
+ * ⚠ UNA SOLA GRIGLIA, 36 COLONNE SEMPRE, e su telefono se ne NASCONDE UNA SÌ
+ * E UNA NO invece di ridistribuire le celle su meno colonne. Sembra la scelta
+ * pigra e non lo è: la banda d'ingresso di ogni cella è calcolata QUI, a
+ * build time, sulla sua posizione nella griglia a 36 colonne. Un riflusso su
+ * 18 colonne manderebbe la cella 18 sotto la 0 invece che accanto alla 17, e
+ * l'onda — che è una funzione della POSIZIONE — si vedrebbe ripartire a righe
+ * alterne. Nascondendo una colonna su due si campiona lo stesso campo a
+ * densità dimezzata, e la propagazione resta quella giusta. (Funziona perché
+ * 36 è pari: con `nth-child(2n)` su una griglia a colonne pari gli indici
+ * pari cadono sempre sulle stesse colonne, invece di zigzagare.)
+ *
+ * ⚠ LA COMMUTAZIONE È UN SOLO ELEMENTO, NON DUE GLIFI SOVRAPPOSTI: la cifra
+ * di base è il testo della cella, quella commutata è uno `::after` con un
+ * fondo `--color-canvas` OPACO che la copre. Due nodi per cella sarebbero
+ * stati 1728 elementi invece di 864. Il fondo opaco funziona perché dietro il
+ * campo c'è davvero il canvas e nient'altro — chi un domani volesse metterci
+ * un bagliore dietro deve tornare ai due glifi in dissolvenza. E l'opacità di
+ * riposo della cella non lo rompe: `opacity` appiattisce il GRUPPO, quindi lo
+ * `::after` copre il glifo prima che il gruppo venga reso traslucido.
+ *
+ * ⚠ ECCEZIONE DICHIARATA al divieto di loop infiniti (la SETTIMA, vedi
+ * CLAUDE.md), nella stessa famiglia del cielo della CTA, delle stelle della
+ * 404 e della caduta della luce di /portfolio: è un FONDO, è `aria-hidden`,
+ * non porta informazione, e sotto di lui non c'è nulla da leggere che si
+ * muova con lui. Non è il muro di §04 — quello porta citazioni, e infatti si
+ * ferma. Il rimedio per chi lo trovasse disturbante è `prefers-reduced-motion`,
+ * che qui lo CONGELA invece di spegnerlo: il campo resta, perché è il fondo,
+ * non l'animazione.
+ *
+ * ⚠ COORDINATE E TEMPI DA UN SEME FISSO, non da `Math.random()` nudo (stessa
+ * ragione di Starfield): due build dello stesso commit producono lo stesso
+ * campo, e un diff di `dist/` non si riempie di rumore ad ogni rebuild.
+ */
+
+/* La griglia logica. 36×24 a 1440×900 dà celle di 40×37px: quasi quadrate,
+   con un glifo da 13px al centro — un campo arioso, non un muro di cifre. */
+const COLONNE = 36;
+const RIGHE = 24;
+
+/** Quante "onde" discrete. Ogni cella cade in una banda e la banda È il suo
+ *  ritardo: 30 gradini da 40ms fanno un fronte che attraversa lo schermo in
+ *  ~1,2s. Discretizzare invece di scrivere un ritardo per cella non è
+ *  un'ottimizzazione di byte — è ciò che rende il fronte LEGGIBILE come
+ *  fronte: gruppi che si accendono insieme, non un gradiente continuo. */
+const BANDE = 30;
+
+/** L'origine dell'onda, in frazione della griglia. ⚠ NON è il centro: cade
+ *  dove il titolo comparirà un istante dopo. Il campo sembra così emesso dal
+ *  punto in cui poi appare la scritta — causa ed effetto, invece di due
+ *  animazioni che capitano nello stesso schermo. */
+const ORIGINE = { x: 0.14, y: 0.55 };
+
+/** La griglia è larga ~1,6 volte più che alta, ma le sue coordinate qui sono
+ *  normalizzate 0-1 su entrambi gli assi: senza schiacciare la y, l'onda
+ *  sarebbe un cerchio nello spazio delle CELLE e un'ellisse verticale sullo
+ *  schermo. Questo la rimette tonda dove la si guarda. */
+const SCHIACCIAMENTO = 0.62;
+
+/** Quanto una cella può sbagliare banda, in bande. ⚠ È il parametro che fa la
+ *  differenza fra "una tendina che scorre" e "delle celle che si accendono":
+ *  un fronte esatto si legge come una spazzata, un fronte con un po' di
+ *  disordine si legge come qualcosa che si propaga. */
+const DISORDINE = 1.35;
+
+/** Le sequenze: file di bit adiacenti che commutano uno dopo l'altro.
+ *  `riga` e `da` sono in celle, `quante` la lunghezza della fila. */
+const SEQUENZE: Array<{ riga: number; da: number; quante: number }> = [
+  { riga: 2, da: 21, quante: 8 },
+  { riga: 5, da: 4, quante: 6 },
+  { riga: 7, da: 26, quante: 7 },
+  { riga: 11, da: 24, quante: 9 },
+  { riga: 14, da: 2, quante: 5 },
+  { riga: 17, da: 19, quante: 8 },
+  { riga: 20, da: 7, quante: 6 },
+  { riga: 22, da: 28, quante: 5 },
+];
+
+/** Quante celle, fra quelle non già in sequenza, commutano da sole. Basso di
+ *  proposito: la richiesta era «solo alcune». */
+const QUOTA_SOLITARIE = 0.045;
+
+/** Quante celle portano l'accento invece del grigio. Un pizzico: sono la
+ *  texture di colore del campo, non una seconda tinta. */
+const QUOTA_ACCENTO = 0.03;
+
+/** mulberry32 — deterministico, minuscolo, senza dipendenze. Come Starfield. */
+function generatore(seme: number): () => number {
+  let s = seme;
+  return (): number => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = generatore(20260823);
+
+/** La distanza dall'origine, schiacciata. */
+const distanza = (nx: number, ny: number): number =>
+  Math.hypot(nx - ORIGINE.x, (ny - ORIGINE.y) * SCHIACCIAMENTO);
+
+/** Il massimo sui quattro angoli: serve a normalizzare, o il numero di bande
+ *  effettivamente usate dipenderebbe da dove sta l'origine. */
+const D_MAX = Math.max(distanza(0, 0), distanza(1, 0), distanza(0, 1), distanza(1, 1));
+
+/** Durata di un ingresso di cella, in ms. ⚠ Deve restare in sync con la
+ *  `@keyframes bf-in` qui sotto: serve a sapere QUANDO una cella ha finito di
+ *  entrare, per non farla commutare mentre sta ancora arrivando. */
+const DURATA_INGRESSO = 430;
+
+/** Ritardo di partenza dell'onda e passo fra due bande, in ms. ⚠ Il passo è
+ *  scritto anche in CSS (`calc(var(--b) * 40ms)`): cambiarne uno solo
+ *  scollega il ritardo delle commutazioni dal fronte che devono seguire. */
+const PARTENZA = 80;
+const PASSO = 40;
+
+/** Quanti livelli di opacità. ⚠ QUANTIZZATA E NON CONTINUA, e non è
+ *  pignoleria: il valore finisce in un attributo `style` su 864 elementi, e
+ *  864 numeri tutti diversi sono 864 stringhe che la compressione non può
+ *  ricondurre l'una all'altra. Sedici livelli sono sedici stringhe ripetute,
+ *  e a occhio non si distinguono da una rampa continua. */
+const LIVELLI = 16;
+
+/** Il tetto di opacità per le celle CHE PORTANO COLORE — quelle d'accento e
+ *  quelle che commutano (che lampeggiano in `--color-accent-hi`).
+ *  ⚠ NON è una scelta estetica, è un calcolo di contrasto: sopra il campo c'è
+ *  del testo, e un viola chiaro al 90% dietro l'inciso da 40px lo portava a
+ *  3,7:1 — sopra la soglia di 3 per il testo grande, ma senza margine, e su
+ *  telefono (dove lo stesso viola finisce dietro la lede da 19px, che di
+ *  soglia ne vuole 4,5) sotto di netto. Le cifre grigie possono permettersi
+ *  di essere nitide, le colorate no. */
+const TETTO_COLORE = 0.62;
+
+interface Cella {
+  bit: '0' | '1';
+  banda: number;
+  /** Opacità di riposo, 0-1. Il campo non è piatto: alcune cifre sono quasi
+   *  spente, poche sono nitide. È questa varianza a dargli profondità. */
+  opacita: number;
+  accento: boolean;
+  /** Presente solo per le celle che commutano: durata del ciclo e ritardo
+   *  della prima commutazione, in secondi. */
+  flip: { dur: number; ritardo: number } | null;
+}
+
+const arrotonda = (n: number, cifre = 2): number => Number(n.toFixed(cifre));
+
+/* ---- Prima passata: la griglia, le bande, i toni ------------------------ */
+const celle: Cella[] = [];
+for (let r = 0; r < RIGHE; r += 1) {
+  for (let c = 0; c < COLONNE; c += 1) {
+    const nx = (c + 0.5) / COLONNE;
+    const ny = (r + 0.5) / RIGHE;
+    const d = distanza(nx, ny) / D_MAX;
+    const banda = Math.min(
+      BANDE - 1,
+      Math.max(0, Math.round(d * (BANDE - 1) + (rand() * 2 - 1) * DISORDINE))
+    );
+    /* La curva dell'opacità è sbilanciata verso il basso (il quadrato di un
+       uniforme): tante cifre smorzate, poche nitide. Con una distribuzione
+       piatta il campo diventa una texture uniforme e smette di avere fondo. */
+    const t = rand();
+    celle.push({
+      bit: rand() < 0.5 ? '0' : '1',
+      banda,
+      opacita: 0.2 + (Math.round(t * t * (LIVELLI - 1)) / (LIVELLI - 1)) * 0.7,
+      accento: rand() < QUOTA_ACCENTO,
+      flip: null,
+    });
+  }
+}
+
+/** Quando la cella `i` ha finito di entrare, in secondi. */
+const finitoA = (i: number): number =>
+  ((celle[i] as Cella).banda * PASSO + PARTENZA + DURATA_INGRESSO) / 1000;
+
+/* ---- Seconda passata: le sequenze ---------------------------------------
+   ⚠ Il ritardo si conta dalla cella PIÙ TARDA della fila, non da ognuna per
+   conto suo: altrimenti una fila a cavallo di due bande comincerebbe a
+   commutare da un capo mentre l'altro non è ancora comparso. */
+for (const s of SEQUENZE) {
+  const indici: number[] = [];
+  for (let k = 0; k < s.quante; k += 1) {
+    const c = s.da + k;
+    if (c >= COLONNE) break;
+    indici.push(s.riga * COLONNE + c);
+  }
+  if (indici.length === 0) continue;
+  /* 7-11s e non un intervallo largo: la finestra di commutazione è una
+     PERCENTUALE della `@keyframes`, quindi con durate molto diverse alcune
+     commutazioni durerebbero il triplo delle altre. */
+  const dur = arrotonda(7 + rand() * 4, 1);
+  const base = Math.max(...indici.map(finitoA)) + 0.5 + rand() * dur;
+  indici.forEach((i, k) => {
+    (celle[i] as Cella).flip = {
+      dur,
+      /* Il passo della propagazione DENTRO la fila: 130ms fra un bit e il
+         successivo si legge come una lettura da sinistra a destra. */
+      ritardo: arrotonda(base + k * 0.13),
+    };
+  });
+}
+
+/* ---- Terza passata: le solitarie ---------------------------------------- */
+celle.forEach((cella, i) => {
+  if (cella.flip !== null || rand() > QUOTA_SOLITARIE) return;
+  const dur = arrotonda(7 + rand() * 4, 1);
+  cella.flip = { dur, ritardo: arrotonda(finitoA(i) + 0.5 + rand() * dur) };
+});
+
+/* ---- Quarta passata: il tetto sulle celle colorate ----------------------
+   ⚠ DEVE stare DOPO l'assegnazione delle commutazioni, non dentro la prima
+   passata: quali celle lampeggiano si sa solo alla fine. Vedi `TETTO_COLORE`
+   per il calcolo di contrasto che lo motiva. */
+for (const cella of celle) {
+  if (cella.accento || cella.flip !== null) {
+    cella.opacita = Math.min(cella.opacita, TETTO_COLORE);
+  }
+}
+
+/** Da 0-1 alla stringa CSS (`.34`). Lo zero iniziale è tolto: è legale in CSS
+ *  ed è un byte per cella, moltiplicato per 864. */
+const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
+---
+
+{/* Interamente decorativo. Un lettore di schermo che annunciasse 864 cifre
+    binarie renderebbe la pagina inutilizzabile — ed è anche letteralmente
+    vero che non dicono niente. */}
+<div class="bf" aria-hidden="true">
+  <div class="bf__grid">
+    {
+      celle.map((c) => (
+        <span
+          class:list={[
+            'bf__c',
+            c.flip !== null && 'bf__c--f',
+            /* La cifra commutata è l'OPPOSTA di quella di base: se il testo è
+               '1', lo `::after` deve dire '0'. */
+            c.flip !== null && c.bit === '1' && 'bf__c--i',
+            c.accento && 'bf__c--a',
+          ]}
+          style={[
+            `--b:${c.banda}`,
+            `--o:${css(c.opacita)}`,
+            ...(c.flip !== null ? [`--fd:${c.flip.dur}s`, `--ft:${c.flip.ritardo}s`] : []),
+          ].join(';')}
+        >
+          {c.bit}
+        </span>
+      ))
+    }
+  </div>
+
+  {/* La velatura. ⚠ NON È DECORAZIONE, È LA GARANZIA DI CONTRASTO — stessa
+      ragione e stesse parole dello `.lf__scrim` di /portfolio e dello
+      `.cta__scrim`: sopra ci sta del testo, e il fondo sotto di lui CAMBIA nel
+      tempo. Senza, il contrasto della lede dipenderebbe da quale cifra le sta
+      lampeggiando dietro in quel fotogramma — cioè sarebbe fortunato invece
+      che conforme.
+      È un velo di canvas e non una maschera perché dietro il campo C'È davvero
+      il canvas: dipingerlo sopra a opacità parziale è esattamente equivalente
+      a smorzare il campo, e costa un gradiente invece di un layer da
+      rasterizzare ogni volta che una cifra cambia. */}
+  <span class="bf__scrim"></span>
+</div>
+
+<style>
+  .bf {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    /* Non deve mai rubare un click né una selezione al testo che gli sta
+       sopra: è un fondo, non un contenuto. */
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .bf__grid {
+    position: absolute;
+    /* Leggermente più larga della sezione: le celle di bordo sono tagliate a
+       metà invece di allinearsi a filo, così il campo non dichiara dove
+       finisce. Il ritaglio lo fa `overflow: clip` sulla sezione ospite. */
+    inset: -1.5% 0;
+    display: grid;
+    grid-template-columns: repeat(36, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    font-family: var(--font-mono);
+    /* 9px su telefono, 16px su un monitor largo: la cella cresce con la
+       viewport e il glifo con lei, così la densità percepita resta la stessa
+       invece di infittirsi sugli schermi grandi. */
+    font-size: clamp(0.5625rem, 0.85vw, 1rem);
+    line-height: 1;
+    font-weight: 500;
+  }
+
+  .bf__c {
+    /* Il grigio delle label mono. ⚠ Qui è LEGITTIMO al contrario che sul
+       testo: `--color-text-3` è sotto AA per del testo da leggere (difetto
+       noto e dichiarato in CLAUDE.md), ma queste cifre non sono testo — sono
+       `aria-hidden` e non portano informazione. Il contrasto che conta su
+       questa sezione è quello del testo VERO sopra la velatura, misurato coi
+       pixel dipinti. */
+    --bf-c: var(--color-text-3);
+
+    /* ⚠ `align-self: center` e non un `display: grid` per cella: centrare
+       verticalmente 864 glifi con altrettanti contenitori di layout costa 864
+       formattazioni in più per un risultato identico. Così la cella è alta
+       quanto la propria riga di testo e la traccia la centra. */
+    align-self: center;
+    text-align: center;
+    color: var(--bf-c);
+    /* Stato di riposo, ed è anche quello che si vede con movimento ridotto: il
+       campo c'è, fermo. Vedi la nota sui fasci di /portfolio — chi chiede meno
+       movimento non deve ricevere meno design.
+       ⚠ `--bf-dim` MOLTIPLICA qui, cella per cella, invece di essere una
+       `opacity` sul contenitore: una opacità sul contenitore ne farebbe un
+       gruppo di compositing da 864 elementi, e soprattutto smorzerebbe anche
+       la VELATURA, che gli sta dentro e che esiste proprio per non essere
+       smorzata. Serve su telefono, dove il testo copre tutta la larghezza e
+       non esiste una zona di campo libero da proteggere. */
+    opacity: calc(var(--o) * var(--bf-dim, 1));
+
+    /* ---- L'ingresso: l'onda che si propaga -------------------------------
+       ⚠ NESSUN GATE SU `html.js-anim`, come per il fondale di /portfolio e per
+       lo stesso motivo: è `animation` CSS pura e deve esistere anche senza JS.
+       Un fondale che compare solo a bundle caricato è un fondale che manca
+       proprio nella finestra in cui la pagina si presenta.
+       ⚠ E il ritardo è POSITIVO per costruzione (`--b` non è mai negativo): lo
+       stato prima del primo fotogramma è quello di partenza vero, non un
+       istante a caso della corsa — la trappola già costata le onde della CTA.
+       ⚠ Il fronte è CROMATICO oltre che di opacità: la cella nasce in
+       `--color-accent-hi` e si posa sul proprio grigio, quindi il bordo
+       dell'onda è una linea di luce che attraversa lo schermo invece di un
+       semplice riempimento. È la differenza fra "compaiono" e "si accendono".
+       ⚠ ORDINE DELLE DUE ANIMAZIONI: `bf-flash` viene DOPO e quindi vince su
+       `color` quando è attiva. Non lo è mai durante l'ingresso, perché il suo
+       ritardo è calcolato a build time per cadere dopo la fine di `bf-in` e il
+       suo fill è `none` — quindi durante l'attesa vale il `forwards` di
+       `bf-in`. Invertirle spegnerebbe il lampo. */
+    animation:
+      bf-in 430ms var(--ease-snappy) calc(var(--b) * 40ms + 80ms) both,
+      bf-flash var(--fd, 0s) linear var(--ft, 0s) infinite;
+  }
+
+  /* Il pizzico di colore. Non una seconda tinta: è lo stesso accento del sito,
+     smorzato e sparso. */
+  .bf__c--a {
+    --bf-c: var(--color-accent);
+  }
+
+  /* ⚠ IL FRONTE È `--color-accent` E NON `--color-accent-hi`, ED È UNA MISURA
+     DI CONTRASTO, NON UNA PREFERENZA. La prima stesura usava il tono chiaro:
+     con la sonda del caso peggiore (tutte le celle al picco dell'onda) il
+     fondo dietro l'inciso da 40px saliva a rgb(101,88,140) e il testo scendeva
+     a 2,45:1, sotto la soglia di 3. Col tono pieno lo stesso caso sta a 4,8:1.
+     ⚠ E IL PICCO DI OPACITÀ È 0,92, NON 1: deve moltiplicare `--bf-dim` come
+     lo stato di riposo, o su telefono (dove il campo è smorzato al 55% perché
+     il testo copre tutta la larghezza) l'onda lampeggerebbe a piena forza
+     proprio dove la protezione non c'è.
+     ⚠ Il POP lo fa la SCALA, non la luminanza: `scale(1.12)` a metà corsa
+     rende il fronte un'onda invece che un riempimento, e la scala non toglie
+     un punto di contrasto a nessuno. */
+  @keyframes bf-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5em) scale(0.5);
+      color: var(--color-accent);
+    }
+    /* ⚠ IL COLORE VA RIDICHIARATO QUI, e senza questa riga il fronte NON SI
+       VEDE. Una proprietà assente da un fotogramma intermedio non "passa di
+       lì": interpola dritta fra i due fotogrammi che la dichiarano, con la
+       curva del primo — e `--ease-out-expo` è talmente front-loaded che il
+       viola si spegneva in ~80ms su 430. Misurato guardando un fermo immagine
+       con le animazioni al 18% di velocità: il fronte era grigio come tutto il
+       resto. Dichiarandolo qui, l'accento TIENE per metà corsa e poi si posa. */
+    55% {
+      opacity: calc(0.92 * var(--bf-dim, 1));
+      transform: scale(1.12);
+      color: var(--color-accent);
+    }
+    to {
+      opacity: calc(var(--o) * var(--bf-dim, 1));
+      transform: none;
+      color: var(--bf-c);
+    }
+  }
+
+  /* ---- La commutazione ----------------------------------------------------
+     Lo `::after` porta la cifra opposta e la copre con un fondo opaco. La
+     finestra di transizione è l'1,6% del ciclo: su 7-11s sono 110-180ms, cioè
+     un tempo che si legge come un cambio deliberato e non come uno sfarfallio
+     (che a schermo si scambia per un difetto di rendering). */
+  .bf__c--f {
+    position: relative;
+  }
+
+  .bf__c--f::after {
+    content: '1';
+    position: absolute;
+    inset: 0;
+    text-align: center;
+    background-color: var(--color-canvas);
+    opacity: 0;
+    animation: bf-flip var(--fd) linear var(--ft) infinite;
+  }
+
+  .bf__c--i::after {
+    content: '0';
+  }
+
+  @keyframes bf-flip {
+    0%,
+    42.4% {
+      opacity: 0;
+    }
+    44%,
+    92.4% {
+      opacity: 1;
+    }
+    94%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Il lampo che accompagna la commutazione, sulla cella (quindi su entrambe
+     le cifre). ⚠ Due animazioni e non una sola perché il lampo deve battere ai
+     DUE cambi — all'andata e al ritorno — mentre lo `::after` è acceso solo per
+     metà ciclo. Condividono `--fd` e `--ft`, quindi restano in fase per
+     costruzione invece che per taratura.
+     ⚠ Il fotogramma a 0% e quello a 100% dichiarano lo STESSO colore: un ciclo
+     che finisce altrove salta ad ogni giro. */
+  @keyframes bf-flash {
+    0%,
+    42% {
+      color: var(--bf-c);
+    }
+    44.5% {
+      color: var(--color-accent-hi);
+    }
+    54%,
+    91% {
+      color: var(--bf-c);
+    }
+    94% {
+      color: var(--color-accent-hi);
+    }
+    100% {
+      color: var(--bf-c);
+    }
+  }
+
+  /* ---- La velatura -------------------------------------------------------
+     Due gradienti sovrapposti, due lavori distinti:
+       1. L'ELLISSE ANCORATA A SINISTRA è il contrasto. ⚠ La sua estensione e i
+          suoi stop NON sono tarati a occhio: derivano dal punto di testo peggio
+          protetto di ogni schermata (la coda dell'inciso, che a 1440 arriva a
+          x≈1240, cioè all'86% della larghezza) e dal fondo peggiore che una
+          cella può dipingere lì sotto (una cifra d'accento al proprio tetto).
+          Chi la allarga o la smorza deve rifare quel conto, non guardarla.
+       2. LA VERTICALE fa due cose che l'ellisse non può fare: tiene il campo
+          lontano dalla navbar fissa in cima (che ha un `backdrop-filter`, e
+          sopra una griglia di cifre diventa una poltiglia) e lo spegne in
+          fondo, prima del confine con la fascia del metodo, invece di
+          tagliarlo di netto.
+     ⚠ SI SOMMANO IN TRASMITTANZA, non in alfa: dove si sovrappongono (la
+     fascia degli strumenti, in basso) il campo resta all'~18% — è il motivo
+     per cui le etichette mono da 12px lì sotto stanno sopra i 7:1 pur essendo
+     la taglia più esigente della pagina. */
+  .bf__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        115% 105% at 20% 50%,
+        color-mix(in oklab, var(--color-canvas) 86%, transparent) 0%,
+        color-mix(in oklab, var(--color-canvas) 78%, transparent) 42%,
+        color-mix(in oklab, var(--color-canvas) 42%, transparent) 68%,
+        transparent 92%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--color-canvas) 0%,
+        color-mix(in oklab, var(--color-canvas) 55%, transparent) 9%,
+        transparent 22%,
+        transparent 68%,
+        color-mix(in oklab, var(--color-canvas) 62%, transparent) 84%,
+        color-mix(in oklab, var(--color-canvas) 88%, transparent) 96%,
+        var(--color-canvas) 100%
+      );
+  }
+
+  /* ---- Telefono: una colonna sì e una no ---------------------------------
+     Vedi la nota in testa al file: si NASCONDONO colonne, non si ridistribuisce
+     la griglia, o l'onda calcolata a build time si vedrebbe ripartire a righe
+     alterne. */
+  @media (max-width: 56.24rem) {
+    .bf__grid {
+      grid-template-columns: repeat(18, minmax(0, 1fr));
+      /* ⚠ IL CAMPO SI SMORZA, e non è gusto: su desktop il testo lascia
+         scoperta la fascia destra e la velatura può essere shaped su di lui,
+         qui il testo occupa TUTTA la larghezza e non esiste una zona da
+         lasciare libera. Misurato: senza questo, una cifra d'accento dietro
+         la lede da 19px la porta a 2,9:1. Con 0,55 sta a 5,0:1. */
+      --bf-dim: 0.55;
+    }
+    .bf__c:nth-child(2n) {
+      display: none;
+    }
+  }
+
+  /* ⚠ SERVE UN BLOCCO DEDICATO, e non basta la regola globale di `global.css`
+     (`animation-iteration-count: 1`): per una commutazione infinita "un giro
+     solo" significa comunque una commutazione ogni dieci secondi. Qui il campo
+     si CONGELA nel suo stato di riposo — resta, perché è il fondo, non
+     l'animazione. */
+  @media (prefers-reduced-motion: reduce) {
+    .bf__c,
+    .bf__c--f::after {
+      animation: none;
+    }
+    .bf__c {
+      opacity: calc(var(--o) * var(--bf-dim, 1));
+      transform: none;
+    }
+    .bf__c--f::after {
+      opacity: 0;
+    }
+  }
+</style>

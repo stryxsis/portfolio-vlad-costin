@@ -11,6 +11,22 @@
  * già l'elenco di cosa è vero adesso, e "accetto nuovi progetti" è vero
  * adesso esattamente come gli altri tre.
  *
+ * ⚠ DAL 2026-08-23 NON È PIÙ UNA COLONNA A DESTRA DELLA BIO, È UNA FASCIA
+ * ORIZZONTALE A PIEDE DELLA HERO. Vlad ha chiesto di rifare la hero «con un
+ * effetto più wow» e di decidere io «dove mettere le informazioni». Le tre
+ * ragioni per cui la fascia è meglio della colonna, in ordine di peso:
+ *   1. IN COLONNA COMPETEVA CON LA BIO. Due blocchi di testo affiancati alla
+ *      stessa altezza si leggono come due colonne di pari grado, e uno dei
+ *      due era un paragrafo da sei righe: il pannello perdeva sempre.
+ *   2. LIBERA LA META DESTRA DELLA HERO, che è dove ora si vede il campo
+ *      binario (BinaryField.astro). Il fondale è il gesto della pagina:
+ *      coprirlo con una seconda colonna di testo lo sprecava.
+ *   3. UNA FASCIA A PIEDE HA IL REGISTRO GIUSTO. Etichette mono, filetti,
+ *      quattro celle in fila: è la lettura di uno strumento, cioè esattamente
+ *      cosa sono questi quattro fatti. In colonna erano una scheda anagrafica.
+ * Il filetto in cima alla fascia è anche il PAVIMENTO della hero: chiude lo
+ * schermo di apertura senza bisogno di un bordo sulla sezione.
+ *
  * ⚠ QUESTO COMPONENTE NON HA DATI PROPRI, ED È LA DECISIONE CHE LO REGGE.
  * La tentazione era un `src/data/adesso.ts` con dentro le tre righe. Sarebbe
  * stato sbagliato: due di quei tre fatti ESISTONO GIÀ in `data/timeline.ts`,
@@ -28,7 +44,9 @@
  * ⚠ SI DEGRADA INVECE DI ROMPERSI: se un giorno nessuna voce è `current`
  * (fra un lavoro e l'altro, finita la triennale), la riga corrispondente
  * semplicemente non si stampa. Il pannello non mostra mai una casella vuota
- * né un "—", che sarebbero peggio del silenzio.
+ * né un "—", che sarebbero peggio del silenzio. ⚠ E la fascia si adatta al
+ * numero di celle da sola (`grid-auto-flow: column`): non c'è nessun "4"
+ * scritto da qualche parte che diventerebbe una colonna vuota.
  */
 import { TIMELINE } from '../../data/timeline';
 import { SITE } from '../../lib/site';
@@ -47,9 +65,8 @@ interface Riga {
    *  cosa è ancora in corso, e non va scritta a mano: la produce
    *  `monthYearShort()` dalla stessa data ISO che usa la timeline. */
   da?: string | null;
-  /** Pallino di STATO (verde, "aperto"), non il respiro di `.now__dot` in
-   *  testata — quello dice "adesso", questo dice "accetto lavoro", e NON
-   *  pulsa: vedi la nota sul token `--color-ok` in global.css. */
+  /** Pallino di STATO (verde, "aperto"). Vedi la nota sul token `--color-ok`
+   *  in global.css: ha esattamente un utente, ed è questo. */
   stato?: boolean;
 }
 
@@ -88,83 +105,108 @@ righe.push({
      su una pagina che parla di lui sarebbe l'unica bugia del pannello. */
   da: null,
 });
-/* ⚠ ULTIMA, e la posizione è il senso: le tre righe sopra dicono cosa sta
+/* ⚠ ULTIMA, e la posizione è il senso: le tre celle prima dicono cosa sta
    facendo, questa dice cosa può ancora prendere. È la conclusione naturale
    di quell'elenco — chi ha appena letto che lavora, studia e vive qui, la
-   domanda dopo ce l'ha già in testa. Sopra sarebbe un annuncio; qui è una
-   risposta. */
+   domanda dopo ce l'ha già in testa. Sopra sarebbe un annuncio; in fondo è
+   una risposta. */
 if (SITE.availability) {
   righe.push({ label: 'Disponibilità', valore: SITE.availability, stato: true });
 }
 ---
 
 <div class="now">
-  {/* L'intestazione porta i due segnali di "presente" che il testo da solo non
-      dà: la parola e il punto che respira. ⚠ Il punto NON è decorazione ed è
-      lo stesso dispositivo di `.tli__now` nella timeline (respiro 3,2s
-      ease-in-out) — quella è già un'eccezione DICHIARATA al divieto di loop
-      infiniti, per la ragione identica: non annuncia un ingresso, descrive
-      uno stato che resta vero finché lo guardi. */}
-  <p class="now__head">
-    <span class="now__dot" aria-hidden="true"></span>
-    Adesso
-  </p>
+  {/* Il filetto è il pavimento della hero, e si TIRA da sinistra al momento
+      giusto della coreografia d'ingresso (vedi il blocco "Ingresso" più
+      sotto). Un elemento suo e non un `border-top` sul contenitore: un bordo
+      non si può animare in `scaleX`, e questo deve arrivare per ultimo —
+      dopo che il campo binario e le scritte si sono posati. */}
+  <span class="now__rule" aria-hidden="true"></span>
 
-  {/* `<dl>` e non una lista: sono coppie etichetta/valore, ed è la struttura
-      che uno screen reader annuncia correttamente. Non viola "mai una lista
-      puntata nel sito": quel divieto riguarda gli elenchi di pari grado col
-      pallino, che qui infatti non c'è — il separatore è il filetto. */}
-  <dl class="now__list">
-    {
-      righe.map((r) => (
-        <div class="now__row">
-          <dt class="now__label">{r.label}</dt>
-          <dd class="now__val">
-            {/* La riga di stato (Disponibilità) è l'unica a rompere la
-                convenzione "solo filetti, mai un box" del pannello: è una
-                pill a contorno, non testo pieno come le altre tre righe —
-                deliberato, per farla leggere come uno STATO e non come un
-                fatto anagrafico uguale agli altri. Il pallino NON porta
-                l'informazione da solo: a voce resta "Disponibilità: aperto
-                a nuovi progetti", che è già tutto (WCAG 1.4.1). */}
-            {r.stato ? (
-              <span class="now__badge">
-                <span class="now__ok" aria-hidden="true" />
-                {r.valore}
-              </span>
-            ) : (
-              <span class="now__valore">{r.valore}</span>
-            )}
-            {/* Dettaglio e "da" sulla STESSA riga, separati dal punto medio
-                che il sito già usa negli indici: su tre righe erano tre
-                capoversi per fatto, cioè un pannello alto 311px che finiva
-                sotto la piega — misurato. Il punto medio è `aria-hidden`
-                perché a voce non aggiunge nulla. */}
-            {r.dettaglio && (
-              <span class="now__det">
-                {r.dettaglio}
-                {r.da && (
-                  <>
-                    <span aria-hidden="true"> · </span>
-                    <span class="now__da">{r.da}</span>
-                  </>
-                )}
-              </span>
-            )}
-          </dd>
-        </div>
-      ))
-    }
-  </dl>
+  <div class="now__band">
+    {/* I due segnali di "presente" che il testo da solo non dà: la parola e il
+        punto che respira. ⚠ Il punto NON è decorazione ed è lo stesso
+        dispositivo di `.tli__now` nella timeline (respiro 3,2s ease-in-out) —
+        già un'eccezione DICHIARATA al divieto di loop infiniti, per la ragione
+        identica: non annuncia un ingresso, descrive uno stato che resta vero
+        finché lo guardi. */}
+    <p class="now__head">
+      <span class="now__dot" aria-hidden="true"></span>
+      Adesso
+    </p>
+
+    {/* `<dl>` e non una lista: sono coppie etichetta/valore, ed è la struttura
+        che uno screen reader annuncia correttamente. Non viola "mai una lista
+        puntata nel sito": quel divieto riguarda gli elenchi di pari grado col
+        pallino, che qui infatti non c'è — il separatore è il filetto. */}
+    <dl class="now__list">
+      {
+        righe.map((r) => (
+          <div class="now__cell">
+            <dt class="now__label">{r.label}</dt>
+            <dd class="now__val">
+              {/* La cella di stato (Disponibilità) è l'unica a rompere la
+                  convenzione "solo filetti, mai un box" del pannello: è una
+                  pill a contorno, non testo pieno come le altre tre —
+                  deliberato, per farla leggere come uno STATO e non come un
+                  fatto anagrafico uguale agli altri. Il pallino NON porta
+                  l'informazione da solo: a voce resta "Disponibilità: aperto
+                  a nuovi progetti", che è già tutto (WCAG 1.4.1). */}
+              {r.stato ? (
+                <span class="now__badge">
+                  <span class="now__ok" aria-hidden="true" />
+                  {r.valore}
+                </span>
+              ) : (
+                <span class="now__valore">{r.valore}</span>
+              )}
+              {/* Dettaglio e "da". ⚠ Il punto medio esiste SOLO nel ramo
+                  impilato (telefono), dove i due stanno sulla stessa riga: in
+                  fascia le colonne sono strette e "Università degli Studi di
+                  Parma · da set 2024" va a capo, mandando il punto medio a
+                  cominciare la riga sotto — visto in uno screenshot, e si
+                  legge come un errore di composizione. In fascia il "da"
+                  scende su una riga sua e il separatore si spegne: la
+                  distinzione la fanno già il mono e il colore. È `aria-hidden`
+                  in entrambi i casi perché a voce non aggiunge nulla. */}
+              {r.dettaglio && (
+                <span class="now__det">
+                  {r.dettaglio}
+                  {r.da && (
+                    <>
+                      <span class="now__sep" aria-hidden="true">
+                        {' · '}
+                      </span>
+                      <span class="now__da">{r.da}</span>
+                    </>
+                  )}
+                </span>
+              )}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
 </div>
 
 <style>
   .now {
-    /* Non un box: il pannello è tenuto insieme dai filetti, come il resto del
-       sito. Un riquadro con bordo e riempimento sarebbe l'unico elemento
-       "scatolato" di tutta la pagina. */
     display: grid;
-    gap: clamp(1rem, 1.6vh, 1.5rem);
+    gap: clamp(0.9rem, 1.6vh, 1.35rem);
+  }
+
+  /* Il pavimento. `transform-origin: left` perché si tira da dove comincia il
+     testo, non dal centro. */
+  .now__rule {
+    height: 1px;
+    background-color: var(--color-hairline-strong);
+    transform-origin: left;
+  }
+
+  .now__band {
+    display: grid;
+    gap: clamp(0.9rem, 1.5vh, 1.25rem) clamp(1.5rem, 3vw, 3rem);
   }
 
   .now__head {
@@ -179,6 +221,7 @@ if (SITE.availability) {
        e questa è una label mono da ~12px — cioè esattamente la taglia che
        pretende 4,5:1. Vale per tutte le mono di questo componente. */
     color: var(--color-text-2);
+    white-space: nowrap;
   }
 
   .now__dot {
@@ -202,20 +245,13 @@ if (SITE.availability) {
 
   .now__list {
     display: grid;
+    gap: clamp(0.75rem, 1.4vh, 1rem) 0;
   }
 
-  .now__row {
+  .now__cell {
     display: grid;
-    /* L'etichetta in colonna sua a partire da una certa larghezza: allineate
-       una sotto l'altra danno al pannello l'asse verticale che lo fa leggere
-       come un insieme invece che come tre blocchi impilati. */
-    gap: 0.1rem 1.25rem;
-    padding-block: clamp(0.7rem, 1.25vh, 0.95rem);
-    border-top: 1px solid var(--color-hairline);
-  }
-
-  .now__row:last-child {
-    border-bottom: 1px solid var(--color-hairline);
+    gap: 0.35rem;
+    align-content: start;
   }
 
   .now__label {
@@ -230,14 +266,14 @@ if (SITE.availability) {
     /* `<dd>` porta un margine di default che qui sfonderebbe la griglia. */
     margin: 0;
     display: grid;
-    gap: 0.15rem;
+    gap: 0.25rem;
+    justify-items: start;
   }
 
   .now__valore {
-    /* Fra il corpo e la lede di proposito: il pannello è il secondo registro
-       della hero, non deve competere con la bio che gli sta a fianco né
-       sparire sotto di lei. */
-    font-size: clamp(1.0625rem, 1.15vw, 1.3rem);
+    /* Fra il corpo e la lede di proposito: la fascia è il registro basso della
+       hero, non deve competere con la bio né sparire sotto di lei. */
+    font-size: clamp(1rem, 1.25vw, 1.25rem);
     font-weight: 500;
     line-height: 1.25;
     letter-spacing: -0.01em;
@@ -246,39 +282,32 @@ if (SITE.availability) {
   }
 
   /* ---- La pill di stato (Disponibilità) -----------------------------------
-     ⚠ L'UNICO ELEMENTO "SCATOLATO" DI QUESTO PANNELLO, e deliberato: il resto
+     ⚠ L'UNICO ELEMENTO "SCATOLATO" DI QUESTA FASCIA, e deliberato: il resto
      del sito riserva i box a un solo caso misurato (le card di §04 Dicono),
-     tutto il resto è tenuto insieme da filetti — vedi la nota in cima a
-     `.now`. Qui però il valore non è un fatto anagrafico come lavoro/studio/
-     dove vivo, è uno STATO ("aperto"), e una pill lo separa visivamente dagli
-     altri tre invece di renderlo un quarto valore uguale ai primi tre. */
+     tutto il resto è tenuto insieme da filetti. Qui però il valore non è un
+     fatto anagrafico come lavoro/studio/dove vivo, è uno STATO ("aperto"), e
+     una pill lo separa visivamente dagli altri tre invece di renderlo un
+     quarto valore uguale ai primi. */
   .now__badge {
     display: inline-flex;
     align-items: center;
     width: fit-content;
-    padding: 0.4rem 0.9rem 0.4rem 0.75rem;
+    padding: 0.35rem 0.85rem 0.35rem 0.7rem;
     border: 1px solid var(--color-hairline-strong);
     border-radius: 999px;
     font-size: var(--text-sm);
     font-weight: 500;
+    line-height: 1.2;
     color: var(--color-text-1);
   }
 
-  /* Il pallino di stato. ⚠ ORA PULSA come `.now__dot` in testata — decisione
-     RIBALTATA da Vlad il 2026-08-14: la prima stesura lo teneva fermo apposta
-     ("aperto" non ha bisogno di essere ripetuto ogni tre secondi, e sarebbe
-     stata una quinta eccezione al divieto di loop infiniti spesa per
-     decorazione). Richiesto esplicitamente lo stesso respiro del pallino
-     viola: qui diventa la SESTA eccezione dichiarata, non decorativa per lo
+  /* Il pallino di stato. ⚠ PULSA come `.now__dot` in testata — decisione
+     RIBALTATA da Vlad il 2026-08-14: la prima stesura lo teneva fermo apposta.
+     Richiesto esplicitamente lo stesso respiro del pallino viola: è la SESTA
+     eccezione dichiarata al divieto di loop infiniti, non decorativa per lo
      stesso motivo di quella — anche "aperto a nuovi progetti" è uno stato che
      resta vero finché lo guardi, non un ingresso da annunciare una volta. */
   .now__ok {
-    /* `inline-block` + `margin-right` e non un flex sul genitore: `.now__valore`
-       porta testo che può andare a capo, e in un flex container il pallino
-       resterebbe incolonnato accanto al blocco invece che accanto alla PRIMA
-       riga. Così scorre col testo, come una lettera. Dentro `.now__badge`
-       (già `inline-flex`) il `margin-right` funziona comunque da spaziatura,
-       e `vertical-align` è semplicemente ignorato dal layout flex — innocuo. */
     display: inline-block;
     width: 0.5rem;
     height: 0.5rem;
@@ -288,16 +317,23 @@ if (SITE.availability) {
     vertical-align: 0.12em;
     border-radius: 50%;
     background: var(--color-ok);
-    /* Nessun gate su `html.js-anim`: animazione CSS pura, gira anche senza
-       JS, e la regola globale di reduced-motion in global.css la ferma da
-       sola (stesso schema di `.now__dot` e `.tli__now`). */
     animation: now-breathe 3.2s ease-in-out infinite;
   }
 
   .now__det {
-    font-size: var(--text-sm);
-    line-height: 1.35;
+    font-size: clamp(0.8125rem, 0.95vw, 0.9375rem);
+    line-height: 1.4;
     color: var(--color-text-2);
+    text-wrap: pretty;
+  }
+
+  /* ⚠ La spaziatura del punto medio è in CSS e NON negli spazi del testo:
+     misurato in uno screenshot ingrandito, gli spazi attorno al carattere
+     sparivano quasi del tutto ("JEParma·da gen 2025") perché il glifo mono che
+     segue ha una spalla sinistra nulla. Una `padding-inline` è una lunghezza
+     dichiarata, che non dipende da come il font disegna lo spazio. */
+  .now__sep {
+    padding-inline: 0.15em 0.35em;
   }
 
   .now__da {
@@ -305,34 +341,69 @@ if (SITE.availability) {
     font-size: var(--text-micro);
     letter-spacing: 0.06em;
     /* Leggermente più chiaro del dettaglio: è il dato che dice "e non è
-       ancora finita", cioè la ragione per cui il pannello si chiama Adesso. */
+       ancora finita", cioè la ragione per cui la fascia si chiama Adesso. */
     color: var(--color-text-1);
     white-space: nowrap;
   }
 
+  /* ---- Da 900px in su: la fascia orizzontale ------------------------------
+     ⚠ `grid-auto-flow: column` con `grid-auto-columns: minmax(0, 1fr)` e NON
+     un `repeat(4, …)` scritto a mano: il numero di celle dipende da quante
+     voci della timeline sono `current` (vedi la nota in testa al file), e un
+     4 inchiodato qui diventerebbe una colonna vuota il giorno in cui una
+     delle due sparisce. Il `minmax(0, …)` è obbligatorio: senza, il valore
+     più lungo (il titolo del corso di laurea) allargherebbe la propria
+     traccia oltre la griglia invece di andare a capo. */
   @media (min-width: 56.25rem) {
-    /* ⚠ LE COLONNE VIVONO SUL <dl> E LE RIGHE LE EREDITANO CON `subgrid`.
-       Prima ogni `.now__row` era una griglia INDIPENDENTE con la stessa
-       colonna fissa da 5,5rem: funzionava per caso, finché tutte le
-       etichette ci stavano dentro. "DISPONIBILITÀ" (13 caratteri mono in
-       maiuscolo con 0,12em di spaziatura, ~112px) la sfondava e finiva
-       addosso al valore — misurato.
-       ⚠ E il primo fix, `minmax(5.5rem, auto)` riga per riga, era PEGGIO
-       del difetto: griglie separate si dimensionano separatamente, quindi
-       la riga lunga allargava solo sé stessa e i valori delle altre tre
-       restavano indietro di ~24px. Il pannello perdeva l'asse verticale che
-       è la ragione per cui le etichette stanno in colonna.
-       `subgrid` dichiara la cosa vera: sono LE STESSE colonne per tutte le
-       righe, larghe quanto l'etichetta più lunga. Nessun numero da ritarare
-       quando un'etichetta cambia. */
-    .now__list {
-      grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+    .now__band {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
     }
 
-    .now__row {
-      grid-column: 1 / -1;
-      grid-template-columns: subgrid;
-      align-items: baseline;
+    .now__head {
+      /* Allineata alla prima riga delle etichette, non al centro della
+         fascia: le mono di questa riga devono stare tutte sulla stessa
+         linea di base, o la parola "Adesso" sembra scivolata. */
+      padding-top: 0.05rem;
+    }
+
+    .now__list {
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+    }
+
+    /* I separatori. Sulla cella e non nel gap perché devono essere alti quanto
+       la cella più alta, che è ciò che li fa leggere come le divisioni di uno
+       strumento invece che come trattini. */
+    .now__cell + .now__cell {
+      padding-left: clamp(1rem, 2.2vw, 2.25rem);
+      border-left: 1px solid var(--color-hairline);
+    }
+
+    /* Il "da" su una riga sua — vedi la nota nel markup. La griglia serve a
+       impilare il testo anonimo (l'organizzazione) e lo `.now__da` senza
+       toccare il flusso del primo, che deve poter andare a capo per conto
+       proprio. */
+    .now__det {
+      display: grid;
+      justify-items: start;
+      gap: 0.1rem;
+    }
+    .now__sep {
+      display: none;
+    }
+  }
+
+  /* Sotto i 900px la fascia torna un elenco impilato, con i filetti in
+     orizzontale: quattro colonne su 390px sarebbero quattro colonne
+     illeggibili. */
+  @media (max-width: 56.24rem) {
+    .now__cell {
+      padding-block: clamp(0.7rem, 1.25vh, 0.95rem);
+      border-top: 1px solid var(--color-hairline);
+    }
+    .now__list {
+      gap: 0;
     }
   }
 
@@ -340,30 +411,44 @@ if (SITE.availability) {
      ⚠ CSS puro con ritardi, NON uno ScrollTrigger, e non è pigrizia: questo
      blocco nasce SOPRA LA PIEGA, e un trigger che nasce oltre la propria
      soglia è precisamente il caso che su questa stessa pagina aveva lasciato
-     la bio invisibile per sempre (vedi `settleSplits` in `reveal.ts`). Sopra
-     la piega il sito usa le animazioni CSS della hero, e questa le segue.
-     Gated su `html.js-anim`: senza JS, con JS rotto o per un crawler il
-     pannello è semplicemente lì, completo e leggibile. */
+     la bio invisibile per sempre (vedi `settleSplits` in `reveal.ts`).
+     ⚠ I RITARDI SONO L'ULTIMA BATTUTA DELLA COREOGRAFIA DELLA HERO, e i
+     numeri stanno in sync con quelli scritti in `chi-sono.astro`: campo
+     binario (80-1590ms) → indice → titolo → coda → lede → QUESTA FASCIA.
+     Toccandone uno lì, va toccato anche qui.
+     Gated su `html.js-anim`: senza JS, con JS rotto o per un crawler la
+     fascia è semplicemente lì, completa e leggibile. */
+  :global(html.js-anim) .now__rule {
+    transform: scaleX(0);
+    animation: now-rule 900ms var(--ease-out-expo) 1180ms forwards;
+  }
+
   :global(html.js-anim) .now__head,
-  :global(html.js-anim) .now__row {
+  :global(html.js-anim) .now__cell {
     opacity: 0;
     animation: now-in 700ms var(--ease-out-expo) forwards;
   }
 
   :global(html.js-anim) .now__head {
-    animation-delay: 900ms;
-  }
-  :global(html.js-anim) .now__row:nth-child(1) {
-    animation-delay: 1020ms;
-  }
-  :global(html.js-anim) .now__row:nth-child(2) {
-    animation-delay: 1120ms;
-  }
-  :global(html.js-anim) .now__row:nth-child(3) {
-    animation-delay: 1220ms;
-  }
-  :global(html.js-anim) .now__row:nth-child(4) {
     animation-delay: 1320ms;
+  }
+  :global(html.js-anim) .now__cell:nth-child(1) {
+    animation-delay: 1420ms;
+  }
+  :global(html.js-anim) .now__cell:nth-child(2) {
+    animation-delay: 1510ms;
+  }
+  :global(html.js-anim) .now__cell:nth-child(3) {
+    animation-delay: 1600ms;
+  }
+  :global(html.js-anim) .now__cell:nth-child(4) {
+    animation-delay: 1690ms;
+  }
+
+  @keyframes now-rule {
+    to {
+      transform: scaleX(1);
+    }
   }
 
   @keyframes now-in {
@@ -379,11 +464,15 @@ if (SITE.availability) {
 
   /* La regola globale di reduced-motion azzera le durate ma non garantisce lo
      stato finale su un'animazione `forwards` che non parte: qui si dichiara
-     esplicitamente che il pannello è visibile e fermo. */
+     esplicitamente che la fascia è visibile e ferma. */
   @media (prefers-reduced-motion: reduce) {
     :global(html.js-anim) .now__head,
-    :global(html.js-anim) .now__row {
+    :global(html.js-anim) .now__cell {
       opacity: 1;
+      animation: none;
+    }
+    :global(html.js-anim) .now__rule {
+      transform: none;
       animation: none;
     }
   }

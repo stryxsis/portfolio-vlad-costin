@@ -250,7 +250,7 @@ Fix in `reveal.ts` (`finishEntrance`): a ingresso completato si **uccide lo Scro
 Due regole esplicite dell'utente, dopo aver trovato §01/§02 che si ri-attivavano ogni volta che si tornava a scorrere sopra:
 
 1. **Niente hover come trigger**, tranne eccezioni dichiarate tipo i link (i loghi cliccabili di §02). Ogni altra animazione si attiva da sola per una combinazione di fattori (in pratica: posizione di scroll), non al passaggio del mouse.
-2. **Ogni animazione si esegue una volta sola**, tranne quelle esplicitamente continue e dichiarate come tali. Le eccezioni dichiarate, in ordine di introduzione: il word-carousel della hero, l'anello di scroll `ring-spin`, il respiro di "in corso" nella timeline, e — dal 2026-08-06 — le **onde del cielo della CTA** (`.cta__wave`, 18s), il **respiro del glow** del suo bottone (`.cta__glow::before`, 4,6s) e il **muro di §04 Dicono** (`.ts__track`, 38/46/42s — M18); dal 2026-08-13 anche la **deriva del cielo della 404** (`.sky__l`, 150/112/84s — vedi /404 più sotto); dal 2026-08-14 la **caduta della luce nella hero di /portfolio** (`.lf__beam`, 17-30s — vedi `Lightfall.astro`).
+2. **Ogni animazione si esegue una volta sola**, tranne quelle esplicitamente continue e dichiarate come tali. Le eccezioni dichiarate, in ordine di introduzione: il word-carousel della hero, l'anello di scroll `ring-spin`, il respiro di "in corso" nella timeline, e — dal 2026-08-06 — le **onde del cielo della CTA** (`.cta__wave`, 18s), il **respiro del glow** del suo bottone (`.cta__glow::before`, 4,6s) e il **muro di §04 Dicono** (`.ts__track`, 38/46/42s — M18); dal 2026-08-13 anche la **deriva del cielo della 404** (`.sky__l`, 150/112/84s — vedi /404 più sotto); dal 2026-08-14 la **caduta della luce nella hero di /portfolio** (`.lf__beam`, 17-30s — vedi `Lightfall.astro`); dal 2026-08-23 le **cifre che commutano nel campo binario di /chi-sono** (`.bf__c`, cicli 7-11s — vedi `BinaryField.astro`).
 
    ⚠ La caduta della luce **non richiede un comando di pausa** e la ragione non è che sia lenta: WCAG 2.2.2 riguarda *informazione* in movimento, e quel fondale non ne porta — è un fondo, `aria-hidden`, e sotto di lui non c'è nulla da leggere che si muova con esso (il testo sta fermo, sopra, e su una velatura che gli tiene il contrasto costante). È la stessa categoria del cielo della CTA e delle stelle della 404, non quella del muro di §04 — che porta citazioni, e infatti si ferma. Il rimedio per chi lo trova comunque disturbante è `prefers-reduced-motion`, che qui lo congela invece di spegnerlo. Una volta completata, un'animazione one-shot NON deve tornare allo stato di partenza risalendo la pagina.
 
@@ -577,6 +577,8 @@ Scartato dal riferimento, oltre a React: la **reazione al mouse** (esclusa da Vl
 
 ### /chi-sono — la hero: due registri, la voce in prima persona e il pannello "Adesso" (2026-08-13)
 
+⚠ **LA COMPOSIZIONE DESCRITTA QUI È STATA RIFATTA IL 2026-08-23** (campo binario + fascia a piede): la fonte di verità sull'IMPAGINAZIONE è la sezione «/chi-sono §00 — il campo binario» più sotto. Quello che resta valido e vive ancora qui è tutto il resto — perché il titolo ha due registri, perché la coda ha quel corpo, perché `NowPanel` non ha dati propri, e perché l'avviso non deve spostare la pagina. In particolare: **il pannello "Adesso" non sta più a destra della bio**, e le misure di altezza citate in queste sottosezioni («riga bio+pannello a 836…») sono di quella disposizione, non di questa.
+
 Vlad ha chiesto di migliorare la hero ("dammi delle idee... comportati come un ui/ux professionista"). Proposte fatte, **scartate due direzioni su richiesta sua**: qualunque variante con una **foto è esclusa** ("ce già nella pagina principale" — il ritratto resta un gesto della sola Home), e con essa il dittico e il primo piano. Scelta finale sua: nella parte vuota, **tre informazioni vere e correnti** — dove lavora, dove studia, dove vive — «che si capisca che sono cose che sto facendo adesso», sapendo che «cambieranno spesso».
 
 ⚠ **`NowPanel.astro` NON HA DATI PROPRI, ed è la decisione che lo regge.** La strada ovvia era un `data/adesso.ts` con dentro le tre righe. Sarebbe stata sbagliata: **due di quei tre fatti esistono già** in `data/timeline.ts` marcati `current: true`. Un secondo file avrebbe messo lo stesso fatto in due posti, e "cambia spesso" è **esattamente** la condizione in cui due copie divergono — si aggiorna la timeline (il posto ovvio) e la hero resta indietro a mentire, senza che nessun controllo se ne accorga. Il pannello deriva: `inCorso('lavoro')`, `inCorso('studio')`, più `SITE.author.location` per il terzo fatto (che non è un periodo, quindi nella timeline non c'è). Si aggiorna da solo quando Vlad aggiorna la timeline. **Si degrada invece di rompersi**: se un giorno nessuna voce è `current`, quella riga non si stampa — mai una casella vuota né un "—".
@@ -630,7 +632,7 @@ Misurato dopo l'aggiunta: pannello 289px, riga bio+pannello a **836 (1440) · 84
 Chiesto da Vlad dopo aver visto la fascia del metodo sotto: «fammi la hero alta tutto lo schermo e sistemami gli spazi». `.ab` è passata da padding-top/bottom indipendenti a `min-height: 100svh` + `display: grid` + `align-content: center` — la stessa convenzione già in uso per le sezioni a schermo intero del sito (Statement, WhatIDo, JourneyTeaser, CTASection, e la fascia del globo in 404.astro), qui applicata a una pagina che non passa per un Handoff M12.
 
 - ⚠ **`min-height` e non `height` secca**: se il contenuto (titolo + riga bio/pannello, oggi quattro fatti in `NowPanel`) diventasse più alto di una viewport corta, la sezione deve poter **crescere** invece di tagliarlo o di spingere `align-content: center` a farlo sbordare sopra il padding — è lo stesso rischio già misurato e corretto nella fascia del globo in 404.astro. Verificato da 1440×700 a 390×844: la sezione cresce oltre 100svh ogni volta che il contenuto non ci sta, non overlappa mai la navbar fissa.
-- **Il padding-top resta**, e riserva `--nav-h + --chrome-shift`: la navbar fissa sta FUORI dal flusso normale, quindi centrare il contenuto SENZA quella riserva lo farebbe partire da sotto il bordo della pagina, dietro la chrome.
+- **Il padding-top resta**, e riserva `--nav-h`: la navbar fissa sta FUORI dal flusso normale, quindi centrare il contenuto SENZA quella riserva lo farebbe partire da sotto il bordo della pagina, dietro la chrome. ⚠ **NON somma `--chrome-shift`**, e questa riga diceva il contrario finché il seguito qui sotto non l'ha corretta: sommarlo è esattamente il difetto che Vlad ha chiesto di chiudere il 2026-08-14.
 
 ⚠ **Difetto preesistente, RITROVATO misurando questa modifica e non introdotto da lei**: se l'avviso "cantiere aperto" (§00, banner) compare mentre l'utente ha GIÀ scrollato (nella finestra di ~2,6-3,1s dalla primissima visita, prima che `vc:seen` lo disattivi per sempre), `--chrome-shift` cresce e **tutta** la pagina sotto la chrome si sposta in basso — non solo qui: è lo stesso meccanismo che governa `SectionIndex`/`HeroHome`/404, già accettato per quelle. Misurato con uno scroll REALE (rotellina via Lenis, non un salto): la riga "Disponibilità" del pannello può capitare a fianco della pillola navbar per un istante, perché la pillola è stretta e non copre tutta la larghezza. Non è nello scope di "hero a schermo intero" — è una caratteristica di sistema del banner, già presente ovunque nel sito, e richiederebbe di ridisegnare quel meccanismo per essere chiusa. Non toccato qui.
 
@@ -649,6 +651,90 @@ Verificato via CDP su profilo fresco, campioni ogni 200ms attraverso la comparsa
 ⚠ **Il costo, misurato e DICHIARATO — su telefono l'avviso copre il titolo.** A 1440×900 la banda è alta 97px e finisce sopra l'indice (119px): non copre niente, verificato con screenshot. A **390×844 la banda è alta 192px** (il testo va a capo molte più volte) e arriva a coprire indice e prima riga del titolo per tutto il tempo in cui resta a schermo. È la conseguenza inevitabile di "non spostare la pagina": chrome fissa alta 264px, contenuto che comincia a 106px, e le tre cose — non muoversi, non essere coperti, avviso alto — non possono valere insieme. **Vlad ha scelto "non muoversi" sapendolo**; se un domani la copertura su mobile diventasse il problema, la leva NON è rimettere `--chrome-shift` qui (è già stato bocciato) ma accorciare l'avviso su mobile.
 
 ⚠ **Nota per chi debugga questa pagina da devtools**: `AnnouncementBanner.astro` e la hero di `/chi-sono` usano ENTRAMBI il prefisso di classe `ab`/`ab__*` (avviso banner l'uno, l'abbreviazione scelta per questa hero l'altro) — Astro li scopa correttamente con `data-astro-cid-*` diversi, quindi **non è un bug di rendering**, ma un `document.querySelector('.ab')` scritto a mano da console prende il PRIMO elemento in ordine di DOM, cioè l'avviso (renderizzato prima, dentro `.chrome`), non la sezione. Costato tempo proprio scrivendo la sonda CDP per questo fix — verificare sempre con un selettore più specifico (`section.ab`, `h1.ab__title`) quando si ispeziona questa pagina a mano.
+
+### /chi-sono §00 — il campo binario, e la hero che si accende prima di parlare (2026-08-23)
+
+`BinaryField.astro` + la hero riscritta in `chi-sono.astro` + `NowPanel.astro` passato da colonna a fascia. Vlad: «non mi piace molto la hero, non ha l'effetto wow che vorrei — **non fraintendere, le scritte le voglio queste**», con due richieste precise e il resto lasciato a me:
+
+1. un fondale di **0 e 1 che cambiano il proprio stato**, e «non voglio che lo facciano tutte, fai in maniera tale che lo facciano **solo alcune e alcune sequenze**»;
+2. un ingresso in cui «**prima compaiono i 0 e 1** con un bell'effetto visivo, decidi tu come fare (esempio con la propagazione), **subito dopo** appare anche le scritte», più «migliorando l'aspetto e **dove mettere le informazioni**, scegli tu come fare».
+
+**Il testo non è stato toccato di una virgola.** A cambiare sono il fondale, la composizione e la coreografia.
+
+#### Il fondale: 864 cifre, zero JS
+
+⚠ **ZERO JS, ZERO LIBRERIE, ZERO WEBGL — è la terza volta con lo stesso criterio** (stelle della 404, `Lightfall` di /portfolio), e qui non è nemmeno una rinuncia: un campo di glifi che commutano **è testo**, e il browser sa già disegnare testo. Un canvas avrebbe ridipinto 864 glifi ad ogni fotogramma per farne cambiare due.
+
+⚠ **IL COSTO PER FOTOGRAMMA È QUASI ZERO, ED È IL PUNTO DI TUTTO IL DISEGNO**: l'ingresso è un'animazione che **finisce** (864 animazioni che dopo ~1,7s escono dalla lista attiva) e le commutazioni sono **79 cicli** di 7-11s in cui il cambiamento visibile dura ~150ms. In un fotogramma qualunque stanno cambiando due o tre glifi da 13px. È l'opposto di una pioggia di caratteri, che li ridipinge tutti.
+
+- **La propagazione è una distanza discretizzata in 30 bande**, e la banda È il ritardo (`calc(var(--b) * 40ms)`). ⚠ Discretizzare non è un'ottimizzazione di byte: è ciò che rende il fronte **leggibile come fronte** — gruppi che si accendono insieme, non un gradiente continuo. Il `DISORDINE` (±1,35 bande) è il secondo parametro che conta davvero: un fronte esatto si legge come una tendina che scorre, uno con un po' di rumore si legge come qualcosa che si propaga.
+- ⚠ **L'origine dell'onda NON è il centro**: cade dove il titolo comparirà un istante dopo. Il campo sembra emesso dal punto in cui poi appare la scritta — causa ed effetto, invece di due animazioni che capitano nello stesso schermo.
+- ⚠ **UNA SOLA GRIGLIA, 36 COLONNE SEMPRE**, e su telefono se ne **nasconde una sì e una no** (`nth-child(2n)`, che su una griglia a colonne pari cade sempre sulle stesse colonne) invece di ridistribuire le celle su meno colonne. Sembra la scelta pigra e non lo è: la banda di ogni cella è calcolata a build time sulla sua posizione **nella griglia a 36**. Un riflusso su 18 manderebbe la cella 18 sotto la 0 invece che accanto alla 17, e l'onda — che è una funzione della posizione — si vedrebbe **ripartire a righe alterne**.
+- ⚠ **La commutazione è UN SOLO elemento, non due glifi sovrapposti**: la cifra di base è il testo della cella, quella commutata è uno `::after` con fondo `--color-canvas` **opaco** che la copre. Due nodi per cella sarebbero stati 1728 elementi. Funziona perché dietro il campo c'è davvero il canvas e nient'altro — **chi un domani volesse metterci un bagliore dietro deve tornare ai due glifi in dissolvenza**. E l'opacità di riposo non lo rompe: `opacity` appiattisce il gruppo, quindi lo `::after` copre il glifo *prima* che il gruppo venga reso traslucido.
+- **Le sequenze sono 8 file di 5-9 bit adiacenti** sfasate di 130ms l'una dall'altra: si leggono come una parola riscritta da sinistra a destra. Le solitarie sono il 4,5% delle restanti. In tutto **79 celle su 864 commutano** — «solo alcune», come chiesto. ⚠ Il ritardo di una sequenza si conta dalla cella **più tarda** della fila, non da ognuna per conto suo, o una fila a cavallo di due bande comincerebbe a commutare da un capo mentre l'altro non è ancora comparso.
+- **Coordinate, toni e tempi da un seme fisso** (mulberry32, come Starfield): due build dello stesso commit producono lo stesso campo, e un diff di `dist/` non si riempie di rumore.
+
+⚠ **DUE TRAPPOLE DI KEYFRAME, entrambe trovate misurando e non leggendo il codice:**
+
+1. **Il colore va RIDICHIARATO nel fotogramma intermedio, o il fronte non si vede.** Una proprietà assente da un keyframe non "passa di lì": interpola dritta fra i due fotogrammi che la dichiarano, con la curva del primo — e `--ease-out-expo` è talmente front-loaded che il viola si spegneva in ~80ms su 430. Scoperto guardando un fermo immagine con `Animation.setPlaybackRate` a 0,18: il fronte era **grigio come tutto il resto**. Con `color` dichiarato anche al 55% l'accento tiene per metà corsa e il fronte diventa una linea di luce che attraversa lo schermo.
+2. **Il picco di opacità dell'onda deve moltiplicare `--bf-dim`, non essere `1` secco**: su telefono il campo è smorzato al 55% (vedi sotto) e un `opacity: 1` nel keyframe avrebbe fatto lampeggiare l'onda a piena forza **proprio dove la protezione di contrasto non c'è**.
+
+#### Il contrasto, e perché `sample:px` qui non basta
+
+⚠ **`npm run sample:px` legge UN istante e TRE punti accanto alla scatola del testo.** Qui il fondo è una griglia di cifre che cambiano e il pixel che conta può stare **in mezzo** alle lettere: quello strumento dava 7,92:1 su `#050505` per ogni elemento della hero — vero, e completamente inutile, perché campionava dove il campo non c'è.
+
+Il metodo giusto (sonda usa-e-getta, non committata): si **nasconde il contenuto** (`visibility: hidden` sul wrapper) e si fotografa il solo fondale; dentro il rettangolo di ogni elemento di testo, il **pixel più chiaro È il fondo peggiore** per quel testo — esatto, non stimato. Tre passate: (A) commutazioni ferme con tutte le celle lampeggianti messe su accento, (C) **picco dell'onda d'ingresso forzato su tutte le celle insieme** — strettamente peggio di qualunque fotogramma vero — e (B) sedici fotogrammi veri lungo il ciclo, come controprova che A e C non siano condizioni che non si verificano mai.
+
+Tre difetti veri trovati solo così, tutti corretti:
+
+- ⚠ **`--color-accent-hi` come tinta del fronte portava l'inciso da 40px a 2,45:1**, sotto la soglia di 3. Il fronte è quindi `--color-accent`, il tono pieno: stesso caso, 3,64:1. **Il "pop" del fronte lo fa la SCALA (`scale(1.12)`), non la luminanza** — e una scala non toglie contrasto a nessuno.
+- ⚠ **`TETTO_COLORE = 0.62`**: le celle che *portano colore* (d'accento, o che lampeggiano commutando) hanno un tetto di opacità che le grigie non hanno. Non è estetica: un viola al 90% dietro la lede è il caso che rompe tutto, una cifra grigia al 90% no.
+- ⚠ **`--bf-dim: 0.55` sotto i 900px.** Su desktop il testo lascia scoperta la fascia destra e la velatura può essere sagomata su di lui; su telefono il testo occupa **tutta** la larghezza e non esiste una zona da lasciare libera. Misurato: senza, una cifra d'accento dietro la lede da 19px la porta a 2,9:1; con, 5,0:1. ⚠ **Moltiplica cella per cella (`calc(var(--o) * var(--bf-dim,1))`) e NON è una `opacity` sul contenitore**: quella ne farebbe un gruppo di compositing da 864 elementi, e soprattutto **smorzerebbe anche la velatura**, che gli sta dentro e che esiste proprio per non essere smorzata.
+
+La velatura è due gradienti con due lavori distinti: un'**ellisse ancorata a sinistra** (il contrasto, tarata sul punto di testo peggio protetto di ogni schermata — la coda dell'inciso, che a 1440 arriva all'86% della larghezza) e una **verticale** che tiene il campo lontano dalla navbar in cima e lo spegne in fondo prima del confine con la fascia del metodo. Dove si sovrappongono (la fascia degli strumenti) il campo resta all'~18%, ed è il motivo per cui le mono da 12px lì sotto stanno sopra i 7:1 pur essendo la taglia più esigente della pagina.
+
+Risultato, caso peggiore assoluto (passata C, tutte le celle al picco dell'onda insieme — una condizione che non si verifica mai): **1440×900** titolo 7,91:1 · inciso 3,64:1 (soglia 3) · lede 6,31:1 · indice 5,09:1 · etichette della fascia 6,3-7,5:1 · valori 19-20:1. **390×844** titolo 14,28:1 · inciso 5,92:1 · lede 5,94:1 · tutto il resto sopra 7:1. **Nessun elemento sotto soglia a nessuna delle due misure.**
+
+⚠ **La sonda ha prodotto due falsi positivi clamorosi prima di essere corretta**, e vale la pena saperlo perché sono trappole di questa pagina, non della sonda: (a) a 390px l'**avviso "cantiere aperto"** si apre a 2,6s e copre indice e prima riga del titolo — il suo testo BIANCO veniva letto come "fondo" e dava **1,00:1**; va nascosta anche `.chrome`. (b) `document.querySelector('.ab__title')` prende il titolo **dell'avviso**, non della hero: i due condividono il prefisso `ab__*` (trappola già documentata più sopra) — serve `h1.ab__title`.
+
+#### La composizione: le informazioni scendono a piede schermo
+
+⚠ **`NowPanel` non è più una colonna a destra della bio, è una fascia orizzontale a piede della hero**, con un filetto che le fa da pavimento. Tre ragioni, in ordine di peso:
+
+1. **In colonna competeva con la bio.** Due blocchi di testo affiancati alla stessa altezza si leggono come due colonne di pari grado, e uno dei due era un paragrafo da sei righe: il pannello perdeva sempre.
+2. **Libera la metà destra dello schermo**, che è dove ora si vede il campo. Il fondale è il gesto della pagina: coprirlo con una seconda colonna di testo lo sprecava.
+3. **Una fascia a piede ha il registro giusto**: etichette mono, filetti verticali, quattro celle in fila — la lettura di uno strumento, cioè esattamente cosa sono quei quattro fatti. In colonna erano una scheda anagrafica.
+
+- ⚠ **Le colonne sono `grid-auto-flow: column` + `grid-auto-columns: minmax(0,1fr)`, NON un `repeat(4, …)`**: quante celle ci siano dipende da quante voci della timeline sono `current`, e un 4 inchiodato diventerebbe una colonna vuota il giorno in cui una sparisce.
+- ⚠ **Il "da" scende su una riga sua e il punto medio si spegne, ma SOLO in fascia.** In colonne strette «Università degli Studi di Parma · da set 2024» va a capo e il punto medio **comincia la riga sotto** — visto in uno screenshot, si legge come un errore di composizione. Su telefono le due cose stanno sulla stessa riga e il separatore torna.
+- ⚠ **La spaziatura del punto medio è una `padding-inline`, non gli spazi del testo**: misurato in un crop ingrandito, gli spazi sparivano quasi del tutto («JEParma·da gen 2025») perché il glifo mono che segue ha spalla sinistra nulla.
+- **La lede è passata da 44ch a 52ch**, e non è un ripensamento tipografico: senza il pannello accanto la colonna è libera, e a 44ch la bio cadeva su **sei** righe. A 52ch ne fa cinque — i ~37px che servivano a far stare la fascia dentro lo schermo (misurato: `.ab__wrap` 770px, `.now` da 746 a 873, padding-bottom 27, **900 esatti**).
+- ⚠ **`.ab__wrap` è `grid-template-rows: minmax(0,1fr) auto`**: è quella riga a fare della fascia un PAVIMENTO invece di un quarto paragrafo. Il blocco tipografico si centra nello spazio libero, la fascia resta appoggiata al fondo dello schermo.
+- ⚠ **Media query su ALTEZZA corta** (`max-height: 46.875rem`), stessa famiglia di fix di `FeaturedProjects` e della hero di /portfolio: `--text-display` è tarato sulla LARGHEZZA, quindi a 1440×720 il titolo resterebbe a 132px e la fascia non ci starebbe. **L'altezza si prende dal testo, mai dalla fascia** — quella porta i quattro fatti, ed è la parte che la hero esiste per far leggere. Misurato: 900 (1440×900) · **720 esatti** (1440×720) · 804 (1280×800: 4px di crescita, innocui perché questa non è la sezione uscente di un handoff) · 1080 (1920×1080) · 1076 (390×844, e scorre).
+
+#### La coreografia: una sequenza sola, in due file
+
+I numeri vivono **qui e in `NowPanel.astro`** (l'ultima battuta). Toccandone uno, va toccato l'altro.
+
+| t | cosa |
+|---|---|
+| 80 → 1590ms | il campo si propaga dall'origine dell'onda |
+| 560ms | l'indice `00` |
+| 680ms | il titolo si mette a fuoco |
+| 900ms | l'inciso |
+| 1050ms | la lede |
+| 1180ms | il filetto della fascia si tira |
+| 1320 → 1690ms | "Adesso" e le quattro celle |
+
+⚠ **Il titolo parte a 680ms e NON dopo la fine dell'onda**, benché la richiesta fosse «prima i 0 e 1, subito dopo le scritte»: il fronte **nasce dove il titolo comparirà** e passa di lì nei primi 200ms, quindi a 680ms ha già coperto metà schermo e sta correndo verso i bordi. Aspettare la fine avrebbe prodotto **due eventi in fila invece di un passaggio di mano** — la lezione già pagata col velo della Home.
+
+⚠ **IL TITOLO NON ANIMA `opacity`, MAI**: è il candidato LCP di questa pagina. Si mette a fuoco con `transform` + `filter: blur(18px → 0)`, che non escludono dal calcolo — la stessa riga che permette l'ingresso del ritratto in Home e del titolone di /portfolio. Verificato via CDP a campioni di 160ms lungo tutto l'ingresso: **`opacity` del titolo è `1` ad ogni singolo campione**. E l'inciso, che sta DENTRO l'h1, riceve lo stesso trattamento e per lo stesso motivo: i suoi pixel fanno parte del rettangolo che Chrome misura.
+
+⚠ **`data-split="lines"` è stato TOLTO dalla lede.** Quel paragrafo nasce sopra la piega, ed è **precisamente l'elemento** che l'11-08 era rimasto invisibile per sempre perché uno ScrollTrigger nato oltre la propria soglia veniva reclamato prima di giocare (vedi `settleSplits` in `reveal.ts`). La rete di sicurezza resta e copre gli altri utenti di M1; qui non serve più correre il rischio, perché la lede è ora una battuta della coreografia CSS — come il pannello Adesso, e per la ragione che quel componente dichiara da mesi: **sopra la piega il sito usa animazioni CSS a tempo, non trigger di scroll**.
+
+**Verificato via CDP, campioni ogni 160ms dalla navigazione**: celle accese 0 → 864 in ~1,4s con il fronte viola che si restringe da 864 a 28 (le 28 celle d'accento, che restano viola per definizione) · titolo `blur(18px)` → 0 con `opacity: 1` sempre · inciso, lede, indice, filetto e celle della fascia nell'ordine dichiarato · tutto risolto a ~2,4s. **`prefers-reduced-motion`**: ogni cosa allo stato finale dal primo campione, campo compreso — il campo **resta**, congelato, perché è il fondo e non l'animazione. **Senza JS**: tutto il testo visibile e nitido da subito, e il campo si propaga lo stesso (è CSS puro e non è gated su `html.js-anim`, come il fondale di /portfolio e per lo stesso motivo). `verify:anim` e `verify:stage` sulla Home restano tutti verdi: nessuna delle due sonde tocca questa pagina.
+
+⚠ **IL COSTO, DICHIARATO**: 864 nodi in più nel DOM, e la pagina passa da ~7 KB a **16,8 KB gzip** (131 KB non compressi). Non ci sono richieste in più, niente JS, niente immagini. È il prezzo di un fondale fatto di testo vero, ed è pagato sapendolo — chi un domani dovesse rientrare in un budget è lì che deve guardare, e la leva è `COLONNE`×`RIGHE`, non la velatura.
 
 ### /chi-sono §02 — la timeline: momenti, coda, e il titolo nuovo (2026-08-14)
 
@@ -890,7 +976,7 @@ Questo repo è tracciato su GitHub (`portfolio-vlad-costin`, pubblico). L'utente
 
 Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrittura della history) senza conferma esplicita.
 
-## Riepilogo — fatto e da fare (aggiornato 2026-08-14)
+## Riepilogo — fatto e da fare (aggiornato 2026-08-23)
 
 ⚠ Questa tabella è uno **snapshot**, non una fonte di verità: per il dettaglio di ogni riga, la sezione dedicata più sopra resta quella corretta. Se le due divergono un giorno, vince il corpo del file, non la tabella.
 
@@ -911,6 +997,7 @@ Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrit
 | /404 | Pagina intera: fondo globo (`cobe`), cielo di stelle, segnaposto Parma, comando pausa (poi rimosso su richiesta) | /404, Il cielo di stelle |
 | /chi-sono — bio | Bug `once: true` che rendeva la bio invisibile per sempre, corretto (`settleSplits`) | §-1 (seguito 2026-08-11) |
 | /chi-sono — hero | Nuovo titolo a due registri, lede in prima persona (`bioIo`), pannello "Adesso" con 4 righe (lavoro/studio/dove vivo/disponibilità), hero alta uno schermo | /chi-sono — la hero |
+| /chi-sono — hero (2° giro) | Fondale di 0 e 1 che si accende con un'onda che si propaga e resta vivo (alcune cifre e alcune sequenze commutano); le informazioni rapide scendono in una fascia a piede schermo; ingresso a tempo, campo → indice → titolo → inciso → lede → fascia. Stesse scritte, composizione e coreografia nuove | /chi-sono §00 — il campo binario |
 | /chi-sono — bug avviso | L'avviso "cantiere aperto" non sposta più la hero (`--chrome-shift` non sommato, `SectionIndex` forzato `static`) | Il seguito, 2026-08-14 |
 | /chi-sono — fascia del metodo | Nuova sezione "Il Superpotere" sotto la hero: citazione pura, poi parole d'accento animate (caffè/nottate/ossessione), alone di sfondo, sequenza a tempo | /chi-sono — la fascia del metodo (4 giri) |
 | /chi-sono — timeline | Aggiunti il "primo grande bivio" (giu 2024) e la pubblicazione del primo sito (ago 2026) come voci-momento; coda finale animata ("Vediamo cosa mi aspetta…"); titolo e lede riscritti con parole d'accento | /chi-sono §02 — la timeline |

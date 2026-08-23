@@ -5,12 +5,15 @@
  * Milestone 6: la pagina esiste per davvero (il link in navbar non è più rotto)
  * e rende i dati reali del CV attraverso Timeline e SkillsGrid.
  *
- * Arrivano nel milestone 8: l'hero a tre frame tipografici sovrapposti (§00),
- * la sezione filosofia full-bleed su fondo paper (§10) e il backstage (§40).
- * I numeri d'indice sono già distanziati per lasciare quei posti liberi.
+ * §00 è stata rifatta il 2026-08-23 su richiesta di Vlad («non mi piace molto
+ * la hero, non ha l'effetto wow che vorrei»): stesse identiche scritte —
+ * titolo grande, titolo piccolo, descrizione, informazioni rapide, tutte
+ * confermate da lui — dentro una composizione e una coreografia nuove. Vedi
+ * il blocco di note sopra `.ab` più sotto.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
+import BinaryField from '../components/primitives/BinaryField.astro';
 import Timeline from '../components/primitives/Timeline.astro';
 import NowPanel from '../components/primitives/NowPanel.astro';
 import Approach from '../components/sections/Approach.astro';
@@ -25,38 +28,54 @@ import { SITE } from '../lib/site';
   description="Vlad Costin: sviluppatore e studente di Ingegneria Informatica a Parma. Il percorso, gli strumenti, e cosa sta studiando adesso."
   ogType="profile"
 >
-  {/* §00 — L'h1 è candidato LCP: nessun data-split, nessun fade. Si anima solo
-      la lede, che sta più in basso e non entra nel calcolo. */}
+  {/* §00 — L'h1 è candidato LCP: nessun data-split, nessun fade. Si mette a
+      fuoco con `transform` + `filter`, che non escludono dal calcolo (stessa
+      riga della regola LCP che governa il ritratto della Home e il titolone
+      di /portfolio). */}
   <section class="ab" data-section id="chi-sono">
+    {/* Il fondale. Sta PRIMA del contenuto nel markup e non dopo: è dietro, e
+        l'ordine del DOM è il modo più economico di dirlo — nessuno z-index da
+        rincorrere se un domani si aggiunge un elemento. */}
+    <BinaryField />
+
     <div class="ab__wrap">
-      <SectionIndex n="00" label="Chi sono" />
-      {/* ⚠ DUE REGISTRI, e la divisione NON è arbitraria: è la punteggiatura
-          del testo di Vlad (2026-08-13). Sono due frasi con due lavori
-          diversi — la prima è una DOMANDA rivolta a chi legge, la seconda è
-          un inciso che la commenta ("Ti avviso: …"). Al corpo pieno la
-          seconda è larga ~4000px contro i 1310 della colonna: andrebbe a
-          capo tre volte e la domanda si perderebbe dentro il paragrafo che
-          la segue. Scesa di corpo e smorzata di colore, la domanda resta il
-          gesto e l'inciso resta un inciso — che è come si legge ad alta voce.
-          ⚠ Resta un solo <h1>: l'inciso è parte del titolo, non un
-          sottotitolo separato, quindi sta dentro e non in un <p> accanto. */}
-      <h1 class="ab__title">
-        Curioso di sapere<br />chi sono?<span class="ab__coda"
-          >Ti avviso: faccio un sacco di cose, spesso nello stesso pomeriggio.</span
-        >
-      </h1>
-      {/* Secondo registro della hero: a sinistra chi è (la bio in prima
-          persona), a destra cosa sta facendo ADESSO. Le due cose sono
-          complementari — una è il ritratto, stabile, l'altra è corrente e
-          cambia spesso — quindi stanno affiancate e non impilate. */}
-      <div class="ab__row">
+      <div class="ab__top">
+        <SectionIndex n="00" label="Chi sono" />
+        {/* ⚠ DUE REGISTRI, e la divisione NON è arbitraria: è la punteggiatura
+            del testo di Vlad (2026-08-13). Sono due frasi con due lavori
+            diversi — la prima è una DOMANDA rivolta a chi legge, la seconda è
+            un inciso che la commenta ("Ti avviso: …"). Al corpo pieno la
+            seconda è larga ~4000px contro i 1310 della colonna: andrebbe a
+            capo tre volte e la domanda si perderebbe dentro il paragrafo che
+            la segue. Scesa di corpo e smorzata di colore, la domanda resta il
+            gesto e l'inciso resta un inciso — che è come si legge ad alta voce.
+            ⚠ Resta un solo <h1>: l'inciso è parte del titolo, non un
+            sottotitolo separato, quindi sta dentro e non in un <p> accanto. */}
+        <h1 class="ab__title">
+          Curioso di sapere<br />chi sono?<span class="ab__coda"
+            >Ti avviso: faccio un sacco di cose, spesso nello stesso pomeriggio.</span
+          >
+        </h1>
         {/* ⚠ `bioIo` e NON `bio`: la seconda è la stringa in terza persona
             destinata alle macchine (JSON-LD, llms.txt, meta description) e
             leggerla qui significherebbe far parlare Vlad di sé al "lui".
-            Vedi la nota accanto ai due campi in `lib/site.ts`. */}
-        <p class="ab__lede" data-split="lines">{SITE.bioIo}</p>
-        <NowPanel />
+            Vedi la nota accanto ai due campi in `lib/site.ts`.
+            ⚠ NIENTE PIÙ `data-split="lines"` (tolto il 2026-08-23): questo
+            paragrafo nasce SOPRA LA PIEGA, ed è precisamente l'elemento che
+            l'11-08 era rimasto invisibile per sempre perché uno ScrollTrigger
+            nato oltre la propria soglia veniva reclamato prima di giocare
+            (vedi `settleSplits` in reveal.ts). La rete di sicurezza resta e
+            copre gli altri utenti di M1, ma qui non serve più correre il
+            rischio: la lede è ora una battuta della coreografia CSS della
+            hero, come il pannello Adesso e per la stessa ragione — sopra la
+            piega il sito usa animazioni CSS a tempo, non trigger di scroll. */}
+        <p class="ab__lede">{SITE.bioIo}</p>
       </div>
+
+      {/* Le informazioni rapide: non più una colonna a destra della bio, ma la
+          fascia di strumenti a piede dello schermo. Il perché sta in testa a
+          NowPanel.astro. */}
+      <NowPanel />
     </div>
   </section>
 
@@ -108,53 +127,88 @@ import { SITE } from '../lib/site';
 </BaseLayout>
 
 <style>
+  /* ==========================================================================
+     §00 — LA HERO
+     ==========================================================================
+     RIFATTA IL 2026-08-23. Vlad: «non mi piace molto la hero, non ha l'effetto
+     wow che vorrei — non fraintendere, le scritte le voglio queste», più due
+     richieste precise: un fondale di 0 e 1 in cui «solo alcune e alcune
+     sequenze» commutano, e un ingresso in cui «prima compaiono i 0 e 1 con
+     un bell'effetto (esempio con la propagazione), subito dopo le scritte».
+     Il resto — impaginazione e collocazione delle informazioni rapide — è
+     stato lasciato a me («scegli tu come fare»).
+
+     LA COMPOSIZIONE, e perché è cambiata:
+       - Il fondale (`BinaryField.astro`) è ora il gesto della pagina, quindi
+         gli si è LIBERATA la metà destra dello schermo. Prima lì c'era il
+         pannello "Adesso", che copriva esattamente la parte di campo con più
+         respiro.
+       - Le informazioni rapide sono scese a fondo hero, in una fascia
+         orizzontale con un filetto che le fa da pavimento. La ragione per
+         esteso sta in testa a `NowPanel.astro`; in breve: affiancate alla bio
+         competevano con lei e perdevano, in fascia hanno il registro giusto
+         (una lettura di strumenti) e chiudono lo schermo.
+       - La lede è passata da 44ch a 52ch. Non è un ripensamento tipografico:
+         senza il pannello accanto la colonna è libera, e a 44ch la bio cadeva
+         su sei righe. A 52ch ne fa cinque, cioè i ~37px che servivano a far
+         stare la fascia dentro lo schermo.
+
+     LA COREOGRAFIA è una sola sequenza a tempo, tutta in CSS, e i numeri
+     vivono in DUE file: qui e in `NowPanel.astro` (l'ultima battuta).
+     Toccandone uno, va toccato l'altro.
+        80 →  1590ms   il campo si propaga dall'origine dell'onda
+       560ms           l'indice 00
+       680ms           il titolo si mette a fuoco
+       900ms           l'inciso
+      1050ms           la lede
+      1180ms           il filetto della fascia si tira
+      1320 → 1690ms    "Adesso" e le quattro celle
+
+     ⚠ PERCHÉ IL TITOLO PARTE A 680ms E NON DOPO L'ONDA: il fronte nasce dove
+     il titolo comparirà (vedi `ORIGINE` in BinaryField.astro) e passa di lì
+     nei primi 200ms; a 680ms ha già coperto metà schermo e sta correndo verso
+     i bordi. Aspettare la fine avrebbe prodotto due eventi in fila invece di
+     un passaggio di mano — la stessa lezione già pagata col velo della Home.
+
+     ⚠⚠ NIENTE `--chrome-shift` QUI DENTRO, ED È UNA REGOLA, NON UNA TARATURA
+     (2026-08-14, richiesta esplicita e ripetuta di Vlad: «l'avviso non deve
+     essere un elemento che influenza il sito»). L'avviso "cantiere aperto" è
+     chrome `position: fixed`: sovrapporsi al contenuto è ciò che fa un banner,
+     spingerlo giù no. Sommando `--chrome-shift` al padding, la hero si
+     allungava di 97px alla sua comparsa e il corpo della pagina scendeva con
+     lei. ⚠ IL TENTATIVO INTERMEDIO — tenere lo spostamento e AMMORBIDIRLO con
+     una `transition` — È STATO BOCCIATO DA VLAD, giustamente: il difetto non
+     era la brutalità del salto, era il salto. Non riproporla. */
   .ab {
-    /* ⚠ ALTA UN SCHERMO, richiesta esplicita di Vlad (2026-08-13). `min-`
-       e non `height` secca: se un domani il contenuto (title + riga + i
-       quattro fatti di NowPanel) diventasse più alto di una viewport corta,
-       la sezione deve poter crescere invece di tagliarlo — stessa scelta
-       già fatta per la fascia del globo in 404.astro.
-       `grid` + `align-content: center` è la convenzione già in uso in tutto
-       il sito per centrare il contenuto di una sezione a schermo intero
-       (Statement, WhatIDo, JourneyTeaser, CTASection…), qui applicata a una
-       pagina che non passa per un Handoff M12.
-       Il padding-top riserva lo spazio della navbar fissa, che sta FUORI dal
-       flusso e quindi non lo farebbe da sola.
-
-       ⚠⚠ NIENTE `--chrome-shift` QUI DENTRO, ED È UNA REGOLA, NON UNA
-       TARATURA (2026-08-14, richiesta esplicita e ripetuta di Vlad:
-       «l'avviso non deve essere un elemento che influenza il sito»).
-       L'avviso "cantiere aperto" è chrome `position: fixed`: sovrapporsi al
-       contenuto è ciò che fa un banner, spingerlo giù no. Sommando
-       `--chrome-shift` al padding, la hero si allungava di 97px alla sua
-       comparsa e il corpo della pagina scendeva con lei.
-
-       ⚠ IL TENTATIVO INTERMEDIO — tenere lo spostamento e AMMORBIDIRLO con
-       una `transition` — È STATO BOCCIATO DA VLAD, giustamente: il difetto
-       non era la brutalità del salto, era il salto. Una transizione lo
-       rendeva solo più lento da guardare. Non riproporla.
-
-       ⚠ E TOGLIERE IL PADDING NON BASTA DA SOLO: `.idx` è `position: sticky`
-       e si àncora a `--chrome-shift` per conto proprio dentro
-       SectionIndex.astro, quindi con l'avviso aperto continuava a scendere
-       finché non scavalcava il titolo (misurato: `idx.bottom` 216px contro
-       `h1.top` 166px). Il fix è in DUE punti — questo, e lo sticky
-       disattivato qui sotto. */
+    /* ⚠ `min-` e non `height` secca: se il contenuto (titolo + lede + le
+       quattro celle della fascia) diventasse più alto di una viewport corta,
+       la sezione deve poter crescere invece di tagliarlo. Questa NON è la
+       sezione uscente di un handoff M12: ciò che sfora resta raggiungibile
+       scorrendo, quindi crescere è sicuro. */
     min-height: 100svh;
     display: grid;
-    align-content: center;
-    padding-top: calc(var(--nav-h) + clamp(1.5rem, 4vh, 3rem));
-    padding-bottom: clamp(1.5rem, 4vh, 3rem);
+    /* Il fondale è un assoluto a `inset: 0`: senza questo, si aggancerebbe
+       alla viewport. */
+    position: relative;
+    /* Ritaglia il campo binario, che sborda di proposito dai bordi della
+       sezione (vedi `.bf__grid`). ⚠ `clip` e non `hidden`: `hidden` creerebbe
+       un contenitore di scorrimento — stessa nota già in CTASection e
+       Statement. */
+    overflow: clip;
+    /* Riserva lo spazio della navbar fissa, che sta FUORI dal flusso e quindi
+       non lo farebbe da sola. */
+    padding-top: calc(var(--nav-h) + clamp(1.25rem, 3.5vh, 2.5rem));
+    padding-bottom: clamp(1.25rem, 3vh, 2.25rem);
   }
 
-  /* ⚠ SECONDA METÀ DEL FIX QUI SOPRA, identica a quella già in `404.astro` e
-     per la ragione identica. `SectionIndex` è sticky perché serve ad
-     accompagnare la lettura di sezioni ALTE, che si attraversano scorrendo;
-     questa hero è alta uno schermo e non si attraversa, quindi non c'è
-     niente da accompagnare. Ma il suo ancoraggio (`--nav-h` +
-     `--chrome-shift` + 1.5rem) con l'avviso aperto cade PIÙ IN BASSO della
-     sua posizione naturale in griglia, e lo sticky lo spinge giù addosso al
-     titolo. Statico, l'avviso non lo tocca più. */
+  /* ⚠ SECONDA METÀ DEL FIX DELL'AVVISO, identica a quella già in `404.astro` e
+     nella hero di /portfolio, e per la ragione identica. `SectionIndex` è
+     sticky perché serve ad accompagnare la lettura di sezioni ALTE, che si
+     attraversano scorrendo; questa hero è alta uno schermo e non si
+     attraversa, quindi non c'è niente da accompagnare. Ma il suo ancoraggio
+     (`--nav-h` + `--chrome-shift` + 1.5rem) con l'avviso aperto cade PIÙ IN
+     BASSO della sua posizione naturale in griglia, e lo sticky lo spinge giù
+     addosso al titolo. Statico, l'avviso non lo tocca più. */
   .ab :global([data-section-index]) {
     position: static;
   }
@@ -166,15 +220,29 @@ import { SITE } from '../lib/site';
     padding-inline: var(--spacing-gutter);
   }
 
+  .ab__wrap {
+    /* Sopra il fondale. Un contesto di impilamento sul contenuto e non uno
+       z-index alto sparso sui figli. */
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: grid;
+    /* Il blocco tipografico si prende tutto lo spazio libero e si centra
+       dentro; la fascia resta appoggiata al fondo dello schermo. È questa
+       riga a fare della fascia un PAVIMENTO invece di un quarto paragrafo. */
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: clamp(1.5rem, 3.5vh, 2.75rem);
+  }
+
+  .ab__top {
+    display: grid;
+    align-content: center;
+  }
+
   .ab__title {
     margin-top: 1.5rem;
     /* I <br /> sono manuali perché la spezzatura è parte del testo, non un
-       accidente della larghezza.
-       ⚠ Qui c'era `max-width: 18ch`, tolta perché non ha MAI morso: a 132px
-       di corpo 18ch valgono ~1599px, cioè più della colonna disponibile
-       (1310px), quindi dichiarava un vincolo che il browser non poteva
-       applicare. A tenere le righe entro misura è ora il corpo della coda,
-       qui sotto — che è una lunghezza vera e verificabile. */
+       accidente della larghezza. */
     font-size: var(--text-display);
     line-height: 0.9;
     letter-spacing: -0.04em;
@@ -204,30 +272,120 @@ import { SITE } from '../lib/site';
     color: var(--color-text-2);
   }
 
-  /* La riga bio + "Adesso". Il margine che era sulla lede sta qui: è la riga
-     intera a staccarsi dal titolo, non uno dei suoi due elementi. */
-  .ab__row {
-    margin-top: clamp(2rem, 4vw, 3rem);
-    display: grid;
-    gap: clamp(2.25rem, 4vw, 3.5rem);
-  }
-
-  @media (min-width: 56.25rem) {
-    .ab__row {
-      /* `minmax(0, …)` su entrambe: senza, una parola lunga nel pannello
-         (o la misura in `ch` della lede) allargherebbe la traccia oltre la
-         griglia invece di andare a capo. */
-      grid-template-columns: minmax(0, 1fr) minmax(0, 0.58fr);
-      align-items: start;
-    }
-  }
-
   .ab__lede {
-    max-width: 44ch;
+    margin-top: clamp(1.75rem, 3.5vh, 2.75rem);
+    /* 52ch e non 44: vedi la nota sulla composizione in cima. */
+    max-width: 52ch;
     font-size: var(--text-lede);
     line-height: 1.4;
     letter-spacing: -0.01em;
     color: var(--color-text-2);
+  }
+
+  /* ---- La coreografia d'ingresso -----------------------------------------
+     Tutta gated su `html.js-anim`: senza JS, con JS rotto o per un crawler la
+     hero è semplicemente lì, completa e ferma. Il campo binario invece NON è
+     gated (è fondale puro) — vedi la nota in BinaryField.astro. */
+  :global(html.js-anim) .ab :global([data-section-index]) {
+    opacity: 0;
+    animation: ab-rise 700ms var(--ease-out-expo) 560ms forwards;
+  }
+
+  /* ⚠ IL TITOLO NON ANIMA `opacity`, MAI: è il candidato LCP di questa pagina,
+     e Chrome esclude dal calcolo un elemento che sia stato a opacità zero
+     anche solo per un istante. `transform` e `filter: blur()` non escludono —
+     è la stessa riga che permette l'ingresso del ritratto in Home e la messa a
+     fuoco del titolone di /portfolio. Il risultato è anche meglio del fade su
+     questa pagina: il titolo si CONDENSA mentre il campo di cifre si propaga,
+     invece di comparire sopra di lui.
+     ⚠ `both` e non `forwards`: il fotogramma di partenza deve valere anche
+     durante il ritardo, o il titolo starebbe nitido per 680ms e poi si
+     sfocherebbe di colpo per rimettersi a fuoco. */
+  :global(html.js-anim) .ab__title {
+    animation: ab-focus 1000ms var(--ease-out-expo) 680ms both;
+  }
+
+  /* L'inciso arriva staccato dalla domanda: stesso gesto, più corto e più
+     tardi, così si legge come una seconda voce e non come la coda della
+     prima. Niente `opacity` nemmeno qui — sta DENTRO l'h1, quindi i suoi
+     pixel fanno parte del rettangolo che Chrome misura per l'LCP. */
+  :global(html.js-anim) .ab__coda {
+    animation: ab-focus-min 850ms var(--ease-out-expo) 900ms both;
+  }
+
+  :global(html.js-anim) .ab__lede {
+    opacity: 0;
+    animation: ab-rise 800ms var(--ease-out-expo) 1050ms forwards;
+  }
+
+  @keyframes ab-focus {
+    from {
+      transform: translateY(1.75rem) scale(0.985);
+      filter: blur(18px);
+    }
+    to {
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  @keyframes ab-focus-min {
+    from {
+      transform: translateY(0.9rem);
+      filter: blur(10px);
+    }
+    to {
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  @keyframes ab-rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.9rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* La regola globale di reduced-motion azzera le durate ma non garantisce lo
+     stato finale di un'animazione `forwards`/`both` che non parte: qui si
+     dichiara esplicitamente che la hero è tutta visibile, nitida e ferma. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .ab :global([data-section-index]),
+    :global(html.js-anim) .ab__lede {
+      opacity: 1;
+      animation: none;
+    }
+    :global(html.js-anim) .ab__title,
+    :global(html.js-anim) .ab__coda {
+      filter: none;
+      transform: none;
+      animation: none;
+    }
+  }
+
+  /* ---- Viewport basse -----------------------------------------------------
+     ⚠ `--text-display` è tarato sulla LARGHEZZA (7,4vw), quindi su una
+     finestra larga e bassa il titolo resta a 132px e insieme alla fascia non
+     ci sta in altezza. Stessa famiglia di fix già applicata a
+     `FeaturedProjects.astro` e alla hero di /portfolio: si prende l'altezza
+     dal TESTO, mai dalla fascia — quella porta i quattro fatti, ed è la parte
+     che questa hero esiste per far leggere. */
+  @media (max-height: 46.875rem) and (min-width: 56.25rem) {
+    .ab__title {
+      font-size: clamp(2.75rem, 5.2vw, 5.5rem);
+    }
+    .ab__coda {
+      font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+    }
+    .ab__lede {
+      font-size: var(--text-base);
+      max-width: 60ch;
+    }
   }
 
   .jr {
