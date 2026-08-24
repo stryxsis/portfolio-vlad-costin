@@ -10,7 +10,6 @@
 import { initScroll } from './scroll';
 import { initReveal, initSectionState, showEverything } from './reveal';
 import { initStages } from './stage';
-import { initPortal } from './portal';
 import { initNav } from './nav';
 import { initBanner } from './banner';
 import { initLoader } from './loader';
@@ -43,9 +42,6 @@ function boot(): void {
     initScroll();
     initReveal();
     initStages();
-    /* Esce da solo su ogni pagina senza `[data-portal]`, come initGlobe404
-       fuori dalla 404 e initLoader fuori dalla Home. */
-    initPortal();
     initNav();
     /* Dopo initNav: la banda spinge la navbar, quindi la navbar deve esistere
        e aver già misurato la propria pillola prima che qualcosa la sposti. */

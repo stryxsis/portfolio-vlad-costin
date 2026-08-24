@@ -79,11 +79,56 @@ const RIGHE = 26;
  *  da 35ms tengono lo stesso fronte in ~1,2s con passi più fini. */
 const BANDE = 34;
 
-/** L'origine dell'onda, in frazione della griglia. ⚠ NON è il centro: cade
- *  dove il titolo comparirà un istante dopo. Il campo sembra così emesso dal
- *  punto in cui poi appare la scritta — causa ed effetto, invece di due
- *  animazioni che capitano nello stesso schermo. */
-const ORIGINE = { x: 0.14, y: 0.55 };
+/* ═══ LE PROPS (2026-08-24) ═══════════════════════════════════════════════
+   ⚠ AGGIUNTE PER IL SECONDO UTENTE DEL CAMPO — la chiusura di /chi-sono
+   (`Scelta.astro`), che chiude la pagina con lo stesso fondale con cui la
+   hero l'apre. Sono TUTTE additive e i default riproducono esattamente il
+   comportamento precedente: la hero non passa una sola prop e non è cambiata
+   di un pixel.
+
+   ⚠ IL SECONDO CAMPO NON PUÒ ESSERE UNA COPIA DEL PRIMO, e i due default che
+   ribalta sono quelli che costano:
+     - `vivo={false}` → NESSUNA cella commuta, cioè ZERO `Animation` infinite.
+       È la ragione per cui un secondo campo sulla stessa pagina non riapre il
+       lag che è costato due giri di ottimizzazione: il costo permanente di
+       questo componente è proporzionale alle celle che COMMUTANO (107 nella
+       hero), non a quante ce ne sono (1092). Un campo fermo costa il proprio
+       paint una volta e poi niente, per sempre.
+     - `ingresso={false}` → nessuna onda. Non è solo un risparmio: `bf-in` è
+       un'animazione CSS con ritardo dal CARICAMENTO, non dallo scroll, quindi
+       in fondo alla pagina si giocherebbe tutta mentre l'utente sta ancora
+       leggendo la hero. Un ingresso che nessuno può vedere non è un ingresso,
+       è 1092 animazioni spese per niente. */
+interface Props {
+  /** `false` = nessuna cella commuta: campo fermo, zero animazioni infinite. */
+  vivo?: boolean;
+  /** `false` = le celle nascono già a riposo, senza l'onda di propagazione. */
+  ingresso?: boolean;
+  /** Dove nasce l'onda, in frazione della griglia (ignorata se `ingresso` è
+   *  `false`). */
+  origine?: { x: number; y: number };
+  /** La forma della velatura, cioè DOVE il campo deve farsi da parte per il
+   *  testo. `hero` protegge la colonna sinistra, `centro` una pozza centrale. */
+  velatura?: 'hero' | 'centro';
+  /** ⚠ Semi diversi per campi diversi, o due sezioni della stessa pagina
+   *  mostrerebbero la STESSA identica disposizione di cifre — che a distanza
+   *  di uno scroll si riconosce, e legge come un copia-incolla invece che
+   *  come lo stesso fondale visto due volte. */
+  seme?: number;
+}
+const {
+  vivo = true,
+  ingresso = true,
+  origine = { x: 0.14, y: 0.55 },
+  velatura = 'hero',
+  seme = 20260823,
+} = Astro.props;
+
+/** L'origine dell'onda, in frazione della griglia. ⚠ NELLA HERO NON è il
+ *  centro: cade dove il titolo comparirà un istante dopo. Il campo sembra così
+ *  emesso dal punto in cui poi appare la scritta — causa ed effetto, invece di
+ *  due animazioni che capitano nello stesso schermo. */
+const ORIGINE = origine;
 
 /** La griglia è larga ~1,6 volte più che alta, ma le sue coordinate qui sono
  *  normalizzate 0-1 su entrambi gli assi: senza schiacciare la y, l'onda
@@ -138,7 +183,7 @@ function generatore(seme: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const rand = generatore(20260823);
+const rand = generatore(seme);
 
 /** La distanza dall'origine, schiacciata. */
 const distanza = (nx: number, ny: number): number =>
@@ -223,7 +268,7 @@ const finitoA = (i: number): number =>
    ⚠ Il ritardo si conta dalla cella PIÙ TARDA della fila, non da ognuna per
    conto suo: altrimenti una fila a cavallo di due bande comincerebbe a
    commutare da un capo mentre l'altro non è ancora comparso. */
-for (const s of SEQUENZE) {
+for (const s of vivo ? SEQUENZE : []) {
   const indici: number[] = [];
   for (let k = 0; k < s.quante; k += 1) {
     const c = s.da + k;
@@ -248,7 +293,7 @@ for (const s of SEQUENZE) {
 
 /* ---- Terza passata: le solitarie ---------------------------------------- */
 celle.forEach((cella, i) => {
-  if (cella.flip !== null || rand() > QUOTA_SOLITARIE) return;
+  if (!vivo || cella.flip !== null || rand() > QUOTA_SOLITARIE) return;
   const dur = arrotonda(7 + rand() * 4, 1);
   cella.flip = { dur, ritardo: arrotonda(finitoA(i) + 0.5 + rand() * dur) };
 });
@@ -271,7 +316,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
 {/* Interamente decorativo. Un lettore di schermo che annunciasse 1092 cifre
     binarie renderebbe la pagina inutilizzabile — ed è anche letteralmente
     vero che non dicono niente. */}
-<div class="bf" aria-hidden="true">
+<div class:list={['bf', !ingresso && 'bf--fermo']} aria-hidden="true">
   <div class="bf__grid">
     {
       celle.map((c) => (
@@ -306,7 +351,7 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
       il canvas: dipingerlo sopra a opacità parziale è esattamente equivalente
       a smorzare il campo, e costa un gradiente invece di un layer da
       rasterizzare ogni volta che una cifra cambia. */}
-  <span class="bf__scrim"></span>
+  <span class:list={['bf__scrim', `bf__scrim--${velatura}`]}></span>
 </div>
 
 <style>
@@ -524,9 +569,25 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
      fascia degli strumenti, in basso) il campo resta all'~18% — è il motivo
      per cui le etichette mono da 12px lì sotto stanno sopra i 7:1 pur essendo
      la taglia più esigente della pagina. */
+  /* ⚠ `ingresso={false}`: le celle nascono a riposo. Spegne il NOME
+     dell'animazione invece di azzerarne la durata — stessa tecnica dei blocchi
+     reduce del sito, e l'unica che fa ricadere ogni cella sui propri valori
+     base invece di inchiodarla all'ultimo fotogramma. Vale anche per lo
+     `::after` delle commutanti, che con `vivo={false}` non esistono comunque:
+     la riga è la rete se un domani si combinassero le due props. */
+  .bf--fermo .bf__c,
+  .bf--fermo .bf__c::after {
+    animation: none;
+  }
+
   .bf__scrim {
     position: absolute;
     inset: 0;
+  }
+
+  /* La velatura della HERO: protegge la colonna sinistra, dove stanno titolo,
+     inciso e lede, e lascia respirare la fascia destra. */
+  .bf__scrim--hero {
     background:
       radial-gradient(
         115% 105% at 20% 50%,
@@ -543,6 +604,36 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
         transparent 68%,
         color-mix(in oklab, var(--color-canvas) 62%, transparent) 84%,
         color-mix(in oklab, var(--color-canvas) 88%, transparent) 96%,
+        var(--color-canvas) 100%
+      );
+  }
+
+  /* La velatura della CHIUSURA (`Scelta.astro`): una POZZA CENTRALE invece di
+     una colonna. Stesso lavoro, geometria diversa, perché lì il testo sta al
+     centro e il campo deve farsi da parte tutt'intorno.
+     ⚠ È PIÙ FITTA AL CENTRO di quella della hero (94% contro 86%), e la
+     ragione non è estetica: lì sotto ci sono due descrizioni da ~15px, cioè
+     la taglia che pretende 4,5:1, mentre nella hero il punto peggiore è un
+     inciso da 40px che di soglia ne vuole 3.
+     ⚠ La verticale è SIMMETRICA (spegne il campo in cima e in fondo allo
+     stesso modo): questa sezione ha l'inventario sopra e il footer sotto, e
+     deve staccarsi da entrambi — la hero invece ha solo la navbar sopra. */
+  .bf__scrim--centro {
+    background:
+      radial-gradient(
+        88% 78% at 50% 52%,
+        color-mix(in oklab, var(--color-canvas) 94%, transparent) 0%,
+        color-mix(in oklab, var(--color-canvas) 88%, transparent) 38%,
+        color-mix(in oklab, var(--color-canvas) 52%, transparent) 66%,
+        transparent 90%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--color-canvas) 0%,
+        color-mix(in oklab, var(--color-canvas) 58%, transparent) 10%,
+        transparent 26%,
+        transparent 74%,
+        color-mix(in oklab, var(--color-canvas) 58%, transparent) 90%,
         var(--color-canvas) 100%
       );
   }

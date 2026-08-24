@@ -1,0 +1,452 @@
+---
+/**
+ * LA SCELTA — la chiusura di /chi-sono: la nebbia si dirada e resta la
+ * decisione.
+ *
+ * ⚠ SOSTITUISCE `Portale.astro` (M19), CANCELLATO. Vlad, 2026-08-24: «in fondo
+ * ho una CTA con un effetto di scroll ma non mi piace per niente, secondo me
+ * non ci sta per niente bene in questo sito quel effetto». Aveva ragione, e i
+ * cinque difetti sono stati misurati a schermo prima di proporre, non dedotti
+ * dal codice:
+ *   1. IL PORTALE NON SI LEGGEVA COME UN PORTALE. Un rettangolo nero su un
+ *      rettangolo quasi-nero: il bordo praticamente non esisteva, e le stelle
+ *      dentro, a quella dimensione, erano quattro puntini. Diceva «un box che
+ *      sta caricando», non «una finestra sullo spazio».
+ *   2. IL TITOLO ATTRAVERSAVA IL RIQUADRO. A inizio corsa metà frase stava
+ *      sullo slate e metà sul box scuro, tagliata dal bordo: leggeva come una
+ *      collisione, cioè come un difetto di rendering.
+ *   3. IL PREMIO ERA UN VUOTO. Aperta la finestra, le due destinazioni
+ *      occupavano una fascia di ~200px con ~350px di nero sopra e sotto — il
+ *      momento meno COMPOSTO del sito, in una pagina che altrove ha filetti,
+ *      numeri mono e una griglia.
+ *   4. COSTAVA 2295px DI SCROLL per una sola trasformazione geometrica. Le
+ *      altre coreografie del sito comprano molto di più con quella distanza.
+ *   5. PARLAVA UNA LINGUA CHE IL SITO NON PARLA — ed è probabilmente ciò che
+ *      Vlad sentiva senza saperlo nominare. Le stelle che si espandono
+ *      venivano dallo snippet React di riferimento; il sito parla per filetti
+ *      orizzontali, numeri mono e occlusioni sticky.
+ *
+ * ⚠ VIA ANCHE LE STELLE, ed è una decisione a sé (scelta esplicitamente da
+ * Vlad fra i "difetti da chiudere"): `Starfield` torna ESCLUSIVO della 404,
+ * dove «perso nello spazio» è la battuta della pagina. Lo stesso fondale non
+ * può essere insieme «ti sei perso» e «ecco il mio invito» — usarlo due volte
+ * toglie forza a entrambi.
+ *
+ * L'IDEA, scelta da Vlad fra tre proposte: LA PAGINA SI APRE E SI CHIUDE CON
+ * LO STESSO CAMPO DI CIFRE. Nella hero la nebbia binaria si forma e diventa
+ * «chi sono»; qui si dirada e lascia la decisione. Non è riuso pigro di un
+ * componente: è un bookend, cioè l'unica figura che una chiusura può fare per
+ * dire «siamo tornati al punto di partenza, ma ora sai chi sono».
+ *
+ * ⚠ E IL SECONDO CAMPO SI COMPORTA ALL'OPPOSTO DEL PRIMO, o sarebbe stata una
+ * ripetizione invece di una rima: la hero è un campo VIVO che ARRIVA
+ * (propagazione + cifre che commutano per sempre), questo è un campo FERMO che
+ * SI RITIRA (`vivo={false}`, `ingresso={false}`). Vedi le props di
+ * `BinaryField.astro` per il conto del costo — un campo fermo non ha nemmeno
+ * una `Animation` viva, quindi non riapre il lag costato due giri di
+ * ottimizzazione il 2026-08-23.
+ *
+ * ⚠ NIENTE PIÙ TRACK, NIENTE STICKY, NIENTE JS — e nessun `portal.ts`, che è
+ * stato cancellato con la sezione. La corsa passa da 2295px a UNO SCHERMO
+ * (terzo difetto chiuso su richiesta di Vlad): al momento della decisione ogni
+ * pixel di scroll fra chi legge e il bottone è attrito puro. L'effetto è una
+ * battuta M14 (`data-activate`), il vocabolario one-shot che il sito già usa
+ * ovunque, e non uno scrub.
+ *
+ * ⚠⚠ IL PREFISSO NON PUÒ ESSERE `cta`, e la nota sopravvive intatta da
+ * `Portale.astro` e dal bivio prima di lui: il footer accende il proprio
+ * bagliore leggendo `body:has(.cta)`, per raccogliere la coda del cielo viola
+ * della Home. Qui non c'è nessun cielo viola da continuare, quindi si
+ * accenderebbe una luce che non continua niente. Da qui `sc`.
+ *
+ * ⚠ NESSUN NUMERO D'INDICE, come la fascia del metodo: è un'uscita, non un
+ * capitolo. (Conseguenza già dichiarata in CLAUDE.md: su /chi-sono i numeri
+ * restano 00 → 02 → 03.)
+ *
+ * ⚠ IL TESTO DELLA FRASE È SCRITTO DA ME e non dettato — nel brief del
+ * portale era marcato «(Esempio)». Vlad il 2026-08-24 ha esplicitamente NON
+ * scelto «rivedere il testo» fra le cose da sistemare, quindi resta questo,
+ * ma resta anche negoziabile: non difenderlo, riscriverlo se lo chiede.
+ * Le due DESCRIZIONI sotto i titoli sono invece nuove, e rispondono al primo
+ * difetto che ha chiesto di chiudere («riempire il vuoto»): una CTA che non
+ * dice cosa c'è dietro il link costringe a indovinare.
+ */
+import Button from '../primitives/Button.astro';
+import BinaryField from '../primitives/BinaryField.astro';
+
+interface Props {
+  id?: string;
+}
+const { id = 'e-adesso' } = Astro.props;
+
+/**
+ * Le due destinazioni.
+ *
+ * ⚠ `/contatti` NON ESISTE ANCORA (è M8, in pausa) ed è comunque il target
+ * giusto: navbar, hero e CTA della Home puntano già tutte lì. Un bersaglio
+ * diverso qui sarebbe l'unico link fuori sincrono il giorno in cui la pagina
+ * viene costruita.
+ */
+interface Strada {
+  n: string;
+  titolo: string;
+  /** ⚠ NUOVA dal 2026-08-24, ed è metà del fix di «riempire il vuoto»: dice
+   *  cosa si trova dietro il link. Prima c'erano due titoli nudi e due
+   *  bottoni, e la differenza fra le due strade la doveva indovinare chi
+   *  legge. */
+  descrizione: string;
+  href: string;
+  cta: string;
+  /** Una sola è l'azione primaria: due bottoni pieni affiancati non sono una
+   *  scelta, sono due primari che competono. */
+  primaria?: boolean;
+}
+const STRADE: Strada[] = [
+  {
+    n: '01',
+    titolo: 'Vedi come lavoro',
+    descrizione: 'I progetti veri, con i problemi che hanno posto e come li ho risolti.',
+    href: '/portfolio',
+    cta: 'Vai al portfolio',
+    primaria: true,
+  },
+  {
+    n: '02',
+    titolo: 'Parliamone',
+    descrizione: 'Hai un’idea, un progetto o solo una curiosità: scrivimi, rispondo.',
+    href: '/contatti',
+    cta: 'Scrivimi due righe',
+  },
+];
+---
+
+<section class="sc" {id} data-activate>
+  {
+    /* Il fondale: lo stesso campo della hero, ma fermo e con la velatura
+       centrata. Sta PRIMA del contenuto nel markup e non dopo — è dietro, e
+       l'ordine del DOM è il modo più economico di dirlo.
+       ⚠ SEME DIVERSO da quello della hero: con lo stesso, le due sezioni
+       mostrerebbero la stessa identica disposizione di cifre, e a distanza di
+       uno scroll si riconosce — leggerebbe come un copia-incolla invece che
+       come lo stesso fondale visto due volte. */
+  }
+  <BinaryField vivo={false} ingresso={false} velatura="centro" seme={20260824} />
+
+  {
+    /* LA POZZA DI CHIAREZZA — l'effetto, e l'unica cosa che si muove qui
+       dentro. Un velo di canvas che si allarga dal centro: siccome dietro il
+       campo c'è davvero il canvas, dipingerlo sopra EQUIVALE a spegnere le
+       cifre, e costa un gradiente invece di una maschera da rasterizzare.
+       ⚠ È IN PIÙ RISPETTO ALLA VELATURA DEL CAMPO, non al suo posto, ed è la
+       decisione che tiene onesta la misura di contrasto: la velatura di
+       `BinaryField` è permanente e garantisce le soglie DA SOLA, questo velo
+       può solo scurire ulteriormente. Il caso peggiore da misurare è quindi
+       "velo a zero", cioè uno stato che esiste davvero e non dipende da
+       nessuna animazione. Un contrasto che dipende dal fotogramma non è
+       conforme, è fortunato.
+       ⚠ `aria-hidden` e fuori dal flusso: è atmosfera, non contenuto. */
+  }
+  <span class="sc__pozza" aria-hidden="true"></span>
+
+  <div class="sc__wrap">
+    <div class="sc__intro">
+      <p class="sc__label">E adesso?</p>
+      {
+        /* Il `<br />` è manuale come nell'h1 della hero: sono due frasi con due
+           lavori diversi, e la spezzatura è parte del testo. */
+      }
+      <h2 class="sc__title">
+        Ok, fine della biografia.<br />Ora sai da dove vengo e come ragiono.
+      </h2>
+    </div>
+
+    {
+      /* Il filetto che separa la frase dalla scelta. ⚠ ORIZZONTALE, come ogni
+         altra separazione del sito: è la lezione della fascia "Adesso" —
+         quattro colonne divise da filetti VERTICALI leggono come una tabella,
+         un dispositivo che questo sito non usa da nessuna parte. Qui il
+         filetto sta fra i due blocchi, non fra le due colonne, e a separare
+         le strade è lo spazio. */
+    }
+    <span class="sc__rule" aria-hidden="true"></span>
+
+    <ol class="sc__roads">
+      {
+        STRADE.map((s, i) => (
+          <li class="sc__road" style={`--i:${i}`}>
+            <p class="sc__n">{s.n}</p>
+            <h3 class="sc__road-title">{s.titolo}</h3>
+            <p class="sc__road-desc">{s.descrizione}</p>
+            {
+              /* Il bottone in un wrapper: gli stili scoped di Astro non
+                 raggiungono la radice di un componente figlio (vedi la nota
+                 in Timeline.astro). */
+            }
+            <div class="sc__act">
+              <Button href={s.href} variant={s.primaria ? 'filled' : 'outline'} tone="dark">
+                {s.cta}
+              </Button>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  /* ═══ LA SEZIONE ═══════════════════════════════════════════════════════
+     Uno schermo, in flusso normale. Nessun track, nessuno sticky: vedi la
+     nota in testa al file sul perché la corsa è passata da 2295px a questo. */
+  .sc {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    padding-block: clamp(4rem, 12vh, 7rem);
+    /* ⚠ `clip` e NON `hidden`: il campo binario sborda di proposito
+       (`.bf__grid` è a `inset: -1.5% 0`) e va ritagliato, ma `hidden`
+       creerebbe un contenitore di scorrimento. Stessa nota già in CTASection,
+       Statement e nella hero di questa pagina. */
+    overflow: clip;
+  }
+
+  .sc__wrap {
+    position: relative;
+    /* Sopra il fondale e sopra la pozza: un contesto di impilamento sul
+       contenuto, non uno z-index alto sparso sui figli. */
+    z-index: 2;
+    width: 100%;
+    /* ⚠ PIÙ STRETTO del wrap della pagina (90rem) MA NON DI PIÙ, e i due
+       vincoli che lo fissano tirano in direzioni opposte:
+         - VERSO LO STRETTO: il contenuto deve stare DENTRO la pozza di
+           chiarezza, che è un'ellisse all'88% della larghezza. Un blocco largo
+           quanto la pagina avrebbe le estremità sopra le cifre nude.
+         - VERSO IL LARGO: la seconda frase del titolo è larga ~950px a 1440,
+           e sotto quella misura va a capo lasciando "ragiono." ORFANA su una
+           terza riga — lo stesso difetto già misurato e corretto sull'h1 della
+           hero e su `.jr__title`. A 64rem lo faceva davvero (misurato a
+           schermo, non dedotto): 1024 − due gutter = ~944px, sei pixel in meno
+           del necessario.
+       68rem lascia ~1008px di contenuto e resta dentro la pozza. ⚠ Ritoccando
+       il testo del titolo, rimisurare: è un equilibrio stretto per costruzione. */
+    max-width: 68rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* ═══ LA POZZA DI CHIAREZZA ════════════════════════════════════════════
+     ⚠ SI ANIMANO SOLO `transform` E `opacity`: il gradiente viene rasterizzato
+     una volta sul livello e da lì spostarlo è puro compositing. È la stessa
+     distinzione già scritta per i fasci di /portfolio e per l'alone del
+     bottone della CTA — animare il gradiente stesso forzerebbe invece una
+     ri-rasterizzazione per fotogramma.
+     ⚠ E LA SCALA PARTE DA 0,55, NON DA ZERO: un gradiente morbido ingrandito
+     di poco resta morbido, ma scalato da zero mostrerebbe la propria
+     rasterizzazione come una macchia sgranata. Stessa famiglia di problema
+     dell'alone di Approach, dove un gradiente a stop concentrici leggeva come
+     un «bug del sito». */
+  .sc__pozza {
+    position: absolute;
+    /* Più grande della sezione: a scala piena deve coprire fino ai bordi
+       senza che si veda dove finisce il proprio riquadro. */
+    inset: -10%;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+      58% 52% at 50% 50%,
+      var(--color-canvas) 0%,
+      color-mix(in oklab, var(--color-canvas) 82%, transparent) 45%,
+      color-mix(in oklab, var(--color-canvas) 34%, transparent) 72%,
+      transparent 100%
+    );
+    /* Stato base = pozza APERTA. ⚠ Come per il portale prima di lui e per
+       `Lightfall`: senza JS, con JS rotto, con movimento ridotto o per un
+       crawler la sezione è già nel proprio stato finale. Il contrario —
+       nascere chiusa e contare su una classe per aprirsi — è il difetto che
+       ha reso §03 un rettangolo nero e vuoto. */
+    transform: none;
+    opacity: 1;
+  }
+
+  /* ═══ LA FRASE ═════════════════════════════════════════════════════════ */
+  .sc__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* `text-2` e non `text-3`: mono da 11-12px pretende 4,5:1, e sul canvas
+       nero `text-3` fa 4,19:1 (difetto di palette dichiarato in CLAUDE.md). */
+    color: var(--color-text-2);
+  }
+
+  .sc__title {
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+    /* ⚠ 28ch È MISURATO, non scelto, ed è lo stesso valore di `.jr__title`
+       ricavato dallo stesso difetto: a 24ch la seconda frase andava a capo e
+       lasciava "ragiono." ORFANA su una terza riga. Ritoccando il testo,
+       rimisurare. */
+    max-width: 28ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+
+  /* ═══ IL FILETTO ═══════════════════════════════════════════════════════ */
+  .sc__rule {
+    display: block;
+    height: 1px;
+    margin-block: clamp(2.25rem, 5vh, 3.25rem);
+    background-color: var(--color-hairline-strong);
+    /* Si tira da sinistra, come il pavimento della fascia "Adesso". */
+    transform-origin: left;
+  }
+
+  /* ═══ LE DUE STRADE ════════════════════════════════════════════════════ */
+  .sc__roads {
+    /* Nessun pallino: il divieto di liste puntate del sito vale anche qui, e
+       l'enumerazione la porta il dispositivo mono `01/02`. `<ol>` resta perché
+       le due voci SONO un elenco ordinato di opzioni, e per uno screen reader
+       "elenco di 2 elementi" è informazione utile. */
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: clamp(2.5rem, 6vh, 3.5rem);
+  }
+
+  .sc__road {
+    display: grid;
+    /* `start`: i due blocchi si allineano in ALTO, così i bottoni di altezza
+       diversa (`filled` contro `outline`) leggono come gerarchia e non come
+       disallineamento. */
+    align-content: start;
+    gap: 0.4rem;
+  }
+
+  .sc__n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    /* `text-2` e NON `text-3`, per la stessa ragione di `.sc__label`. */
+    color: var(--color-text-2);
+  }
+
+  .sc__road-title {
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--color-text-1);
+  }
+
+  .sc__road-desc {
+    margin-top: 0.35rem;
+    /* ⚠ 34ch: le due descrizioni devono cadere su DUE righe entrambe, o i due
+       blocchi avrebbero altezze diverse e i bottoni non starebbero sulla
+       stessa linea. Misurato sui due testi reali. */
+    max-width: 34ch;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--color-text-2);
+    text-wrap: pretty;
+  }
+
+  .sc__act {
+    margin-top: clamp(1rem, 2.2vh, 1.4rem);
+  }
+
+  /* ═══ DA 900px IN SU: le due strade affiancate ═════════════════════════ */
+  @media (min-width: 56.25rem) {
+    .sc__roads {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: clamp(2rem, 5vw, 4rem);
+    }
+  }
+
+  /* ═══ L'INGRESSO — M14, una battuta sola ═══════════════════════════════
+     ⚠ `data-activate` E NON UNO SCRUB: è la sostituzione dell'effetto che Vlad
+     ha bocciato. Il vocabolario one-shot (`reveal.ts` commuta `is-in`, il CSS
+     fa tutto il resto) è quello che il sito usa ovunque, costa zero tween per
+     elemento — la cascata fra fratelli è `transition-delay` su `--i` — e non
+     lega la comparsa alla velocità con cui uno scorre.
+     ⚠ Tutto gated su `html.js-anim`: se il boot fallisce, `showEverything()`
+     toglie quella classe e queste regole smettono di applicarsi IN BLOCCO,
+     lasciando la sezione completa e ferma. È il motivo per cui lo stato
+     nascosto va gated lì e non scritto in JS. */
+  :global(html.js-anim) .sc__pozza {
+    /* Chiusa: la nebbia copre tutto. */
+    transform: scale(0.55);
+    opacity: 0;
+    transition:
+      transform 1400ms var(--ease-out-expo),
+      opacity 900ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .sc.is-in .sc__pozza {
+    transform: none;
+    opacity: 1;
+  }
+
+  :global(html.js-anim) .sc__intro,
+  :global(html.js-anim) .sc__road {
+    opacity: 0;
+    transform: translateY(0.9rem);
+    transition:
+      opacity 800ms var(--ease-out-expo),
+      transform 800ms var(--ease-out-expo);
+  }
+  :global(html.js-anim) .sc__rule {
+    transform: scaleX(0);
+    transition: transform 900ms var(--ease-out-expo);
+  }
+
+  /* ⚠ I RITARDI RACCONTANO L'ORDINE DELL'EFFETTO, e l'ordine è il senso: la
+     pozza si apre per prima (da 0), la frase arriva quando c'è già spazio
+     pulito in cui stare (260ms), il filetto si tira (620ms) e le due strade
+     salgono per ultime (780/920ms). Prima si dirada la nebbia, poi compare
+     la decisione — se il testo arrivasse per primo, la pozza sembrerebbe un
+     riflettore acceso DOPO, invece che la ragione per cui si vede. */
+  :global(html.js-anim) .sc.is-in .sc__intro {
+    opacity: 1;
+    transform: none;
+    transition-delay: 260ms;
+  }
+  :global(html.js-anim) .sc.is-in .sc__rule {
+    transform: scaleX(1);
+    transition-delay: 620ms;
+  }
+  :global(html.js-anim) .sc.is-in .sc__road {
+    opacity: 1;
+    transform: none;
+    transition-delay: calc(780ms + var(--i, 0) * 140ms);
+  }
+
+  /* Salto d'ancora o tasto Fine: stato finale senza attesa. ⚠ Deve azzerare
+     DURATA e RITARDO, non solo il ritardo — un'animazione di cui nessuno ha
+     visto l'inizio non deve nemmeno impiegare tempo a finire (lezione di
+     `is-instant` in M14). E deve restare DOPO le regole di `is-in`, che hanno
+     la stessa specificità. */
+  :global(html.js-anim) .sc.is-instant .sc__pozza,
+  :global(html.js-anim) .sc.is-instant .sc__intro,
+  :global(html.js-anim) .sc.is-instant .sc__rule,
+  :global(html.js-anim) .sc.is-instant .sc__road {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  /* La regola globale di reduced-motion azzera le iterazioni ma non garantisce
+     lo stato finale di una transizione che non viene mai innescata: qui si
+     dichiara esplicitamente che la sezione è tutta visibile e ferma. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js-anim) .sc__pozza,
+    :global(html.js-anim) .sc__intro,
+    :global(html.js-anim) .sc__rule,
+    :global(html.js-anim) .sc__road {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+</style>

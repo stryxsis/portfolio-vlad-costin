@@ -13,11 +13,13 @@
  *   M17  [data-reel] / [data-call]        ciò che accade DENTRO una card, §30
  *   M6   [data-drift]                     micro-deriva orizzontale in scrub
  *
- * M19 ([data-portal], la finestra che si apre sullo spazio in fondo a
- * /chi-sono) è una stage a tutti gli effetti e sta in `portal.ts`: stesso
- * vocabolario (sticky in CSS, scrub che legge solo il progresso, zero pin), ma
- * un file suo perché ha una sola sezione utente e un'origine da raccontare per
- * esteso. Se un giorno ne nascesse una seconda, è il momento di portarla qui.
+ * M19 ([data-portal], la finestra che si apriva sullo spazio in fondo a
+ * /chi-sono) VIVEVA in `portal.ts`, ed è stata CANCELLATA il 2026-08-24 —
+ * file, script e stage insieme. Vlad ha bocciato quell'effetto («non ci sta
+ * per niente bene in questo sito») e la chiusura è ora `Scelta.astro`: un solo
+ * schermo, nessuno scrub, l'ingresso affidato al vocabolario one-shot M14.
+ * Non resta niente da riportare qui: la nota sopravvive solo perché un
+ * `[data-portal]` incontrato in giro sarebbe un residuo, non una stage viva.
  *
  * M9 ([data-plates]/[data-plate], i "piatti" che si scambiavano uno alla volta
  * in §30) NON ESISTE PIÙ: sostituito da M16, che tiene tutte le card in scena e
