@@ -156,19 +156,49 @@ import { SITE } from '../lib/site';
      LA COREOGRAFIA è una sola sequenza a tempo, tutta in CSS, e i numeri
      vivono in DUE file: qui e in `NowPanel.astro` (l'ultima battuta).
      Toccandone uno, va toccato l'altro.
-        80 →  1590ms   il campo si propaga dall'origine dell'onda
-       560ms           l'indice 00
-       680ms           il titolo si mette a fuoco
-       900ms           l'inciso
-      1050ms           la lede
-      1180ms           il filetto della fascia si tira
-      1320 → 1690ms    "Adesso" e le quattro celle
+        80 →  1830ms   il campo si propaga dall'origine dell'onda
+      1550ms           l'indice 00
+      1750ms           il titolo si mette a fuoco
+      1950ms           l'inciso
+      2100ms           la lede
+      2230ms           il filetto della fascia si tira
+      2370 → 2740ms    "Adesso" e le quattro celle
 
-     ⚠ PERCHÉ IL TITOLO PARTE A 680ms E NON DOPO L'ONDA: il fronte nasce dove
-     il titolo comparirà (vedi `ORIGINE` in BinaryField.astro) e passa di lì
-     nei primi 200ms; a 680ms ha già coperto metà schermo e sta correndo verso
-     i bordi. Aspettare la fine avrebbe prodotto due eventi in fila invece di
-     un passaggio di mano — la stessa lezione già pagata col velo della Home.
+     ⚠ RITARDI RISCRITTI IL 2026-08-24, e non è una taratura fine: Vlad ha
+     segnalato che il titolo, l'inciso e la lede si vedevano SFOCATI fin dal
+     primissimo fotogramma («io vorrei che non si vedessero proprio, e quando
+     l'animazione del background sta per finire appaiano queste scritte
+     sfuocate»). La versione precedente li faceva partire a 680/900/1050ms,
+     cioè A METÀ dei 1830ms che il campo impiega a propagarsi per intero (33
+     bande × 40ms + 80ms di partenza + 430ms di ingresso dell'ultima cella —
+     vedi `BinaryField.astro`): il fronte passava sotto il titolo nei primi
+     200ms e la scelta era di iniziare LÌ per un passaggio di mano invece di
+     due eventi in fila. ⚠ MA `both` come fill-mode tradiva quell'intento: con
+     `both`, il fotogramma di PARTENZA dell'animazione (sfocato, ma tutt'altro
+     che invisibile) vale anche DURANTE il ritardo — quindi il titolo era
+     visibile, sfocato, fin dal fotogramma zero, non da 680ms. Non bastava
+     spostare il numero più in là: qualunque ritardo con `both` mostra lo
+     stesso fotogramma sfocato da t=0.
+     Oggi i tre elementi candidati LCP (titolo, inciso — l'indice e la lede
+     no, vedi sotto) partono da uno stato REALMENTE invisibile
+     (`transform: scale(0)`, zero area dipinta) con `forwards` e non `both`:
+     durante il ritardo non c'è NULLA da vedere, e nell'istante in cui il
+     ritardo scade l'animazione salta di colpo al proprio fotogramma "from"
+     (sfocato, quasi a fuoco) — cioè esattamente "appaiono sfuocate" — e
+     prosegue con la stessa messa a fuoco di sempre. Il salto non è un
+     difetto: è la materializzazione richiesta, non una dissolvenza.
+     ⚠ Il ritardo (1750ms) cade **poco prima** che il campo finisca di
+     propagarsi (1830ms), non dopo: è la lettura letterale di «quando
+     l'animazione del background STA PER finire», e mantiene comunque un
+     istante di sovrapposizione — l'ultima manciata di celle sta ancora
+     arrivando quando il titolo compare, che è il "passaggio di mano" invece
+     di due eventi separati da un vuoto.
+     ⚠ Indice e lede NON hanno bisogno di questo trattamento: non sono
+     candidati LCP (il titolo lo è), quindi il loro `opacity: 0` di riposo li
+     rende già realmente invisibili — sono stati semplicemente RITARDATI in
+     coda al gruppo invece di anticipare il titolo, per arrivare tutti insieme
+     nella stessa finestra («prima i 0 e 1, subito dopo le scritte», la
+     richiesta originale del 2026-08-23).
 
      ⚠⚠ NIENTE `--chrome-shift` QUI DENTRO, ED È UNA REGOLA, NON UNA TARATURA
      (2026-08-14, richiesta esplicita e ripetuta di Vlad: «l'avviso non deve
@@ -288,34 +318,47 @@ import { SITE } from '../lib/site';
      gated (è fondale puro) — vedi la nota in BinaryField.astro. */
   :global(html.js-anim) .ab :global([data-section-index]) {
     opacity: 0;
-    animation: ab-rise 700ms var(--ease-out-expo) 560ms forwards;
+    animation: ab-rise 700ms var(--ease-out-expo) 1550ms forwards;
   }
 
   /* ⚠ IL TITOLO NON ANIMA `opacity`, MAI: è il candidato LCP di questa pagina,
      e Chrome esclude dal calcolo un elemento che sia stato a opacità zero
      anche solo per un istante. `transform` e `filter: blur()` non escludono —
      è la stessa riga che permette l'ingresso del ritratto in Home e la messa a
-     fuoco del titolone di /portfolio. Il risultato è anche meglio del fade su
-     questa pagina: il titolo si CONDENSA mentre il campo di cifre si propaga,
-     invece di comparire sopra di lui.
-     ⚠ `both` e non `forwards`: il fotogramma di partenza deve valere anche
-     durante il ritardo, o il titolo starebbe nitido per 680ms e poi si
-     sfocherebbe di colpo per rimettersi a fuoco. */
+     fuoco del titolone di /portfolio.
+     ⚠ `transform: scale(0)` QUI FUORI dalla `animation`, e `forwards` e non
+     `both` dentro di essa: è il fix del 2026-08-24 (vedi la nota sopra `.ab`).
+     `scale(0)` è lo stato di riposo REALE — zero area dipinta, non "sfocato
+     ma presente" — e vale per tutto il ritardo perché `forwards` non lo
+     sovrascrive finché l'animazione non parte davvero. Nell'istante in cui il
+     ritardo scade, l'animazione salta al proprio fotogramma "from"
+     (`ab-focus`: sfocato, quasi a fuoco) e prosegue: un taglio netto da
+     "niente" a "sfocato", non una dissolvenza — è la materializzazione che
+     Vlad ha chiesto, non un difetto di sincronizzazione.
+     ⚠ Il salto usa SOLO `transform`, mai `opacity`: `scale(0)` nasconde
+     esattamente come farebbe `opacity: 0`, ma senza far scattare l'esclusione
+     dall'LCP che quella proprietà porta con sé. */
   :global(html.js-anim) .ab__title {
-    animation: ab-focus 1000ms var(--ease-out-expo) 680ms both;
+    transform: scale(0);
+    animation: ab-focus 1000ms var(--ease-out-expo) 1750ms forwards;
   }
 
   /* L'inciso arriva staccato dalla domanda: stesso gesto, più corto e più
      tardi, così si legge come una seconda voce e non come la coda della
      prima. Niente `opacity` nemmeno qui — sta DENTRO l'h1, quindi i suoi
-     pixel fanno parte del rettangolo che Chrome misura per l'LCP. */
+     pixel fanno parte del rettangolo che Chrome misura per l'LCP.
+     ⚠ Stesso trattamento del titolo, e per lo stesso motivo: `scale(0)` di
+     riposo, `forwards`. Il ritardo (1950ms) resta 200ms dopo quello del
+     titolo — la cascata dentro il gruppo "scritte" non è cambiata, si è
+     spostato solo il momento in cui il gruppo comincia. */
   :global(html.js-anim) .ab__coda {
-    animation: ab-focus-min 850ms var(--ease-out-expo) 900ms both;
+    transform: scale(0);
+    animation: ab-focus-min 850ms var(--ease-out-expo) 1950ms forwards;
   }
 
   :global(html.js-anim) .ab__lede {
     opacity: 0;
-    animation: ab-rise 800ms var(--ease-out-expo) 1050ms forwards;
+    animation: ab-rise 800ms var(--ease-out-expo) 2100ms forwards;
   }
 
   @keyframes ab-focus {

@@ -442,13 +442,17 @@ if (SITE.availability) {
      la bio invisibile per sempre (vedi `settleSplits` in `reveal.ts`).
      ⚠ I RITARDI SONO L'ULTIMA BATTUTA DELLA COREOGRAFIA DELLA HERO, e i
      numeri stanno in sync con quelli scritti in `chi-sono.astro`: campo
-     binario (80-1590ms) → indice → titolo → coda → lede → QUESTA FASCIA.
+     binario (80-1830ms) → indice → titolo → coda → lede → QUESTA FASCIA.
      Toccandone uno lì, va toccato anche qui.
+     ⚠ RISCRITTI IL 2026-08-24 insieme a quelli del titolo (vedi la nota su
+     `.ab` in chi-sono.astro): il gruppo "scritte" comincia ora dopo che il
+     campo ha finito di propagarsi, non a metà, quindi ogni numero qui è
+     scivolato in avanti della stessa quantità.
      Gated su `html.js-anim`: senza JS, con JS rotto o per un crawler la
      fascia è semplicemente lì, completa e leggibile. */
   :global(html.js-anim) .now__rule {
     transform: scaleX(0);
-    animation: now-rule 900ms var(--ease-out-expo) 1180ms forwards;
+    animation: now-rule 900ms var(--ease-out-expo) 2230ms forwards;
   }
 
   :global(html.js-anim) .now__head,
@@ -458,19 +462,19 @@ if (SITE.availability) {
   }
 
   :global(html.js-anim) .now__head {
-    animation-delay: 1320ms;
+    animation-delay: 2370ms;
   }
   :global(html.js-anim) .now__cell:nth-child(1) {
-    animation-delay: 1420ms;
+    animation-delay: 2470ms;
   }
   :global(html.js-anim) .now__cell:nth-child(2) {
-    animation-delay: 1510ms;
+    animation-delay: 2560ms;
   }
   :global(html.js-anim) .now__cell:nth-child(3) {
-    animation-delay: 1600ms;
+    animation-delay: 2650ms;
   }
   :global(html.js-anim) .now__cell:nth-child(4) {
-    animation-delay: 1690ms;
+    animation-delay: 2740ms;
   }
 
   @keyframes now-rule {

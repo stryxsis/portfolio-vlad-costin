@@ -768,6 +768,24 @@ Vlad, guardandola su desktop: «la tabella in basso non mi piace per niente, sto
 
 Verificato via CDP che le quattro celle restano su una riga sola (nessun a-capo indesiderato) e hanno larghezze effettivamente diverse a 1024/1280/1440/1920px (esempio a 1280×800: 86px "Vivo"-simile, 269px "Lavoro", 123px "Studio"-ridotto per via del wrap interno, 210px la pill — non più quattro colonne uguali), zero overflow orizzontale a nessuna delle quattro misure, `.ab` ancora esattamente 900/720px dov'era. Contrasto sul caso peggiore del campo binario, sequenza d'ingresso, `verify:anim` e `verify:stage`: tutti riverificati, tutti verdi — la modifica è solo di layout, nessun colore o tempo è cambiato.
 
+#### Il titolo si vedeva sfocato fin dal primo fotogramma, e `both` ne era la causa (2026-08-24, sesto giro)
+
+Vlad: «quello che succede è che si vede il titolo il sottotitolo e la descrizione sfuocate, io vorrei che non si vedessero proprio, e quando l'animazione del background sta per finire appaiano queste scritte sfuocate e poi che continuano la loro animazione normale come sempre».
+
+⚠ **LA CAUSA È `animation-fill-mode: both`, non il numero del ritardo.** Titolo e inciso animano con `ab-focus`/`ab-focus-min 850ms … 680/900ms both`: `both` applica il fotogramma di partenza (sfocato, `scale(0.985)`, tutt'altro che invisibile) **anche durante il ritardo** — è la stessa ragione per cui `both` era stato scelto in origine (perché il titolo non stesse nitido per 680ms prima di sfocarsi di colpo). Il risultato collaterale, non notato allora: il titolo era visibile e sfocato **dal fotogramma zero**, non dal proprio ritardo. Spostare il numero più avanti non avrebbe cambiato niente — qualunque ritardo con `both` mostra lo stesso fotogramma sfocato fin da t=0.
+
+⚠ **IL FIX NON POTEVA USARE `opacity`**, per la regola LCP che governa questa pagina: il titolo è il candidato LCP, e Chrome esclude dal calcolo un elemento che sia stato a opacità zero anche solo per un istante — vale anche per un `opacity:0` statico tenuto per un po' e poi commutato, non solo per un'animazione di opacità. Serviva un modo di essere REALMENTE invisibili (area dipinta zero) usando solo `transform`/`filter`, che non escludono.
+
+**Il fix**: `.ab__title` e `.ab__coda` dichiarano ora `transform: scale(0)` come stato di riposo **fuori** dalla proprietà `animation`, e l'animazione stessa è passata da `both` a `forwards`. Durante il ritardo vale lo stato di riposo dichiarato a parte (`scale(0)`, zero area, davvero invisibile — non "sfocato ma presente"); nell'istante in cui il ritardo scade, l'animazione **salta di colpo** al proprio fotogramma "from" (`ab-focus`: sfocato a `blur(18px)`, quasi a fuoco) e prosegue con la stessa messa a fuoco di sempre fino allo stato finale, che `forwards` mantiene. Il salto non è un artefatto da correggere: è la "materializzazione" richiesta — non si vede nulla, poi le scritte appaiono già sfocate, poi si mettono a fuoco normalmente.
+
+⚠ **I RITARDI SONO STATI RISCRITTI IN BLOCCO, non solo quello del titolo**, per allineare tutto il gruppo "scritte" alla fine della propagazione del campo invece che a metà. Il campo (`BinaryField.astro`) impiega **1830ms** a propagarsi per intero (33 bande × 40ms + 80ms di partenza + 430ms di ingresso dell'ultima cella — non 1590ms come diceva la nota precedente, stale da quando la griglia è stata ridimensionata a 42×26/34 bande nei giri di ottimizzazione del lag). La sequenza vecchia (indice 560 → titolo 680 → inciso 900 → lede 1050 → filetto 1180 → fascia 1320-1690) copriva la PRIMA METÀ della propagazione; oggi comincia poco prima che il campo finisca (indice 1550 → titolo 1750 → inciso 1950 → lede 2100 → filetto 2230 → fascia 2370-2740), mantenendo però le stesse distanze RELATIVE fra un elemento e il successivo — non è stata ridisegnata la cascata, solo spostato il momento in cui comincia.
+
+⚠ **Il ritardo del titolo (1750ms) cade appena PRIMA della fine della propagazione (1830ms), non dopo**: è la lettura letterale di «quando l'animazione del background STA PER finire», e lascia un residuo di sovrapposizione — le ultime celle del campo stanno ancora arrivando quando il titolo compare — che è il "passaggio di mano" invece di due eventi separati da un vuoto morto, la stessa lezione già scritta per il velo della Home.
+
+⚠ **Indice e lede non hanno avuto bisogno del trattamento `scale(0)`**: non sono candidati LCP, quindi il loro `opacity: 0` di riposo li rendeva già realmente invisibili fin dalla prima stesura — il loro problema non era la visibilità, era solo che partivano troppo presto rispetto al campo. Bastava spostare i numeri.
+
+**Verificato via CDP** (sonda dedicata, campioni ogni 150ms): titolo e inciso restano a `matrix(0,0,0,0,0,0)` — area dipinta 0×0 — per tutta l'attesa, poi passano in un solo salto di campione a `blur(~18px)`/`blur(~5px)` con l'area piena (1325×308), e discendono in modo monotono a `blur(0px)` entro ~1,3s da lì. Reduced-motion: `transform: none; filter: none` dal primissimo campione, nessuna attesa. Nessuna regressione di layout: `.ab` ancora esattamente 900/720/1076px alle tre altezze di riferimento, zero overflow orizzontale.
+
 ### /chi-sono §02 — la timeline: momenti, coda, e il titolo nuovo (2026-08-14)
 
 Quattro richieste di Vlad in un colpo. Il titolo e la lede sono **testo suo, dettato parola per parola**; i testi delle due voci nuove li ho **scritti io** su sua indicazione di contenuto (il bivio, il sito online) — se non lo convincono, sono da riscrivere.
@@ -1008,7 +1026,7 @@ Questo repo è tracciato su GitHub (`portfolio-vlad-costin`, pubblico). L'utente
 
 Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrittura della history) senza conferma esplicita.
 
-## Riepilogo — fatto e da fare (aggiornato 2026-08-23)
+## Riepilogo — fatto e da fare (aggiornato 2026-08-24)
 
 ⚠ Questa tabella è uno **snapshot**, non una fonte di verità: per il dettaglio di ogni riga, la sezione dedicata più sopra resta quella corretta. Se le due divergono un giorno, vince il corpo del file, non la tabella.
 
@@ -1031,6 +1049,7 @@ Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrit
 | /chi-sono — hero | Nuovo titolo a due registri, lede in prima persona (`bioIo`), pannello "Adesso" con 4 righe (lavoro/studio/dove vivo/disponibilità), hero alta uno schermo | /chi-sono — la hero |
 | /chi-sono — hero (2° giro) | Fondale di 0 e 1 che si accende con un'onda che si propaga e resta vivo (alcune cifre e alcune sequenze commutano); le informazioni rapide scendono in una fascia a piede schermo; ingresso a tempo, campo → indice → titolo → inciso → lede → fascia. Stesse scritte, composizione e coreografia nuove | /chi-sono §00 — il campo binario |
 | /chi-sono — hero (3° giro) | Ottimizzato il lag del campo binario (animazioni fuse, celle che commutano dimezzate, `contain: strict`); la fascia "Adesso" da colonne uguali con filetto verticale ("una tabella") a celle a larghezza libera separate da spazio | /chi-sono §00 — il campo binario, La fascia "Adesso" era una tabella |
+| /chi-sono — hero (4° giro) | Titolo/inciso non più visibili-sfocati fin dal primo fotogramma (`both`→`forwards` + `scale(0)` di riposo, senza toccare `opacity` sul candidato LCP); tutta la cascata "scritte" spostata a dopo la fine della propagazione del campo (1830ms) invece che a metà | /chi-sono §00 — il titolo si vedeva sfocato fin dal primo fotogramma |
 | /chi-sono — bug avviso | L'avviso "cantiere aperto" non sposta più la hero (`--chrome-shift` non sommato, `SectionIndex` forzato `static`) | Il seguito, 2026-08-14 |
 | /chi-sono — fascia del metodo | Nuova sezione "Il Superpotere" sotto la hero: citazione pura, poi parole d'accento animate (caffè/nottate/ossessione), alone di sfondo, sequenza a tempo | /chi-sono — la fascia del metodo (4 giri) |
 | /chi-sono — timeline | Aggiunti il "primo grande bivio" (giu 2024) e la pubblicazione del primo sito (ago 2026) come voci-momento; coda finale animata ("Vediamo cosa mi aspetta…"); titolo e lede riscritti con parole d'accento | /chi-sono §02 — la timeline |
