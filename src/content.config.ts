@@ -14,60 +14,6 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { HEX, paletteProblems } from './lib/palette';
-
-const hex = z.string().regex(HEX, 'colore atteso come #rgb o #rrggbb, senza alfa');
-
-/**
- * La palette del progetto (vedi src/lib/palette.ts). Opzionale: senza, il case
- * study usa i colori del sito. ⚠ Il contrasto delle coppie che il layout usa
- * davvero è verificato QUI: una palette sotto soglia non compila.
- */
-const palette = z
-  .object({
-    background: hex,
-    surface: hex,
-    accent: hex,
-    accentSecondary: hex.optional(),
-    border: hex,
-    text: hex,
-    textMuted: hex,
-  })
-  .superRefine((p, ctx) => {
-    for (const message of paletteProblems(p)) ctx.addIssue({ code: 'custom', message });
-  });
-
-/**
- * Un risultato. ⚠ `verified` è FALSE di default, ed è la riga che conta di più
- * in tutto lo schema: una metrica compare nel case study, nel mirror .md e nel
- * JSON-LD SOLO se è dichiarata verificata, e una metrica verificata DEVE dire
- * da dove viene. Così un `[placeholder]` dimenticato nel frontmatter non
- * diventa mai un numero pubblicato: resta nel file, invisibile.
- */
-const metric = z
-  .object({
-    label: z.string(),
-    value: z.string(),
-    unit: z.string().optional(),
-    /** Da dove viene il numero: "Google Analytics del cliente", "log del server"… */
-    source: z.string().optional(),
-    /** Su quale intervallo: "ott–dic 2025". */
-    period: z.string().optional(),
-    /** Come è stato misurato, se non è ovvio dalla fonte. */
-    method: z.string().optional(),
-    /** Il valore di partenza, se il risultato è un confronto. */
-    baseline: z.string().optional(),
-    /** `benchmark` = misura tecnica di laboratorio (es. peso di pagina);
-     *  `cliente` = risultato osservato sul progetto vero. Si rendono distinti. */
-    kind: z.enum(['cliente', 'benchmark']).default('cliente'),
-    verified: z.boolean().default(false),
-  })
-  .refine((m) => !m.verified || Boolean(m.source), {
-    message: 'una metrica `verified: true` deve dichiarare `source`',
-  })
-  .refine((m) => !m.verified || !/placeholder/i.test(m.value), {
-    message: 'una metrica verificata non può avere un valore segnaposto',
-  });
 
 /**
  * `!**\/_*` esclude i file con prefisso underscore.
@@ -99,46 +45,14 @@ const projects = defineCollection({
       updatedDate: z.coerce.date().optional(),
       stack: z.array(z.string()).default([]),
 
-      /** Risultati. Vivono nel frontmatter e non nel corpo perché vengono
-       *  renderizzati come modulo dedicato E riusati nel mirror .md. Si
-       *  pubblicano SOLO quelli `verified` — vedi `metric` qui sopra. */
-      metrics: z.array(metric).default([]),
-
-      /** Tipologia mostrata nel palco ("Gestionale web", "Sito evento"…). */
-      category: z.string().optional(),
-
-      /**
-       * `demo` = progetto di ESEMPIO, contenuti segnaposto. Resta pubblicato
-       * (gli URL esistono già e non devono rompersi), ma il palco lo dichiara a
-       * voce alta invece di lasciarlo passare per un case study verificato.
-       * Diverso da `draft`, che invece non viene pubblicato affatto.
-       */
-      status: z.enum(['published', 'demo']).default('published'),
-
-      palette: palette.optional(),
+      /** Risultati misurati. Vivono nel frontmatter e non nel corpo perché
+       *  vengono renderizzati come riga di statistiche E finiscono nel JSON-LD. */
+      metrics: z
+        .array(z.object({ label: z.string(), value: z.string() }))
+        .default([]),
 
       cover: image(),
       coverAlt: z.string(),
-      /**
-       * Cosa è la cover. `screenshot` = il prodotto vero; `illustration` =
-       * un'immagine astratta che lo evoca. Il palco lo DICE (una label accanto
-       * al visual): un'illustrazione non deve passare per uno screenshot.
-       */
-      coverKind: z.enum(['screenshot', 'illustration']).default('illustration'),
-      /**
-       * Come la cover riempie la cornice del palco. `contain` non ritaglia
-       * niente (lo screenshot resta intero, con del margine); `cover` ritaglia
-       * e allora conta `coverFocal`. In nessuno dei due casi la bitmap si
-       * deforma: cambia la cornice, mai le proporzioni dell'immagine.
-       */
-      coverFit: z.enum(['contain', 'cover']).default('cover'),
-      /** Il punto da tenere in vista quando la cover è ritagliata, in % (0–100). */
-      coverFocal: z
-        .object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) })
-        .default({ x: 50, y: 50 }),
-      /** Screenshot della versione mobile, SOLO se esiste davvero. */
-      coverMobile: image().optional(),
-      coverMobileAlt: z.string().optional(),
       gallery: z.array(z.object({ src: image(), alt: z.string() })).default([]),
       /** Se assente, l'immagine OG viene derivata dalla cover. */
       ogImage: image().optional(),
@@ -153,9 +67,6 @@ const projects = defineCollection({
       /** Ampiezza della card nella griglia non ortogonale del portfolio. */
       span: z.enum(['small', 'wide', 'tall', 'full']).default('small'),
       draft: z.boolean().default(false),
-    })
-    .refine((d) => !d.coverMobile || Boolean(d.coverMobileAlt), {
-      message: '`coverMobile` richiede `coverMobileAlt`',
     }),
 });
 

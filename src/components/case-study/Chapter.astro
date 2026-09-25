@@ -26,14 +26,9 @@ const { id, title } = Astro.props;
 const meta = CHAPTERS[id];
 ---
 
-{/* ⚠ Il numero NON è scritto nel markup: lo produce il contatore CSS
-    `cs-chapter` dall'ordine in cui i capitoli compaiono (il reset sta sul
-    corpo del case study). I moduli sono opzionali, e un numero fisso per id
-    darebbe "01, 02, 06" a un case study senza i capitoli di mezzo. L'indice
-    del layout conta nello stesso modo, quindi i due non possono divergere. */}
 <section id={id} class="chapter" aria-labelledby={`${id}-h`} data-reveal>
   <header class="chapter__head">
-    <span class="chapter__n" aria-hidden="true"></span>
+    <span class="chapter__n" aria-hidden="true">{meta.n}</span>
     <h2 id={`${id}-h`} class="chapter__title">{title ?? meta.title}</h2>
   </header>
   <div class="prose chapter__body"><slot /></div>
@@ -41,26 +36,10 @@ const meta = CHAPTERS[id];
 
 <style>
   .chapter {
-    counter-increment: cs-chapter;
-    /* L'header fisso non deve coprire il titolo quando si arriva da un
-       anchor (#sfida). Lenis legge `scroll-margin-top` da sé. */
-    scroll-margin-top: calc(var(--nav-h) + 1.5rem);
     display: grid;
     gap: 1.5rem;
     padding-block: clamp(3rem, 6vw, 5rem);
-    border-top: 1px solid var(--cs-border, var(--color-hairline));
-  }
-
-  /* ⚠ PRIMA della media query qui sotto, non dopo. Stava dopo, e siccome una
-     media query non aggiunge specificità la regola base vinceva: da 900px in
-     su `.chapter__head` restava `flex` invece di `contents`, numero e titolo
-     finivano entrambi nella colonna da 4rem, e il titolo — largo 220px dentro
-     una colonna da 64 — si sovrapponeva al testo. Visibile in produzione da
-     prima del 2026-09-25, trovato misurando la griglia via CDP. */
-  .chapter__head {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
+    border-top: 1px solid var(--color-hairline);
   }
 
   @media (min-width: 56.25rem) {
@@ -73,6 +52,11 @@ const meta = CHAPTERS[id];
     }
   }
 
+  .chapter__head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
 
   /* Il numero resta agganciato mentre si legge il capitolo: dice "sei qui"
      senza aggiungere una barra di progresso. */
@@ -81,10 +65,7 @@ const meta = CHAPTERS[id];
     font-size: var(--text-label);
     font-weight: 500;
     letter-spacing: 0.09em;
-    color: var(--cs-accent, var(--color-text-3));
-  }
-  .chapter__n::before {
-    content: counter(cs-chapter, decimal-leading-zero);
+    color: var(--color-text-3);
   }
   @media (min-width: 56.25rem) {
     .chapter__n {
@@ -107,10 +88,6 @@ const meta = CHAPTERS[id];
   @media (min-width: 56.25rem) {
     .chapter__body {
       grid-column: 2;
-      /* La griglia ha `row-gap: 0` (serve al numero sticky, che deve stare
-         alla stessa altezza del titolo): lo stacco titolo→testo lo dà il
-         corpo. */
-      margin-top: 1.5rem;
     }
   }
 </style>

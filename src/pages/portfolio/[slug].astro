@@ -24,10 +24,10 @@ export const getStaticPaths = (async () => {
   );
 }) satisfies GetStaticPaths;
 
-const { project, all, index, prev, next } = Astro.props;
+const { project, next } = Astro.props;
 const { Content } = await render(project);
 ---
 
-<CaseStudyLayout project={project} all={all} index={index} prev={prev} next={next}>
+<CaseStudyLayout project={project} next={next}>
   <Content />
 </CaseStudyLayout>

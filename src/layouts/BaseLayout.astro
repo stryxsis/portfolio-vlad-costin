@@ -156,9 +156,6 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
       solo punto in cui vive la logica del sito (scroll, reveal, navbar…),
       loro sono telemetria di piattaforma, un'altra categoria.
     */}
-    {/* Script inline specifici di una pagina, che devono girare PRIMA del
-        bundle (oggi solo i case study: vedi CaseStudyLayout). */}
-    <slot name="head" />
     <script>
       import '../scripts/boot';
     </script>

@@ -70,8 +70,6 @@
 import { Picture } from 'astro:assets';
 import SectionIndex from '../primitives/SectionIndex.astro';
 import Button from '../primitives/Button.astro';
-import { getCollection } from 'astro:content';
-import { caseStudyHref } from '../../lib/collections';
 
 /* ---- I reel VERI ---------------------------------------------------------
    Screenshot lunghi catturati via CDP dal sito online, non mockup. Le
@@ -113,16 +111,6 @@ interface Showcase {
   /** Se assente, la vetrina monta il wireframe disegnato. */
   reel?: { desktop: ImageMetadata; mobile: ImageMetadata };
   reelAlt?: string;
-  /**
-   * Lo slug del case study nella collection `projects`, se ne ha uno. È il
-   * PONTE fra questa vetrina e il catalogo dei case study, così i due non
-   * diventano due cataloghi che si contraddicono: la vetrina non scrive a mano
-   * nessun URL interno, chiede alla collection se quella pagina esiste.
-   * "Leggi il case study" compare solo se il case study è pubblicato (in dev
-   * anche da bozza, come ovunque); uno slug che non esiste proprio è un
-   * errore di build, non un bottone che sparisce in silenzio.
-   */
-  caseStudy?: string;
 }
 
 const SHOWCASE: Showcase[] = [
@@ -140,8 +128,6 @@ const SHOWCASE: Showcase[] = [
     reel: { desktop: reelNetworkDayDesktop, mobile: reelNetworkDayMobile },
     reelAlt:
       'Il sito del Network Day 2026 di JEParma: la schermata di apertura con il countdown e la sezione che presenta il tema Schilderwald',
-    /* Oggi è una BOZZA: il link compare in dev e non in produzione. */
-    caseStudy: 'network-day-2026',
   },
   {
     kind: 'site',
@@ -168,16 +154,6 @@ const SHOWCASE: Showcase[] = [
    sostituisce — riportare a `SHOWCASE.length` (o a uno slice più ampio)
    quando arrivano i contenuti reali. */
 const VISIBLE_SHOWCASE = SHOWCASE.slice(0, 1);
-
-/* Il guard sul ponte con la collection: contro TUTTI i progetti, bozze
-   comprese, così uno slug sbagliato si scopre in build e non in produzione. */
-const known = new Set((await getCollection('projects')).map((p) => p.id));
-for (const p of SHOWCASE) {
-  if (p.caseStudy && !known.has(p.caseStudy)) {
-    throw new Error(`[FeaturedProjects] caseStudy "${p.caseStudy}" non esiste in src/content/progetti`);
-  }
-}
-const caseHrefs = await Promise.all(VISIBLE_SHOWCASE.map((p) => caseStudyHref(p.caseStudy)));
 
 /* ---- Il reel: il wireframe di una pagina, alto ~2,6 schermate -------------
    ⚠ RITAGLIATO A ~2,6 SCHERMATE, NON ALLA PAGINA INTERA, e vale anche per gli
@@ -311,16 +287,6 @@ const TURNS = [
                  non in cima, perché il problema del focus invisibile
                  ricomparirà con un link vero. */}
               <p class="fp__actions">
-                {
-                  /* Interno, e distinto dall'esterno: nessuna freccia obliqua,
-                     stessa scheda. Stesso ragionamento sul focus della nota qui
-                     sotto: oggi solo la card 0 ha un case study. */
-                  caseHrefs[i] && (
-                    <a class="fp__cta fp__cta--link" href={caseHrefs[i]}>
-                      Leggi il case study
-                    </a>
-                  )
-                }
                 {
                   p.url ? (
                     /* Progetto online: link VERO, esterno.
@@ -820,8 +786,6 @@ const TURNS = [
 
   .fp__actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
   }
 
   /* La pill: il disegno del bottone outline, senza essere un controllo (vedi la

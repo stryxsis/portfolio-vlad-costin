@@ -16,7 +16,6 @@ import { initLoader } from './loader';
 import { initGlobe404 } from './globe404';
 import { initLightfall } from './lightfall';
 import { initCampoBinario } from './campoBinario';
-import { initCaseSwitch } from './case-switch';
 
 declare global {
   interface Window {
@@ -63,10 +62,6 @@ function boot(): void {
        questo dispositivo. Vedi campoBinario.ts per il perché non lo decide un
        controllo su `hardwareConcurrency` come faceva la prima stesura. */
     initCampoBinario();
-    /* Esce da solo fuori dai case study. Non anima niente: prepara il passaggio
-       fra un progetto e l'altro, che è una navigazione normale — vedi
-       case-switch.ts. */
-    initCaseSwitch();
 
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).

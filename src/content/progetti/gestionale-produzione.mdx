@@ -22,24 +22,6 @@ metrics:
   - label: 'Tempo per un preventivo'
     value: '[placeholder]'
 
-# Tipologia mostrata nel palco. Ricavata dal titolo, non un fatto nuovo.
-category: 'Gestionale web'
-# Progetto di ESEMPIO: resta pubblicato (l'URL esiste già), ma il palco lo
-# dichiara come contenuto segnaposto.
-status: demo
-
-# ⚠ PALETTE PROVVISORIA (cobalto): scelta per dare al progetto un'atmosfera
-# riconoscibile, NON sono i colori ufficiali di nessun cliente. Da sostituire
-# con quelli veri del progetto. Il contrasto è verificato in build.
-palette:
-  background: '#070a14'
-  surface: '#0e1424'
-  accent: '#7d98ff'
-  accentSecondary: '#3d5bd9'
-  border: '#28324f'
-  text: '#f4f6ff'
-  textMuted: '#a4acc6'
-
 cover: ../../assets/progetti/gestionale-produzione/cover.jpg
 coverAlt: 'Composizione astratta di barre verticali che richiama un grafico di produzione'
 
@@ -51,9 +33,6 @@ draft: false
 
 import Chapter from '../../components/case-study/Chapter.astro';
 import CaseQuote from '../../components/case-study/CaseQuote.astro';
-import Steps from '../../components/case-study/Steps.astro';
-import Step from '../../components/case-study/Step.astro';
-import ProblemSolution from '../../components/case-study/ProblemSolution.astro';
 
 <Chapter id="contesto">
 
@@ -88,41 +67,22 @@ Questa frase ha deciso il progetto più di qualunque requisito tecnico.
 
 [placeholder]
 
-<Steps>
-<Step title="Prima le domande">
+### Prima le domande
 
 Ho passato i primi giorni a guardare come lavoravano, non a scrivere codice.
 Sono uscite tre cose che non erano nei requisiti e una che c'era ma non serviva
 a nessuno.
 
-</Step>
-<Step title="Poi la struttura">
+### Poi la struttura
 
 Ho modellato i dati sul modo in cui le commesse si muovono davvero, non su come
 erano organizzate le colonne del foglio. È il passaggio che ha richiesto più
 discussioni e quello che ha fatto risparmiare più tempo dopo.
 
-</Step>
-<Step title="Il codice per ultimo">
+### Il codice per ultimo
 
 Interfaccia volutamente noiosa: le stesse etichette che usavano già a voce,
 niente terminologia nuova da imparare.
-
-</Step>
-</Steps>
-
-</Chapter>
-
-<Chapter id="problemi">
-
-[placeholder — un esempio della struttura del modulo. Il problema viene dal
-contesto qui sopra; intervento e compromesso vanno scritti con i fatti veri.]
-
-<ProblemSolution
-  title="Due persone, un file"
-  problem="Il foglio di calcolo condiviso veniva aperto da più persone insieme, e vinceva l'ultima a salvare."
-  solution="[placeholder — l'intervento reale.]"
-/>
 
 </Chapter>
 
