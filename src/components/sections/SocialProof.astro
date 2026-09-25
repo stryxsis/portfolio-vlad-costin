@@ -3,12 +3,23 @@
  * §20 SOCIAL PROOF (REVISION)
  *
  * Stile Boutique: Titolo gigante che prende la scena e griglia fissa rigorosa
- * di 3 loghi SVG eleganti. Niente raggruppamenti per tipologia.
+ * di loghi (oggi quattro). Niente raggruppamenti per tipologia.
  */
 
-// Placeholder tipografici in SVG per i 3 brand.
-// Il colore è impostato su 'currentColor' così si integra col CSS (grigio elegante, bianco in hover).
-const LOGOS = [
+import { Image } from 'astro:assets';
+import kimereLogo from '../../assets/loghi/kimere.png';
+
+/* I loghi della riga. Tre sono SVG inline (`svg`), uno è un'immagine (`img`).
+   ⚠ KIMERE È UN PNG E NON UN SVG, e non per pigrizia: il vettoriale che esiste
+   (`kimere-logo-source.svg`) è un RICALCO automatico con 3792 tracciati, 787 KB
+   — inline avrebbe quasi raddoppiato l'HTML della Home per un logo alto 56px.
+   Il marchio ha texture pittorica e sfumature, quindi un raster a 240px di
+   altezza (3-4× la misura a schermo) non perde niente, e `<Image>` lo serve in
+   WebP da pochi KB. La silhouette grigia e l'accensione funzionano identiche:
+   `filter` agisce su un'immagine come su un SVG, e la classe è la stessa. */
+type Logo = { name: string; url?: string } & ({ svg: string } | { img: ImageMetadata });
+
+const LOGOS: Logo[] = [
   {
     name: 'JEParma',
     url: 'https://www.jeparma.it/',
@@ -136,6 +147,11 @@ const LOGOS = [
 </g>
 </g>
 </svg>`
+  },
+  {
+    name: 'Kimere',
+    url: 'https://kimereconsulting.com/',
+    img: kimereLogo,
   }
 ];
 
@@ -218,7 +234,12 @@ const VISIBLE_LOGOS = LOGOS;
             const props = logo.url ? { href: logo.url, target: "_blank", rel: "noopener noreferrer" } : {};
             return (
               <Tag class="sp__logo-wrapper" aria-label={logo.name} {...props}>
-                <Fragment set:html={logo.svg} />
+                {'img' in logo ? (
+                  /* `alt=""`: il nome lo dà già l'aria-label del contenitore. */
+                  <Image src={logo.img} alt="" height={112} class="sp__logo-svg sp__logo-img" loading="lazy" />
+                ) : (
+                  <Fragment set:html={logo.svg} />
+                )}
               </Tag>
             );
           })
@@ -271,6 +292,15 @@ const VISIBLE_LOGOS = LOGOS;
     background-clip: text;
     color: transparent;
     font-weight: 500;
+  }
+
+  /* ⚠ Una parola non va MAI a capo a metà. SplitText la spezza in lettere
+     `inline-block`, e fra due blocchi il browser trova un punto di a capo
+     legittimo: a 390px il titolo andava a capo come «Ecco chi mi ha g / ià».
+     `nowrap` sulla parola toglie quei punti dentro di lei, e lascia intatti
+     quelli fra una parola e l'altra. */
+  .sp__word {
+    white-space: nowrap;
   }
 
   /* =======================================================================
@@ -349,7 +379,10 @@ const VISIBLE_LOGOS = LOGOS;
     justify-content: center; /* Loghi centrati orizzontalmente! */
     width: 100%; /* Forza la griglia a prendere tutto lo spazio per poter centrare */
     margin-inline: auto;
-    gap: clamp(3rem, 8vw, 8rem); /* Distanza aumentata tra i loghi */
+    /* ⚠ Il minimo era 3rem: con quattro loghi (dal 2026-09-25) a 390px il
+       quarto andava a capo da solo. 2rem li tiene su una riga; sopra i ~400px
+       vince comunque il termine in vw, quindi il desktop non cambia. */
+    gap: clamp(2rem, 8vw, 8rem);
     border-top: 1px solid var(--color-hairline);
     border-bottom: 1px solid var(--color-hairline);
     margin-top: clamp(3rem, 7vw, 6rem);
@@ -421,6 +454,9 @@ const VISIBLE_LOGOS = LOGOS;
   :global(html.js-anim) .sp__logos .sp__logo-wrapper:nth-child(3) {
     --sp-in-delay: 1840ms;
   }
+  :global(html.js-anim) .sp__logos .sp__logo-wrapper:nth-child(4) {
+    --sp-in-delay: 1960ms;
+  }
 
   /* Il blocco è stato attraversato in un colpo: stato finale subito, niente
      cascata da guardare. Azzerati ritardo E durata — un'animazione di cui
@@ -439,7 +475,6 @@ const VISIBLE_LOGOS = LOGOS;
     align-items: center;
     color: var(--color-text-3); /* Grigio elegante di base per gli SVG */
     transition: color 320ms var(--ease-out-expo), transform 320ms var(--ease-out-expo);
-    cursor: default;
   }
 
   @media (hover: hover) {
@@ -580,6 +615,9 @@ const VISIBLE_LOGOS = LOGOS;
     :global(html.js-anim) .sp__logos.is-in .sp__logo-wrapper:nth-child(3) :global(.sp__logo-svg) {
       transition-delay: 3080ms;
     }
+    :global(html.js-anim) .sp__logos.is-in .sp__logo-wrapper:nth-child(4) :global(.sp__logo-svg) {
+      transition-delay: 3220ms;
+    }
     /* I tre toni di Reggiana passano ai colori veri insieme al proprio logo, non
        prima: la `transition-delay` va ripetuta qui perché i `.rpk-*` hanno una
        transizione PROPRIA (`fill`), che non erediterebbe quella dell'SVG
@@ -605,6 +643,7 @@ const VISIBLE_LOGOS = LOGOS;
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(1) :global(.sp__logo-svg),
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(2) :global(.sp__logo-svg),
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(3) :global(.sp__logo-svg),
+    :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(4) :global(.sp__logo-svg),
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(3) :global(.rpk-ink),
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(3) :global(.rpk-leaf),
     :global(html.js-anim) .sp__logos.is-instant .sp__logo-wrapper:nth-child(3) :global(.rpk-void) {

@@ -1,16 +1,16 @@
 /**
  * Testimonianze.
  *
- * ⚠⚠ LE PRIME DUE VOCI (dal 2026-09-25) SONO PERSONE VERE CON FRASI PROVVISORIE,
- * vedi il commento sopra di loro. LE ALTRE NOVE SONO SEGNAPOSTO, non
- * testimonianze reali. Stanno qui su
- * richiesta esplicita di Vlad per lavorare sulla grafica della sezione, e la
- * sezione resta accesa (`SITE.features.testimonials`) finché non chiede lui di
- * spegnerla — non rimuoverle né rispegnere il flag di propria iniziativa.
+ * ⚠⚠ PERSONE VERE, FRASI PROVVISORIE (dal 2026-09-25). I nomi, i ruoli e le
+ * foto sono reali e li ha dati Vlad; le CITAZIONI le ho scritte io su sua
+ * richiesta, come segnaposto verosimile, in attesa delle parole vere di
+ * ciascuno. Vanno sostituite PRIMA DI QUALUNQUE DEPLOY: una frase messa in
+ * bocca a una persona esistente è peggio di un nome fra parentesi quadre, ed è
+ * l'unica cosa che, se scoperta, azzera la fiducia in tutto il resto della
+ * pagina.
  *
- * PRIMA DI PUBBLICARE vanno sostituite con citazioni vere: una testimonianza
- * inventata su un portfolio è l'unica cosa che, se scoperta, azzera la fiducia
- * in tutto il resto della pagina.
+ * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
+ * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
  *
  * ⚠⚠ LA LUNGHEZZA DI QUESTO ARRAY DECIDE IL LAYOUT DELLA SEZIONE.
  * `Testimonials.astro` sceglie l'impianto in base a quante voci ci sono:
@@ -20,63 +20,49 @@
  *    6-8      il muro che scorre, 2 colonne
  *    9+       il muro che scorre, 3 colonne
  *
- * Non c'è niente da cambiare nel codice per passare da uno all'altro: si
- * aggiungono citazioni qui e la Home si adegua. La soglia e il perché dei numeri
- * stanno in testa a Testimonials.astro.
+ * Oggi sono sei: il muro a due colonne da tre. Togliendone una la sezione passa
+ * da sola alle righe editoriali, e non c'è niente da cambiare nel codice.
  *
- * ⚠ PERCHÉ SONO NOVE E NON TRE (cambiato il 2026-08-06). Erano tre, quando la
- * sezione era una riga di tre card affiancate. Nove è il minimo che riempie le
- * TRE colonne del muro: una colonna che scorre in loop ha bisogno di abbastanza
- * card da essere più alta della finestra che la mostra, altrimenti si vede la
- * giuntura del ciclo. Con tre citazioni in tre colonne ogni colonna avrebbe
- * mostrato la stessa frase in loop: non è una grafica da giudicare, è un difetto
- * da guardare.
+ * ⚠ L'ORDINE È UNA DECISIONE EDITORIALE. Il muro divide l'array in fette da
+ * ceil(n / colonne) e sotto i breakpoint resta visibile solo la PRIMA: su
+ * telefono si leggono le prime tre voci. Per questo in testa c'è una voce per
+ * cliente diverso (Reggiana, JEParma, Kimere) e non i tre soci di Reggiana di
+ * fila.
  *
- * Il compromesso che rende i segnaposto utili senza fabbricare una persona:
- *   - i NOMI stanno fra parentesi quadre e sono coppie dell'alfabeto NATO
- *     (Alfa Bravo, Charlie Delta, ...), quindi nessuna frase è attribuita a un
- *     individuo che potrebbe esistere. ⚠ La scelta NON è un vezzo: le iniziali
- *     alimentano il monogramma quando manca la foto (vedi TestimonialCard), e
- *     nove card marcate tutte "[Nome Cognome]" avrebbero prodotto nove cerchi
- *     identici con dentro "NC" — che in un muro si legge come un errore di
- *     rendering, non come un segnaposto. Coppie diverse danno monogrammi diversi
- *     conservando la LUNGHEZZA di un nome vero, che è ciò che conta per giudicare
- *     l'impaginazione della riga di attribuzione;
- *   - i RUOLI restano fra parentesi quadre, di lunghezze diverse per lo stesso
- *     motivo;
- *   - le CITAZIONI hanno lunghezza e ritmo realistici, perché è l'unica cosa che
- *     permette di giudicare l'impaginazione delle card. Sono deliberatamente di
- *     lunghezze molto diverse (da ~110 a ~205 caratteri): in un muro di card è la
- *     DISPARITÀ, non la media, che si vede;
- *   - gli URL social puntano alla HOME della piattaforma, non a un profilo
- *     inventato.
- *
- * ⚠ L'ORDINE DI QUESTO ARRAY È UNA DECISIONE EDITORIALE, non un caso. Le colonne
- * si riempiono a fette di tre (0-2 / 3-5 / 6-8) e le colonne 2 e 3 SPARISCONO
- * sotto i breakpoint (vedi Testimonials.astro): su telefono si legge solo la
- * PRIMA fetta. Quindi le tre citazioni più forti vanno messe in testa, non in
- * fondo. Le prime tre qui sono anche di tre lunghezze diverse, così la colonna
- * visibile da sola resta rappresentativa dell'impaginazione.
+ * Le foto (`avatar`) stanno in /public/img/testimonianze, ritagliate sul volto
+ * a 128px dagli originali in src/assets/testimonianze/originali. Chi non ha una
+ * foto riceve il monogramma dalle iniziali (TestimonialIdentity). I social
+ * puntano al sito dell'organizzazione, non a un profilo personale indovinato.
  */
 import type { Testimonial } from '../lib/types';
 
 export const TESTIMONIALS: Testimonial[] = [
-  /* -- Persone VERE, citazioni PROVVISORIE (2026-09-25) --------------------
-     ⚠ Nomi e ruoli sono reali e dati da Vlad; le FRASI le ho scritte io su
-     sua richiesta, come segnaposto verosimile, in attesa delle citazioni
-     vere. Vanno sostituite con le loro parole prima di qualunque deploy: una
-     frase messa in bocca a una persona esistente è peggio di un nome fra
-     parentesi quadre. In testa perché la prima colonna è l'unica visibile su
-     telefono. I social puntano al sito dell'organizzazione, non a un profilo
-     personale indovinato. */
+  /* -- Prima colonna: l'unica visibile su telefono ------------------------ */
+  {
+    quote:
+      'Gli abbiamo portato nove famiglie di prodotti e tre modi diversi di raccontarle. Ne è uscito un sito che un cliente capisce al primo giro, e che finalmente somiglia a come lavoriamo davvero.',
+    name: 'Giorgio Canalini',
+    role: 'Cofondatore · Reggiana Packaging',
+    avatar: '/img/testimonianze/giorgio-canalini.webp',
+    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
+  },
   {
     quote:
       'In JEParma Vlad è quello a cui passi un progetto sapendo che arriverà in fondo. Il sito del Network Day l’ha costruito mentre seguiva anche i clienti, e per la prima volta i partecipanti sono arrivati all’evento sapendo già dove andare.',
     name: 'Andrea D’Amico',
     // U+2060 attorno al trattino: su telefono l'anno andava a capo a metà.
-    role: 'Ex presidente · JEParma 2025\u2060–\u20602026',
+    role: 'Ex presidente · JEParma 2025⁠–⁠2026',
     socials: [{ kind: 'sito', url: 'https://www.jeparma.it/' }],
   },
+  {
+    quote:
+      'Avevamo due pubblici che non parlano la stessa lingua: studenti da tutto il mondo e università. Vlad li ha separati senza farci sembrare due aziende diverse, e ha trasformato una burocrazia complicata in pagine che si leggono.',
+    name: 'Chiara',
+    role: 'Fondatrice · Kimere',
+    socials: [{ kind: 'sito', url: 'https://kimereconsulting.com/' }],
+  },
+
+  /* -- Seconda colonna ---------------------------------------------------- */
   {
     quote:
       'Ci serviva un sito che parlasse ai ristoratori senza perdere il calore del laboratorio. Prima della grafica ha voluto capire chi sono i nostri clienti, e oggi è il primo link che mandiamo a un nuovo partner.',
@@ -84,93 +70,20 @@ export const TESTIMONIALS: Testimonial[] = [
     role: 'Ex cofondatore · ALSI Gluten Free',
     socials: [{ kind: 'sito', url: 'https://www.alsiglutenfree.com/' }],
   },
-
-  /* -- Segnaposto --------------------------------------------------------
-     ⚠ Le colonne non cadono più sui gruppi da tre di prima: il muro divide
-     l'array in fette da ceil(n / colonne) (TestimonialsWall.astro), quindi
-     con undici voci sono 4 / 4 / 3. */
   {
     quote:
-      'Gli ho descritto il problema male, e mi ha restituito la domanda giusta prima di scrivere una riga di codice.',
-    name: '[Alfa Bravo]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'sito', url: 'https://example.com/' },
-    ],
+      'Quando incontro un’azienda nuova, il sito è la prima cosa che guardano. Oggi lo mando prima della riunione, non dopo, e non devo più spiegare cosa manca.',
+    name: 'Francesco Fantesini',
+    role: 'Cofondatore · Reggiana Packaging',
+    avatar: '/img/testimonianze/francesco-fantesini.webp',
+    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
   },
   {
     quote:
-      'Abbiamo lavorato insieme su una scadenza stretta. Non ha mai promesso più di quello che poteva consegnare, e ha consegnato tutto quello che aveva promesso.',
-    name: '[Charlie Delta]',
-    role: '[Ruolo più lungo] · [Azienda]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'github', url: 'https://github.com/' },
-    ],
-  },
-  {
-    quote:
-      'La parte tecnica la davo per scontata. Quello che mi ha colpito è che tornava con domande sul perché una funzione servisse, non solo su come scriverla. Il sito che ne è uscito lo usiamo ancora ogni giorno.',
-    name: '[Echo Foxtrot]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'instagram', url: 'https://www.instagram.com/' },
-      { kind: 'sito', url: 'https://example.com/' },
-    ],
-  },
-
-  {
-    quote:
-      'Ha riscritto una pagina che ci metteva otto secondi ad aprirsi. Adesso è sotto il secondo, e non me ne ero accorto finché non me lo ha fatto vedere con i numeri alla mano.',
-    name: '[Golf Hotel]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/' }],
-  },
-  {
-    quote:
-      'Spiega le cose senza farti sentire stupido. Per me, che non sono del settore, è stata la differenza fra decidere e fidarmi.',
-    name: '[India Juliett]',
-    role: '[Ruolo] · [Azienda molto lunga]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'sito', url: 'https://example.com/' },
-    ],
-  },
-  {
-    quote:
-      'Puntuale nelle consegne e chiaro nei preventivi: nessuna sorpresa a fine progetto, che nella mia esperienza non è affatto la norma.',
-    name: '[Kilo Lima]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [{ kind: 'sito', url: 'https://example.com/' }],
-  },
-
-  {
-    quote:
-      'Gli abbiamo chiesto una cosa e lui ne ha proposta una più semplice che risolveva lo stesso problema. Abbiamo fatto come diceva lui.',
-    name: '[Mike November]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'github', url: 'https://github.com/' },
-    ],
-  },
-  {
-    quote:
-      "L'ho visto lavorare sotto pressione durante un evento con duecento persone in sala. Il sito ha tenuto e lui era tranquillo.",
-    name: '[Oscar Papa]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [{ kind: 'instagram', url: 'https://www.instagram.com/' }],
-  },
-  {
-    quote:
-      'Non sparisce dopo la consegna. A tre mesi di distanza gli ho scritto per una modifica e ha risposto lo stesso giorno, senza farmi pesare che il progetto fosse chiuso.',
-    name: '[Quebec Romeo]',
-    role: '[Ruolo] · [Azienda]',
-    socials: [
-      { kind: 'linkedin', url: 'https://www.linkedin.com/' },
-      { kind: 'sito', url: 'https://example.com/' },
-    ],
+      'Ogni modifica che abbiamo chiesto è arrivata spiegata, non solo fatta. E quando una richiesta non aveva senso ce l’ha detto, con un’alternativa già pronta.',
+    name: 'Stefano Marcacci',
+    role: 'Cofondatore · Reggiana Packaging',
+    avatar: '/img/testimonianze/stefano-marcacci.webp',
+    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
   },
 ];

@@ -983,7 +983,12 @@ if (dicono) {
     html.includes('Se ancora non ti ho convinto') &&
       html.includes('non ascoltare me.') &&
       html.includes('Ascolta loro:') &&
-      html.includes('Gli ho descritto il problema male'),
+      /* ⚠ ERA una frase precisa di un segnaposto (`'Gli ho descritto il
+         problema male'`): è diventata rossa il giorno in cui i segnaposto sono
+         stati tolti, senza che si fosse rotto niente. Si verifica
+         l'invariante — c'è almeno una citazione non vuota nell'HTML — non una
+         stringa di copy. */
+      /<blockquote[^>]*>\s*[^<\s]/.test(html),
     'titolo (3 registri) + citazione'
   );
 } else {
@@ -993,7 +998,7 @@ if (dicono) {
      essere servito (e quindi indicizzato, e letto da uno screen reader). */
   ok(
     "senza JS: §04 Dicono spenta non lascia contenuto nell'HTML",
-    !html.includes('Ascolta loro:') && !html.includes('Gli ho descritto il problema male'),
+    !html.includes('Ascolta loro:') && !/<blockquote[^>]*class="(?:tc|ts)__quote/.test(html),
     'nessun residuo di testimonianze nel markup servito'
   );
 }

@@ -79,7 +79,7 @@ const year = new Date().getFullYear();
 
       <nav class="foot__col" aria-label="Navigazione secondaria">
         <p class="foot__label">Pagine</p>
-        <a href="/" class="foot__link">Home</a>
+        {/* "Home" non è più scritta a mano qui: dal 2026-09-25 sta in NAV. */}
         {NAV.map((item) => <a href={item.href} class="foot__link">{item.label}</a>)}
       </nav>
 

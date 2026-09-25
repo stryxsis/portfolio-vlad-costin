@@ -199,6 +199,9 @@ export const SITE = {
 /** Navigazione principale. Gli URL sono definitivi: un URL è l'ID permanente
  *  di una pagina, rinominarlo butta via ogni citazione ottenuta. */
 export const NAV = [
+  /* Aggiunta il 2026-09-25: da telefono non c'era modo di tornare alla Home.
+     Il badge "VC" ci porta già, ma nel menu mobile non esiste. */
+  { href: '/', label: 'Home' },
   { href: '/chi-sono', label: 'Chi sono' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/contatti', label: 'Contatti' },

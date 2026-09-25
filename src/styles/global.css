@@ -230,6 +230,20 @@
     overflow-x: clip;
   }
 
+  /* La manina su TUTTO ciò che si può cliccare (richiesta di Vlad,
+     2026-09-25). I link la hanno già dal browser; i <button> e i <summary> no
+     — il loro default è la freccia, e Tailwind v4 non lo cambia. Sta nel
+     layer base, quindi un componente che dichiara un cursore suo (il `grab`
+     del globo della 404) continua a vincere. */
+  a[href],
+  button:not(:disabled),
+  [role='button'],
+  summary,
+  label[for],
+  select {
+    cursor: pointer;
+  }
+
   /* Il tracking negativo e l'interlinea sotto 1 stanno nei token; qui si
      azzerano solo i default del browser. */
   h1,

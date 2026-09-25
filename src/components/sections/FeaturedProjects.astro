@@ -115,10 +115,13 @@ interface Showcase {
   /** Se assente, la vetrina monta il wireframe disegnato. */
   reel?: { desktop: ImageMetadata; mobile: ImageMetadata };
   reelAlt?: string;
+  /** `false` = il progetto resta nei dati ma non va in vetrina in Home. */
+  home?: boolean;
 }
 
 /* ⚠ L'ORDINE È QUELLO CHIESTO DA VLAD (2026-09-25): Reggiana Packaging,
-   Network Day, ALSI Gluten Free, Kimere. Sono tutti e quattro progetti VERI e
+   Network Day, Kimere in vetrina; ALSI Gluten Free resta nei dati con
+   `home: false` (vedi sotto). Sono tutti e quattro progetti VERI e
    online; i due segnaposto di prima (Filiera Nord, Studio Ferrari) sono usciti
    dall'array. Le didascalie invece sono PROVVISORIE, scritte da me sui
    contenuti dei siti: da far rivedere a lui.
@@ -160,6 +163,10 @@ const SHOWCASE: Showcase[] = [
     blurb:
       'Un laboratorio artigianale di Parma che produce senza glutine per ristoranti, hotel e negozi. Il sito doveva parlare a due pubblici insieme: a chi cucina, con prodotti, formati e private label, e a chi deve fidarsi, con la certificazione e la storia di chi c’è dietro.',
     url: 'https://www.alsiglutenfree.com/',
+    /* Tolto dalla vetrina della Home su richiesta di Vlad (2026-09-25): in Home
+       vanno solo i tre lavori più forti. NON cancellato: dati e screenshot
+       servono a «Vedi tutti i progetti». */
+    home: false,
     reel: { desktop: reelAlsiDesktop, mobile: reelAlsiMobile },
     reelAlt:
       'Il sito di ALSI Gluten Free: la hero «Sì, è Gluten Free», la sezione dedicata ai partner B2B e la storia del laboratorio',
@@ -176,7 +183,7 @@ const SHOWCASE: Showcase[] = [
   },
 ];
 
-const VISIBLE_SHOWCASE = SHOWCASE;
+const VISIBLE_SHOWCASE = SHOWCASE.filter((p) => p.home !== false);
 
 /* ---- Il reel: il wireframe di una pagina, alto ~2,6 schermate -------------
    ⚠ RITAGLIATO A ~2,6 SCHERMATE, NON ALLA PAGINA INTERA, e vale anche per gli
