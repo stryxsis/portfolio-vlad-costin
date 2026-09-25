@@ -71,17 +71,18 @@ export interface Testimonial {
   name: string;
   role: string;
   /**
-   * Ritratto piccolo, come URL pubblico (`/img/...`). Se manca, la card compone
-   * il monogramma dalle iniziali invece di lasciare un buco: non tutti mandano
-   * una foto, e uno slot vuoto si legge come un errore.
+   * Ritratto, come immagine di astro:assets. Se manca, la card compone il
+   * monogramma dalle iniziali invece di lasciare un buco: non tutti mandano una
+   * foto, e uno slot vuoto si legge come un errore.
    *
-   * Perché una stringa e non un `ImageMetadata` di astro:assets: i dati stanno
-   * in un `.ts` normale, quindi non c'è un import statico per riga. Il giorno in
-   * cui arrivano foto vere si scelga fra /public (semplice, nessuna
-   * ottimizzazione) e una mappa costruita con `import.meta.glob` — ma non si
-   * costruisce quella macchina prima di avere la prima foto.
+   * ⚠ Era una stringa verso /public, e il commento qui diceva di non costruire
+   * altro «prima di avere la prima foto». Le foto sono arrivate (2026-09-25):
+   * ora passano dalla pipeline di Astro, che le serve in WebP alla misura
+   * giusta, con nome leggibile (`nome-cognome.<hash>.webp`) e dimensioni
+   * dichiarate. Il file sorgente sta in src/assets/testimonianze/, uno per
+   * persona, già ritagliato sul volto.
    */
-  avatar?: string;
+  avatar?: ImageMetadata;
   socials?: TestimonialSocial[];
 }
 

@@ -29,12 +29,20 @@
  * cliente diverso (Reggiana, JEParma, Kimere) e non i tre soci di Reggiana di
  * fila.
  *
- * Le foto (`avatar`) stanno in /public/img/testimonianze, ritagliate sul volto
- * a 128px dagli originali in src/assets/testimonianze/originali. Chi non ha una
- * foto riceve il monogramma dalle iniziali (TestimonialIdentity). I social
- * puntano al sito dell'organizzazione, non a un profilo personale indovinato.
+ * Le foto (`avatar`) stanno in src/assets/testimonianze/, una per persona,
+ * nominate `nome-cognome.jpg` e già ritagliate sul volto (400×400): Astro le
+ * serve in WebP a 128px. Chi non ha una foto riceve il monogramma dalle
+ * iniziali (TestimonialIdentity). Il solo social è il LinkedIn di ciascuno,
+ * dato da Vlad il 2026-09-25 — prima puntavano al sito dell'azienda, e Vlad
+ * voleva invece che l'icona portasse alla persona.
  */
 import type { Testimonial } from '../lib/types';
+import alexIuliani from '../assets/testimonianze/alex-iuliani.jpg';
+import andreaDamico from '../assets/testimonianze/andrea-damico.jpg';
+import chiaraPedrettiBoraschi from '../assets/testimonianze/chiara-pedretti-boraschi.jpg';
+import francescoFantesini from '../assets/testimonianze/francesco-fantesini.jpg';
+import giorgioCanalini from '../assets/testimonianze/giorgio-canalini.jpg';
+import stefanoMarcacci from '../assets/testimonianze/stefano-marcacci.jpg';
 
 export const TESTIMONIALS: Testimonial[] = [
   /* -- Prima colonna: l'unica visibile su telefono ------------------------ */
@@ -43,47 +51,50 @@ export const TESTIMONIALS: Testimonial[] = [
       'Gli abbiamo portato nove famiglie di prodotti e tre modi diversi di raccontarle. Ne è uscito un sito che un cliente capisce al primo giro, e che finalmente somiglia a come lavoriamo davvero.',
     name: 'Giorgio Canalini',
     role: 'Cofondatore · Reggiana Packaging',
-    avatar: '/img/testimonianze/giorgio-canalini.webp',
-    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
+    avatar: giorgioCanalini,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/giorgiocanalini/' }],
   },
   {
     quote:
       'In JEParma Vlad è quello a cui passi un progetto sapendo che arriverà in fondo. Il sito del Network Day l’ha costruito mentre seguiva anche i clienti, e per la prima volta i partecipanti sono arrivati all’evento sapendo già dove andare.',
     name: 'Andrea D’Amico',
     // U+2060 attorno al trattino: su telefono l'anno andava a capo a metà.
-    role: 'Ex presidente · JEParma 2025⁠–⁠2026',
-    socials: [{ kind: 'sito', url: 'https://www.jeparma.it/' }],
+    role: 'Ex presidente · JEParma 2025\u2060–\u20602026',
+    avatar: andreaDamico,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/a-da/' }],
   },
   {
     quote:
       'Avevamo due pubblici che non parlano la stessa lingua: studenti da tutto il mondo e università. Vlad li ha separati senza farci sembrare due aziende diverse, e ha trasformato una burocrazia complicata in pagine che si leggono.',
-    name: 'Chiara',
+    name: 'Chiara Pedretti Boraschi',
     role: 'Fondatrice · Kimere',
-    socials: [{ kind: 'sito', url: 'https://kimereconsulting.com/' }],
+    avatar: chiaraPedrettiBoraschi,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/chiara-pedretti-boraschi-4a8529170/' }],
   },
 
   /* -- Seconda colonna ---------------------------------------------------- */
   {
     quote:
       'Ci serviva un sito che parlasse ai ristoratori senza perdere il calore del laboratorio. Prima della grafica ha voluto capire chi sono i nostri clienti, e oggi è il primo link che mandiamo a un nuovo partner.',
-    name: 'Alex',
+    name: 'Alex Iuliani',
     role: 'Ex cofondatore · ALSI Gluten Free',
-    socials: [{ kind: 'sito', url: 'https://www.alsiglutenfree.com/' }],
+    avatar: alexIuliani,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/alex-iuliani-236a5a232/' }],
   },
   {
     quote:
       'Quando incontro un’azienda nuova, il sito è la prima cosa che guardano. Oggi lo mando prima della riunione, non dopo, e non devo più spiegare cosa manca.',
     name: 'Francesco Fantesini',
     role: 'Cofondatore · Reggiana Packaging',
-    avatar: '/img/testimonianze/francesco-fantesini.webp',
-    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
+    avatar: francescoFantesini,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/francesco-fantesini-86a5a7218/' }],
   },
   {
     quote:
       'Ogni modifica che abbiamo chiesto è arrivata spiegata, non solo fatta. E quando una richiesta non aveva senso ce l’ha detto, con un’alternativa già pronta.',
     name: 'Stefano Marcacci',
     role: 'Cofondatore · Reggiana Packaging',
-    avatar: '/img/testimonianze/stefano-marcacci.webp',
-    socials: [{ kind: 'sito', url: 'https://www.reggianapackaging.it/it' }],
+    avatar: stefanoMarcacci,
+    socials: [{ kind: 'linkedin', url: 'https://www.linkedin.com/in/stefano-marcacci-b0aa5435/' }],
   },
 ];
