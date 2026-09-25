@@ -49,6 +49,7 @@ const LOGOS = [
   },
   {
     name: 'Reggiana Packaging',
+    url: 'https://www.reggianapackaging.it/it',
     /* ⚠ `viewBox` RITAGLIATO sul contenuto reale, non il canvas originale
        (0 0 838.3 695): il file esportato lascia ~270 unità vuote sotto il
        logotipo (l'artwork occupa solo y≈222→423, cioè meno di un terzo
@@ -138,11 +139,10 @@ const LOGOS = [
   }
 ];
 
-/* ⚠ Nascosti su richiesta di Vlad (2026-08-07): 2° e 3° logo (ALSI Gluten
-   Free, Reggiana Packaging) tolti dalla riga finché non dà il consenso a
-   mostrarli di nuovo. Riportare a `LOGOS` (o a uno slice più ampio) quando
-   arriva l'ok. */
-const VISIBLE_LOGOS = LOGOS.slice(0, 1);
+/* Riaccesi su richiesta di Vlad il 2026-09-25: ALSI Gluten Free e Reggiana
+   Packaging erano nascosti dal 2026-08-07 in attesa del suo ok. Per nasconderli
+   di nuovo basta tornare a uno slice (`LOGOS.slice(0, 1)`). */
+const VISIBLE_LOGOS = LOGOS;
 ---
 
 <section class="sp theme-slate" data-section id="dove">

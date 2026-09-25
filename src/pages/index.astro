@@ -114,7 +114,11 @@ const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
       iniettando un pin-spacer nel DOM: qui la distanza è un elemento dichiarato,
       non una mutazione di layout al refresh.
 
-      ⚠ 440svh, ERA 360 (e 320, e 220 prima ancora). I 100svh fissi in fondo sono
+      ⚠ 520svh dal 2026-09-25: le card in vetrina sono passate da una a
+      quattro, e a corsa invariata ognuna avrebbe avuto meno scroll per il
+      proprio reel — 520 riporta la finestra di ogni card a quella del mazzo a
+      tre (≈850px contro 887, a 900 di viewport). Prima 440svh, ERA 360 (e 320,
+      e 220 prima ancora). I 100svh fissi in fondo sono
       UNO SCHERMO DI CORSA A VUOTO: il mazzo finisce di comporsi 100svh prima
       della fine e resta immobile per l'ultimo schermo, così chi scorre lo
       vede fermo e intero prima che lo Statement cominci a coprirlo — vedi
@@ -140,7 +144,7 @@ const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
       voluto. La coda ferma sta in stage.ts come tween finale, ma lo SPAZIO in
       cui esistere glielo dà questa riga. */
   }
-  <Handoff name="featured" tone="canvas" travel={440} bareIn>
+  <Handoff name="featured" tone="canvas" travel={520} bareIn>
     <FeaturedProjects slot="out" name="featured" />
   </Handoff>
 

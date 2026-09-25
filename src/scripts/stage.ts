@@ -199,6 +199,9 @@ export function initStages(): void {
          totale della timeline è nota: la soglia è una FRAZIONE di quella durata
          e non si può calcolare prima di aver costruito tutti i tween. */
       let onProgress: ((progress: number) => void) | null = null;
+      /* Quale card può ricevere il focus da tastiera. Assegnato anch'esso quando
+         la durata totale è nota. */
+      let syncFocus: ((progress: number) => void) | null = null;
 
       const tl = gsap.timeline({
         // `none` obbligatorio in scrub: un easing sopra una posizione già
@@ -221,8 +224,14 @@ export function initStages(): void {
           // Il trascritto di M17 si accende su una SOGLIA di progresso, non su un
           // tween: `onUpdate` in scrub e `onRefresh` per il caso in cui la
           // pagina nasca già oltre la soglia (ricarica a scroll ripristinato).
-          onUpdate: (self) => onProgress?.(self.progress),
-          onRefresh: (self) => onProgress?.(self.progress),
+          onUpdate: (self) => {
+            onProgress?.(self.progress);
+            syncFocus?.(self.progress);
+          },
+          onRefresh: (self) => {
+            onProgress?.(self.progress);
+            syncFocus?.(self.progress);
+          },
         },
       });
 
@@ -303,7 +312,9 @@ export function initStages(): void {
       const runPx = travel?.offsetHeight ?? window.innerHeight * 2;
       const holdPx = window.innerHeight;
       const animPx = Math.max(1, runPx - holdPx);
-      tl.to({}, { duration: tl.duration() * (holdPx / animPx) });
+      /* Dove finisce il movimento delle card e comincia la coda ferma. */
+      const settle = tl.duration();
+      tl.to({}, { duration: settle * (holdPx / animPx) });
 
       /* ---- M17 — LA VETRINA: ciò che accade dentro una card ----------------
          La card è il contenitore, non il contenuto. Ogni card ha una FINESTRA:
@@ -342,9 +353,16 @@ export function initStages(): void {
          quindi il fondo del sito del Network Day NON SI VEDEVA MAI. Chiudendo a
          `LEAD` la pagina percorre il 100% di sé stessa mentre è ancora
          completamente scoperta, che è la cosa che si stava chiedendo. */
+      /* ⚠ L'ULTIMA card chiude a METÀ DELLA CODA FERMA, non a `total`. Finché
+         in fondo al mazzo c'era la telefonata (nessun reel) non contava; da
+         quando l'ultima è un sito (2026-09-25) la sua pagina arrivava in fondo
+         solo sull'ultimo pixel della corsa — misurato da verify-stage, al 98%
+         della corsa il reel era all'88%. Con una card sola resta `total`: lì
+         la corsa intera è sua, e `settle` coincide con il tween vuoto. */
+      const lastTo = solo ? total : settle + (total - settle) * 0.5;
       const inFocus = (i: number): [number, number] => [
         i === 0 ? 0 : LEAD + (i - 1) * span + dur * 0.7,
-        i === cards.length - 1 ? total : i === 0 ? LEAD : LEAD + i * span + dur,
+        i === cards.length - 1 ? lastTo : i === 0 ? LEAD : LEAD + i * span + dur,
       ];
 
       cards.forEach((card, i) => {
@@ -368,6 +386,36 @@ export function initStages(): void {
           );
         });
       });
+
+      /* ---- Il focus da tastiera segue la cima del mazzo --------------------
+         Da quando tutti i progetti in vetrina hanno un link vero (2026-09-25),
+         le card in attesa contengono un controllo focalizzabile mentre stanno
+         parcheggiate FUORI dallo schermo, e quelle sepolte lo hanno sotto le
+         card che le coprono: tabulando, il focus finirebbe su qualcosa che non
+         si vede (WCAG 2.4.3 / 2.4.7). Solo la card in cima resta raggiungibile.
+         ⚠ `tabindex="-1"` sui link e NON `inert` sulla card: `inert` toglierebbe
+         la card anche dall'albero di accessibilità, e chi usa uno screen reader
+         non scorre per far salire il mazzo — non leggerebbe mai le card 2-4.
+         Così restano leggibili e attivabili dal cursore virtuale, e fuori dal
+         solo giro del Tab.
+         La cima passa alla card nuova a metà della sua salita: prima è ancora
+         più fuori che dentro lo schermo. */
+      const tops = cards.map((_, i) => (i === 0 ? 0 : LEAD + (i - 1) * span + dur * 0.5));
+      const links = cards.map((c) => Array.from(c.querySelectorAll<HTMLElement>('a[href]')));
+      let focusTop = -1;
+      syncFocus = (progress) => {
+        const t = progress * total;
+        let top = 0;
+        tops.forEach((at, i) => {
+          if (t >= at) top = i;
+        });
+        if (top === focusTop) return;
+        focusTop = top;
+        links.forEach((ls, i) =>
+          ls.forEach((a) => (i === top ? a.removeAttribute('tabindex') : a.setAttribute('tabindex', '-1')))
+        );
+      };
+      syncFocus(tl.scrollTrigger?.progress ?? 0);
 
       /* Il trascritto. La soglia è l'85% della salita della sua card: la prima
          battuta parte mentre la card sta ancora arrivando, così alla fine della
@@ -419,6 +467,7 @@ export function initStages(): void {
         gsap.set(cards, { clearProps: 'transform,transformOrigin,opacity' });
         if (reels.length) gsap.set(reels, { clearProps: 'transform' });
         call?.classList.remove('is-in', 'is-instant');
+        links.flat().forEach((a) => a.removeAttribute('tabindex'));
       });
     });
 

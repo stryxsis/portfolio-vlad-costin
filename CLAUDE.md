@@ -156,6 +156,8 @@ Vlad ha chiesto di **nascondere momentaneamente tre blocchi di contenuto finto**
 | progetti 02 e 03 | `FeaturedProjects.astro` | `VISIBLE_SHOWCASE = SHOWCASE.slice(0, 1)` |
 | loghi 2 e 3 (ALSI, Reggiana) | `SocialProof.astro` | `VISIBLE_LOGOS = LOGOS.slice(0, 1)` |
 
+⚠ **TUTTI E TRE RIACCESI il 2026-09-25, su richiesta di Vlad** — vedi «Home, 2026-09-25: progetti veri e voci vere» più sotto. La tabella resta come storia del meccanismo.
+
 ⚠ **Nessuno dei tre va ripristinato di propria iniziativa.** Il logo è esplicito: Vlad ha detto "finché non chiedo il consenso".
 
 ⚠ **Nascondere contenuto ha ROTTO tre cose, e nessuna era nel contenuto.** Tutte e tre meritano di essere lette prima di toccare un conteggio di elementi in questo repo:
@@ -164,6 +166,17 @@ Vlad ha chiesto di **nascondere momentaneamente tre blocchi di contenuto finto**
 3. **1260px (140svh) di scroll puramente nero fra il mazzo di §30 e Statement.** Segnalato da Vlad il giorno dopo ("vedo ancora una sezione nera vuota inutile"): l'Handoff `dicono` porta `travel={140}`, tempo di lettura per le tre card di Testimonials mentre è incollata — ma con la sezione spenta `<Testimonials>` non renderizza niente, `.ho__out` resta a 0 di altezza (misurato via CDP), e quel tempo di lettura diventava scroll morto puro davanti a `.ho__backdrop` nero, senza nessun contenuto da leggere. Fix in `index.astro`: `hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0` (stessa condizione di `show` in `Testimonials.astro`, duplicata perché a deciderla è il GENITORE — l'Handoff non sa cosa renderà il proprio slot finché non l'ha già renderizzato), e `travel` passato via spread condizionale — non `travel={hasTestimonials ? 140 : undefined}`, che sotto `exactOptionalPropertyTypes` (tsconfig strictest) è un tipo diverso da "prop assente" e non compila. Verificato senza regressioni con le testimonianze riaccese: `travel=140` torna intatto, muro completo, nessun assert rosso.
 
 ⚠ **PRIMA DI DIRE "non hai fatto niente, vedo ancora tutto": il server sulla 4321 può essere un `astro preview`, che serve `dist/` e NON si aggiorna da solo.** Successo in questa sessione: le tre modifiche erano corrette nel sorgente e invisibili nel browser perché nessuno aveva ricostruito. È una variante della trappola già documentata più sotto (dev server con cache stantia / zombie `astro dev`), con un sintomo diverso: qui il server è quello giusto, è il *build* a essere vecchio. `netstat -ano | grep ":4321.*LISTENING"` + `Get-CimInstance Win32_Process` per leggere il comando REALE, poi `npm run build`.
+
+### Home, 2026-09-25: progetti veri e voci vere
+
+Vlad ha riacceso i tre blocchi nascosti il 2026-08-07, e li ha riempiti.
+
+- **§02 Dove**: tutti e tre i loghi in riga (`VISIBLE_LOGOS = LOGOS`); Reggiana Packaging ha ora il link a `reggianapackaging.it/it`.
+- **§03 In evidenza**: **quattro progetti veri, in quest'ordine scelto da lui** — Reggiana Packaging, Network Day, ALSI Gluten Free, Kimere. I segnaposto Filiera Nord e Studio Ferrari (la telefonata `kind: 'call'`) sono **usciti dall'array**, quindi `verify:stage` salta da sé gli assert del trascritto. Reggiana e ALSI hanno reel veri, catturati via CDP con le proporzioni del Network Day (desktop 1150×1869 da 2,6 schermi a 1440, mobile 430×3164 da 3,4 schermi a 430). ⚠ **Kimere ("Chimere" nella richiesta) resta sul wireframe apposta**: il sito sta per cambiare, ha detto di non catturarlo ancora. ⚠ **Le didascalie sono scritte da me** sui contenuti dei siti, non dettate.
+  - ⚠ **Con i link su tutte le card, i link delle card non in cima escono dal giro del Tab** (`syncFocus` in `stage.ts`, `tabindex="-1"`). **Non `inert`**: toglierebbe le card 2-4 anche a chi usa uno screen reader, che non scorre per far salire il mazzo.
+  - ⚠ **L'ultima card chiude il reel a metà della coda ferma**, non a `total`: con un sito in fondo al mazzo, al 98% della corsa la pagina era all'88% (misurato da `verify-stage`).
+  - `travel` del Handoff `featured` è passato da **440 a 520svh**: riporta la finestra di ogni card a quella del mazzo a tre.
+- **§04 Dicono**: `features.testimonials: true`. In testa all'array ci sono **due persone vere con frasi PROVVISORIE scritte da me** su sua richiesta — Andrea D'Amico (ex presidente JEParma 2025–2026) e Alex (ex cofondatore ALSI Gluten Free) — più i nove segnaposto NATO. Undici voci → muro a 3 colonne (4/4/3). ⚠ **Le frasi vanno sostituite con le loro parole prima di qualunque deploy**: una citazione inventata attribuita a una persona reale è peggio di un segnaposto fra parentesi quadre.
 
 ### §-1 — Il velo di prima visita (2026-08-08)
 
@@ -1190,8 +1203,8 @@ Restano da evitare operazioni Git distruttive (force-push, reset --hard, riscrit
 | Area | Cosa | Chi decide / blocco |
 |---|---|---|
 | Piano generale | M8 (Portfolio/Contatti) resta fermo; Lighthouse non va eseguito | **Vlad** — pausa in vigore finché non la revoca a voce |
-| Contenuti | Testimonianze vere al posto dei 9 segnaposto NATO in `data/testimonials.ts` | **Vlad** — flag `SITE.features.testimonials` oggi `false` |
-| Contenuti | Progetti 02/03 e loghi 2-3 (ALSI, Reggiana) nascosti in attesa di contenuto vero | **Vlad** — "finché non chiedo il consenso" |
+| Contenuti | Testimonianze: sezione riaccesa il 2026-09-25; le frasi di Andrea D'Amico e Alex sono PROVVISORIE (scritte da me), i 9 segnaposto NATO restano. Tutte da sostituire prima del deploy | **Vlad** — manda le citazioni vere |
+| Contenuti | §03: didascalie dei 4 progetti scritte da me; Kimere ancora sul wireframe (da catturare quando il sito è definitivo) | **Vlad** — rivede i testi, dice quando catturare Kimere |
 | Contenuti | I due testi nuovi della timeline (bivio, primo sito online) sono scritti da me su indicazione di contenuto, non dettati parola per parola | **Vlad** — da rivedere/riscrivere se non convincono |
 | Contenuti | I testi della chiusura §04 (frase, titoli e descrizioni delle due strade) sono scritti da me su un suo esempio, che lui stesso aveva marcato «(Esempio)». Il 2026-08-24 ha esplicitamente NON scelto «rivedere il testo» fra le cose da sistemare, quindi restano — ma restano negoziabili | **Vlad** — da rivedere/riscrivere se non convincono |
 | Strumenti | `verify:stage` crasha su ogni pagina che non sia la Home (dà per scontato il mazzo di §30): le invarianti M12 di /portfolio sono verificate a mano | non affrontato, fuori dallo scope della hero |

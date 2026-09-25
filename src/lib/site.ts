@@ -186,9 +186,11 @@ export const SITE = {
    * sono ancora. Il componente e i dati esistono già: cambia solo il flag.
    */
   features: {
-    /** ⚠ Spento su richiesta di Vlad (2026-08-07): riaccendere solo quando
-     *  arrivano testimonianze vere in src/data/testimonials.ts. */
-    testimonials: false,
+    /** Riacceso su richiesta di Vlad (2026-09-25), dopo essere stato spento
+     *  il 2026-08-07. ⚠ Le citazioni sono ancora provvisorie (vedi
+     *  src/data/testimonials.ts): vanno sostituite con quelle vere prima del
+     *  deploy. */
+    testimonials: true,
     /** Il blog arriva in fase 2, quando esisterà il primo articolo. */
     blog: false,
   },

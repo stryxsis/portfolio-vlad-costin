@@ -83,6 +83,10 @@ import Button from '../primitives/Button.astro';
    pagina bianca col preloader. Chi rifà la cattura deve aspettarla. */
 import reelNetworkDayDesktop from '../../assets/progetti/network-day-desktop.png';
 import reelNetworkDayMobile from '../../assets/progetti/network-day-mobile.png';
+import reelReggianaDesktop from '../../assets/progetti/reggiana-packaging-desktop.png';
+import reelReggianaMobile from '../../assets/progetti/reggiana-packaging-mobile.png';
+import reelAlsiDesktop from '../../assets/progetti/alsi-gluten-free-desktop.png';
+import reelAlsiMobile from '../../assets/progetti/alsi-gluten-free-mobile.png';
 
 interface Props {
   /** Nome dello schermo nel Handoff che la contiene (vedi Handoff.astro). */
@@ -113,7 +117,27 @@ interface Showcase {
   reelAlt?: string;
 }
 
+/* ⚠ L'ORDINE È QUELLO CHIESTO DA VLAD (2026-09-25): Reggiana Packaging,
+   Network Day, ALSI Gluten Free, Kimere. Sono tutti e quattro progetti VERI e
+   online; i due segnaposto di prima (Filiera Nord, Studio Ferrari) sono usciti
+   dall'array. Le didascalie invece sono PROVVISORIE, scritte da me sui
+   contenuti dei siti: da far rivedere a lui.
+   Kimere non ha ancora un reel: il sito sta per cambiare, quindi la vetrina
+   monta il wireframe finché non si rifà la cattura. */
 const SHOWCASE: Showcase[] = [
+  {
+    kind: 'site',
+    category: 'Sito aziendale',
+    client: 'Reggiana Packaging',
+    year: 2026,
+    title: 'Il packaging giusto, spiegato a chi lo compra',
+    blurb:
+      'Una consulenza di packaging alimentare B2B che sapeva molto più di quanto il vecchio sito lasciasse capire. Nove famiglie di soluzioni ordinate per esigenza, un metodo in quattro passi, la sostenibilità letta alla luce del nuovo regolamento europeo e l’RP Academy — in italiano e in inglese.',
+    url: 'https://www.reggianapackaging.it/it',
+    reel: { desktop: reelReggianaDesktop, mobile: reelReggianaMobile },
+    reelAlt:
+      'Il sito di Reggiana Packaging: la hero «Il giusto packaging nasce dall’esigenza», la squadra dei tre fondatori e il metodo in quattro passi',
+  },
   {
     kind: 'site',
     category: 'Sito evento',
@@ -122,8 +146,6 @@ const SHOWCASE: Showcase[] = [
     title: 'Il Network Day, prima che cominci',
     blurb:
       'Un evento si gioca nelle settimane che lo precedono, non il giorno stesso. Countdown, tema, partner e guida pratica su una pagina sola, con una grafica curata e animazioni legate allo scroll che accompagnano la lettura invece di limitarsi a mostrarla — un percorso da scegliere al posto del solito modulo da compilare.',
-    /* Progetto REALE e online, quindi la pill diventa un link vero: vedi la nota
-       sull'accessibilità nel markup. Le altre due voci restano segnaposto. */
     url: 'https://network-day-2026-jeparma.netlify.app/',
     reel: { desktop: reelNetworkDayDesktop, mobile: reelNetworkDayMobile },
     reelAlt:
@@ -131,29 +153,30 @@ const SHOWCASE: Showcase[] = [
   },
   {
     kind: 'site',
-    category: 'Gestionale',
-    client: 'Filiera Nord',
-    year: 2025,
-    title: 'Tracciabilità che risponde in quattro secondi',
+    category: 'Sito aziendale',
+    client: 'ALSI Gluten Free',
+    year: 2026,
+    title: 'Senza glutine, e senza chiedere scusa',
     blurb:
-      'Sei stabilimenti, undici fornitori, e un lotto da ricostruire a mano a ogni controllo. Un identificativo su ogni pallet ha trasformato due giorni di archivio in una ricerca sola.',
+      'Un laboratorio artigianale di Parma che produce senza glutine per ristoranti, hotel e negozi. Il sito doveva parlare a due pubblici insieme: a chi cucina, con prodotti, formati e private label, e a chi deve fidarsi, con la certificazione e la storia di chi c’è dietro.',
+    url: 'https://www.alsiglutenfree.com/',
+    reel: { desktop: reelAlsiDesktop, mobile: reelAlsiMobile },
+    reelAlt:
+      'Il sito di ALSI Gluten Free: la hero «Sì, è Gluten Free», la sezione dedicata ai partner B2B e la storia del laboratorio',
   },
   {
-    kind: 'call',
-    category: 'Agente vocale AI',
-    client: 'Studio Ferrari',
+    kind: 'site',
+    category: 'Sito aziendale',
+    client: 'Kimere',
     year: 2026,
-    title: 'Risponde al telefono e prende l’appuntamento',
+    title: 'Studiare all’estero, senza perdersi nelle pratiche',
     blurb:
-      'Lo studio perdeva chiamate ogni volta che la segreteria era occupata. Ora risponde un agente vocale: capisce la richiesta, propone gli orari liberi, fissa l’appuntamento e manda il promemoria.',
+      'Un’agenzia giovane che accompagna gli studenti verso l’università, in Italia e fuori, e aiuta gli atenei a riceverli. Un sito per due porte d’ingresso — studenti da una parte, università e agenzie dall’altra — con borse di studio, documenti e corsi di lingua spiegati senza burocratese.',
+    url: 'https://kimereconsulting.com/',
   },
 ];
 
-/* ⚠ Nascosti su richiesta di Vlad (2026-08-07): il 2° e 3° progetto sono
-   ancora segnaposto, non progetti veri. Tolti dalla vetrina finché non li
-   sostituisce — riportare a `SHOWCASE.length` (o a uno slice più ampio)
-   quando arrivano i contenuti reali. */
-const VISIBLE_SHOWCASE = SHOWCASE.slice(0, 1);
+const VISIBLE_SHOWCASE = SHOWCASE;
 
 /* ---- Il reel: il wireframe di una pagina, alto ~2,6 schermate -------------
    ⚠ RITAGLIATO A ~2,6 SCHERMATE, NON ALLA PAGINA INTERA, e vale anche per gli
@@ -290,17 +313,12 @@ const TURNS = [
                 {
                   p.url ? (
                     /* Progetto online: link VERO, esterno.
-                       ⚠ Sull'accessibilità, che è il motivo per cui gli altri
-                       due restano <span>: nel mazzo le card non ancora entrate
-                       stanno parcheggiate FUORI dallo schermo, quindi un
-                       controllo focalizzabile lì dentro darebbe focus a
-                       qualcosa di invisibile (WCAG 2.4.3 / 2.4.7). Questa
-                       però è la card di indice 0, che `gsap.set` tiene a
-                       `yPercent: 0` per tutta la corsa: non è MAI parcheggiata
-                       — viene solo coperta e rimpicciolita. Il link è quindi
-                       sempre a schermo, e il difetto non si applica. Il giorno
-                       in cui anche le card 2 e 3 avranno un URL servirà
-                       `inert` sulle non-prime. */
+                       ⚠ Nel mazzo le card non in cima stanno parcheggiate fuori
+                       dallo schermo o sepolte sotto le altre: stage.ts toglie
+                       questi link dal giro del Tab finché la loro card non è in
+                       cima (vedi «Il focus da tastiera segue la cima del
+                       mazzo»). Senza JS le card sono un elenco in flusso, e il
+                       problema non esiste. */
                     <a
                       class="fp__cta fp__cta--link"
                       href={p.url}

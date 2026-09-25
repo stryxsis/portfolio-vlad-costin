@@ -1,7 +1,9 @@
 /**
  * Testimonianze.
  *
- * ⚠⚠ QUESTE NOVE VOCI SONO SEGNAPOSTO, non testimonianze reali. Stanno qui su
+ * ⚠⚠ LE PRIME DUE VOCI (dal 2026-09-25) SONO PERSONE VERE CON FRASI PROVVISORIE,
+ * vedi il commento sopra di loro. LE ALTRE NOVE SONO SEGNAPOSTO, non
+ * testimonianze reali. Stanno qui su
  * richiesta esplicita di Vlad per lavorare sulla grafica della sezione, e la
  * sezione resta accesa (`SITE.features.testimonials`) finché non chiede lui di
  * spegnerla — non rimuoverle né rispegnere il flag di propria iniziativa.
@@ -59,7 +61,34 @@
 import type { Testimonial } from '../lib/types';
 
 export const TESTIMONIALS: Testimonial[] = [
-  /* -- Colonna 1: l'unica visibile su telefono ---------------------------- */
+  /* -- Persone VERE, citazioni PROVVISORIE (2026-09-25) --------------------
+     ⚠ Nomi e ruoli sono reali e dati da Vlad; le FRASI le ho scritte io su
+     sua richiesta, come segnaposto verosimile, in attesa delle citazioni
+     vere. Vanno sostituite con le loro parole prima di qualunque deploy: una
+     frase messa in bocca a una persona esistente è peggio di un nome fra
+     parentesi quadre. In testa perché la prima colonna è l'unica visibile su
+     telefono. I social puntano al sito dell'organizzazione, non a un profilo
+     personale indovinato. */
+  {
+    quote:
+      'In JEParma Vlad è quello a cui passi un progetto sapendo che arriverà in fondo. Il sito del Network Day l’ha costruito mentre seguiva anche i clienti, e per la prima volta i partecipanti sono arrivati all’evento sapendo già dove andare.',
+    name: 'Andrea D’Amico',
+    // U+2060 attorno al trattino: su telefono l'anno andava a capo a metà.
+    role: 'Ex presidente · JEParma 2025\u2060–\u20602026',
+    socials: [{ kind: 'sito', url: 'https://www.jeparma.it/' }],
+  },
+  {
+    quote:
+      'Ci serviva un sito che parlasse ai ristoratori senza perdere il calore del laboratorio. Prima della grafica ha voluto capire chi sono i nostri clienti, e oggi è il primo link che mandiamo a un nuovo partner.',
+    name: 'Alex',
+    role: 'Ex cofondatore · ALSI Gluten Free',
+    socials: [{ kind: 'sito', url: 'https://www.alsiglutenfree.com/' }],
+  },
+
+  /* -- Segnaposto --------------------------------------------------------
+     ⚠ Le colonne non cadono più sui gruppi da tre di prima: il muro divide
+     l'array in fette da ceil(n / colonne) (TestimonialsWall.astro), quindi
+     con undici voci sono 4 / 4 / 3. */
   {
     quote:
       'Gli ho descritto il problema male, e mi ha restituito la domanda giusta prima di scrivere una riga di codice.',
@@ -92,7 +121,6 @@ export const TESTIMONIALS: Testimonial[] = [
     ],
   },
 
-  /* -- Colonna 2: compare da 48rem ---------------------------------------- */
   {
     quote:
       'Ha riscritto una pagina che ci metteva otto secondi ad aprirsi. Adesso è sotto il secondo, e non me ne ero accorto finché non me lo ha fatto vedere con i numeri alla mano.',
@@ -118,7 +146,6 @@ export const TESTIMONIALS: Testimonial[] = [
     socials: [{ kind: 'sito', url: 'https://example.com/' }],
   },
 
-  /* -- Colonna 3: compare da 75rem ---------------------------------------- */
   {
     quote:
       'Gli abbiamo chiesto una cosa e lui ne ha proposta una più semplice che risolveva lo stesso problema. Abbiamo fatto come diceva lui.',
