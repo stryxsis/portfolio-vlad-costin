@@ -1,0 +1,385 @@
+---
+/**
+ * IL PALCO di un case study: il primo schermo, prima dell'articolo.
+ *
+ * Origine: un riferimento video (un'interfaccia di destinazioni di viaggio,
+ * storyboard in `storyboard-video.jpg` e `frames/`). Del filmato si porta la
+ * GRAMMATICA — scena grande, titolo a sinistra, una fila di card, la card
+ * scelta che diventa la scena, il titolo che entra dal basso dentro una
+ * maschera, l'atmosfera che cambia con il soggetto — e si scarta il resto:
+ *
+ *  - la fotografia a tutto schermo come sfondo. Qui lo screenshot resta
+ *    LEGGIBILE, dentro una cornice, e a colorare l'ambiente è la PALETTE
+ *    dichiarata del progetto, non la foto;
+ *  - l'avanzamento automatico: il palco non cambia mai da solo;
+ *  - il flash bianco di fine filmato, la cornice grigia esterna, l'ombra da
+ *    presentazione e la prospettiva;
+ *  - il font condensato: qui Geist e Geist Mono, come ovunque.
+ *
+ * ⚠ UN SOLO H1, ED È QUESTO. È anche candidato LCP: nessuna animazione di
+ * `opacity` su di lui, mai (regola LCP del sito). Il suo ingresso al cambio di
+ * progetto lo fanno gli snapshot della View Transition, non l'elemento.
+ *
+ * ⚠ NIENTE ALTEZZA FISSA. `min-height` e non `height`: su uno schermo basso o
+ * al 200% di zoom il palco cresce invece di tagliare titolo o controlli.
+ */
+import Breadcrumbs from '../chrome/Breadcrumbs.astro';
+import Button from '../primitives/Button.astro';
+import ProjectVisual from './ProjectVisual.astro';
+import ProjectSwitcher from './ProjectSwitcher.astro';
+import type { Project } from '../../lib/collections';
+
+interface Props {
+  project: Project;
+  all: Project[];
+  index: number;
+  prev: Project | null;
+  next: Project | null;
+  /** L'anchor del primo capitolo, dove porta "Leggi il case study". */
+  firstChapter: string;
+}
+
+const { project, all, index, prev, next, firstChapter } = Astro.props;
+const d = project.data;
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const meta = [
+  { k: 'Anno', v: String(d.year) },
+  { k: 'Ruolo', v: d.role },
+  ...(d.category ? [{ k: 'Tipologia', v: d.category }] : []),
+  ...(d.client ? [{ k: 'Cliente', v: d.client }] : []),
+];
+---
+
+<header class="st">
+  {/* Il fondale: due aloni STATICI e un gradiente ampio, dalla palette del
+      progetto. Decorativo per intero — `aria-hidden`, nessun evento. Al
+      cambio di progetto la View Transition dissolve il vecchio nel nuovo:
+      sono i "due livelli già pronti" della specifica, e sono gli snapshot. */}
+  <div class="st__sky" aria-hidden="true" data-cs-sky></div>
+
+  <div class="st__wrap">
+    <div class="st__crumbs" data-cs-keep="crumbs">
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Portfolio', href: '/portfolio' },
+          { label: d.title },
+        ]}
+      />
+    </div>
+
+    <div class="st__intro">
+      <div class="st__head" data-cs-idx>
+        <p class="st__idx">
+          <span class="st__idx-n">{pad(index + 1)}</span>
+          {d.category && <span>{d.category}</span>}
+        </p>
+        {
+          d.status === 'demo' && (
+            <p class="st__demo">
+              <span class="st__demo-dot" aria-hidden="true" />
+              Esempio — contenuti segnaposto
+            </p>
+          )
+        }
+      </div>
+
+      <h1 class="st__title" data-cs-title>{d.title}</h1>
+      <p class="st__sub" data-cs-sub>{d.subtitle}</p>
+
+      <dl class="st__meta" data-cs-meta>
+        {
+          meta.map((m) => (
+            <div class="st__meta-row">
+              <dt>{m.k}</dt>
+              <dd>{m.v}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="st__actions" data-cs-keep="actions">
+        <Button href={`#${firstChapter}`} variant="filled">Leggi il case study</Button>
+        {
+          /* Esterno, e deve dirlo: nuova scheda, freccia obliqua, e un nome
+             accessibile che lo annuncia. Distinto dalla CTA interna. */
+          d.liveUrl && (
+            <Button
+              href={d.liveUrl}
+              variant="outline"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Apri il sito di ${d.title} (si apre in una nuova scheda)`}
+            >
+              Apri il sito <span aria-hidden="true">↗</span>
+            </Button>
+          )
+        }
+      </div>
+    </div>
+
+    <div class="st__visual">
+      <ProjectVisual project={project} />
+    </div>
+
+    {
+      all.length > 1 && (
+        <div class="st__switch" data-cs-keep="switch">
+          <ProjectSwitcher all={all} index={index} prev={prev} next={next} />
+        </div>
+      )
+    }
+  </div>
+</header>
+
+<style>
+  .st {
+    position: relative;
+    isolation: isolate;
+    /* Il fondo del palco è quello della palette; sotto, il corpo torna al
+       canvas del sito — il nero del portfolio resta riconoscibile. */
+    background-color: var(--cs-bg, var(--color-canvas));
+    color: var(--cs-text, var(--color-text-1));
+    padding-top: calc(var(--nav-h) + clamp(1rem, 3vh, 2.5rem));
+    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+    /* Fallback prima di `svh`, poi `svh`: sui telefoni con la barra degli
+       indirizzi `100vh` è più alto dello schermo visibile. */
+    min-height: min(100vh, 64rem);
+    min-height: min(100svh, 64rem);
+  }
+
+  /* ---- Il fondale ---------------------------------------------------------
+     La saturazione è più alta DIETRO LO SCREENSHOT (a destra) e più bassa
+     dietro il testo (a sinistra): il testo sta su un fondo quasi pieno, e il
+     contrasto misurato non dipende da dove cade l'alone.
+     ⚠ Raggi grandi e una coda lunga: un gradiente radiale con stop vicini su
+     un fondo scurissimo si legge come vignettatura, cioè come un difetto (è
+     già successo sulla fascia del metodo di /chi-sono). E niente `blur()`
+     gigante né animazione: è statico, si dipinge una volta. */
+  .st__sky {
+    /* La posizione dell'alone principale: dietro il visual. Su desktop il
+       visual sta a destra, in colonna sta SOTTO il testo — l'alone lo segue,
+       così dietro il testo resta sempre il fondo quasi pieno. */
+    --sky-x: 72%;
+    --sky-y: 76%;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        70% 38% at var(--sky-x) var(--sky-y),
+        color-mix(in oklab, var(--cs-accent, var(--color-accent)) 26%, transparent) 0%,
+        color-mix(in oklab, var(--cs-accent, var(--color-accent)) 10%, transparent) 45%,
+        transparent 80%
+      ),
+      radial-gradient(
+        46% 30% at 8% 99%,
+        color-mix(in oklab, var(--cs-accent-2, var(--cs-accent, var(--color-accent))) 14%, transparent) 0%,
+        transparent 72%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--cs-bg, var(--color-canvas)) 0%,
+        var(--cs-bg, var(--color-canvas)) 72%,
+        var(--color-canvas) 100%
+      );
+  }
+  @media (min-width: 56.25rem) {
+    .st__sky {
+      --sky-x: 74%;
+      --sky-y: 40%;
+      background:
+        radial-gradient(
+          58% 62% at var(--sky-x) var(--sky-y),
+          color-mix(in oklab, var(--cs-accent, var(--color-accent)) 30%, transparent) 0%,
+          color-mix(in oklab, var(--cs-accent, var(--color-accent)) 12%, transparent) 45%,
+          transparent 78%
+        ),
+        radial-gradient(
+          46% 52% at 8% 96%,
+          color-mix(in oklab, var(--cs-accent-2, var(--cs-accent, var(--color-accent))) 16%, transparent) 0%,
+          transparent 72%
+        ),
+        linear-gradient(
+          to bottom,
+          var(--cs-bg, var(--color-canvas)) 0%,
+          var(--cs-bg, var(--color-canvas)) 72%,
+          var(--color-canvas) 100%
+        );
+    }
+  }
+
+  .st__wrap {
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 2.5rem);
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* Desktop: introduzione a sinistra, visual al centro-destra, fascia delle
+     miniature lungo il margine inferiore. */
+  @media (min-width: 56.25rem) {
+    .st__wrap {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      grid-template-areas:
+        'crumbs crumbs'
+        'intro  visual'
+        'switch switch';
+      column-gap: clamp(2rem, 4vw, 4.5rem);
+      row-gap: clamp(1.25rem, 3vh, 2rem);
+      align-items: center;
+    }
+    .st__crumbs {
+      grid-area: crumbs;
+    }
+    .st__intro {
+      grid-area: intro;
+    }
+    .st__visual {
+      grid-area: visual;
+    }
+    .st__switch {
+      grid-area: switch;
+    }
+  }
+
+  .st__crumbs :global(.crumbs),
+  .st__crumbs :global(.crumbs a) {
+    color: var(--cs-text-2, var(--color-text-2));
+  }
+
+  .st__intro {
+    display: grid;
+    gap: 1rem;
+    align-content: center;
+    min-width: 0;
+  }
+
+  .st__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+  }
+
+  .st__idx {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--cs-text-2, var(--color-text-2));
+  }
+  .st__idx-n {
+    color: var(--cs-accent, var(--color-accent));
+  }
+  /* Il filetto fra numero e tipologia: il dispositivo `00 · LABEL` del sito. */
+  .st__idx-n::after {
+    content: '';
+    display: inline-block;
+    width: 1.5rem;
+    height: 1px;
+    margin-left: 0.75rem;
+    vertical-align: middle;
+    background-color: currentColor;
+  }
+
+  /* Il sito dice già altrove, a voce alta, che alcuni contenuti sono finti:
+     un case study di esempio non deve poter passare per uno verificato. */
+  .st__demo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--cs-border, var(--color-hairline-strong));
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cs-text, var(--color-text-1));
+  }
+  .st__demo-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background-color: var(--cs-accent, var(--color-accent));
+  }
+
+  /* Il corpo segue il token del sito, ma con un tetto in `svh`: su una
+     finestra larga e bassa un h1 da 88px si mangerebbe l'altezza che serve a
+     far stare la fascia delle miniature nel primo schermo. Stesso
+     ragionamento del "404" e delle citazioni di TestimonialsFocus. */
+  .st__title {
+    max-width: min(16ch, 100%);
+    font-size: min(var(--text-h1), 9.5svh);
+    line-height: 0.98;
+    letter-spacing: -0.032em;
+    /* Una parola lunghissima non deve sfondare la colonna a 320px. */
+    overflow-wrap: anywhere;
+  }
+
+  .st__sub {
+    max-width: min(34ch, 100%);
+    font-size: var(--text-lede);
+    line-height: 1.4;
+    color: var(--cs-text-2, var(--color-text-2));
+  }
+
+  .st__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem clamp(1.5rem, 3vw, 2.5rem);
+    margin: 0.25rem 0 0;
+  }
+  .st__meta-row {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+  .st__meta dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cs-text-2, var(--color-text-2));
+  }
+  .st__meta dd {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--cs-text, var(--color-text-1));
+  }
+
+  .st__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .st__visual {
+    min-width: 0;
+  }
+  /* Desktop: il visual si allarga fino alla colonna ma non oltre il 44% dell'
+     altezza (lo schermo è 16/10, quindi la larghezza massima è 44svh × 1,6):
+     è la riga che tiene le miniature dentro il primo schermo su 1440×900. */
+  @media (min-width: 56.25rem) {
+    .st__visual {
+      justify-self: end;
+      width: min(100%, calc(44svh * 1.6));
+    }
+  }
+
+  .st__switch {
+    min-width: 0;
+    padding-top: clamp(1rem, 2vw, 1.5rem);
+    border-top: 1px solid var(--cs-border, var(--color-hairline));
+  }
+</style>

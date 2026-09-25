@@ -25,15 +25,42 @@ stack:
   - Astro
   - TypeScript
 
-# Risultati MISURATI. Stanno qui e non nel testo perché vengono resi come riga
-# di statistiche e riusati nei dati strutturati. Se non hai numeri veri, togli
-# tutta la sezione: un numero inventato è peggio di nessun numero.
-metrics:
-  - label: 'Tempo di caricamento'
-    value: '-60%'
+# Risultati MISURATI. Stanno qui e non nel testo perché vengono resi come
+# modulo dedicato e riusati nel mirror .md. ⚠ Si pubblicano SOLO quelli con
+# `verified: true`, e una metrica verificata DEVE dire `source`. Se non hai
+# numeri veri, togli tutta la sezione: un numero inventato è peggio di nessuno.
+# metrics:
+#   - label: 'Richieste dal form'
+#     value: '42'
+#     unit: 'al mese'           # opzionale
+#     source: 'Log del form sul server del cliente'
+#     period: 'gen–mar 2026'    # opzionale
+#     baseline: '9 al mese'     # opzionale, se è un confronto
+#     kind: cliente             # cliente | benchmark (misura di laboratorio)
+#     verified: true
+
+category: 'Sito vetrina'       # opzionale: la tipologia nel palco
+status: published              # published | demo (demo = contenuti segnaposto)
+
+# L'atmosfera del progetto nel palco. Opzionale: senza, i colori del sito.
+# ⚠ Il contrasto di ogni coppia è verificato in build: se non passa, l'errore
+# dice quale coppia e di quanto. Solo #rgb / #rrggbb, niente alfa.
+# palette:
+#   background: '#070a14'       # fondo del palco (scuro)
+#   surface: '#0e1424'          # cornici, miniature
+#   accent: '#7d98ff'           # label, contatore, richiami nel corpo
+#   accentSecondary: '#3d5bd9'  # opzionale: il secondo alone, decorativo
+#   border: '#28324f'
+#   text: '#f4f6ff'
+#   textMuted: '#a4acc6'
 
 cover: ../../assets/progetti/nome-del-progetto/cover.jpg
 coverAlt: 'Descrizione di cosa si vede nella cover'
+coverKind: screenshot          # screenshot | illustration (il palco lo dichiara)
+coverFit: contain              # contain = intero | cover = ritagliato
+# coverFocal: { x: 50, y: 0 }  # con `cover`: il punto da tenere in vista (%)
+# coverMobile: ../../assets/progetti/nome-del-progetto/mobile.png  # SOLO se esiste
+# coverMobileAlt: 'La versione per telefono'
 
 # gallery:
 #   - src: ../../assets/progetti/nome-del-progetto/01.jpg
@@ -51,6 +78,20 @@ draft: true          # finché è true non viene pubblicato
 import Chapter from '../../components/case-study/Chapter.astro';
 import CaseFigure from '../../components/case-study/CaseFigure.astro';
 import CaseQuote from '../../components/case-study/CaseQuote.astro';
+import Steps from '../../components/case-study/Steps.astro';
+import Step from '../../components/case-study/Step.astro';
+import ProblemSolution from '../../components/case-study/ProblemSolution.astro';
+
+{/*
+  I CAPITOLI. Quattro sono obbligatori (contesto, sfida, processo, risultato):
+  senza, la build fallisce. Gli altri sono moduli OPZIONALI — se non li
+  scrivi non esistono, niente buchi e niente titoli vuoti:
+    problemi   coppie <ProblemSolution>, quante ne servono
+    dettagli   screenshot con didascalia, UX, architettura, integrazioni
+    tecnica    stack usato davvero, accessibilità, performance, vincoli
+    imparato   cosa ho imparato, prossimi passi
+  L'ordine lo decidi tu: numeri e indice seguono l'ordine in cui li scrivi.
+*/}
 
 <Chapter id="contesto">
 
@@ -69,9 +110,35 @@ vincoli tecnici, tempi, dati sporchi, persone.
 <Chapter id="processo">
 
 Come l'ho affrontato, in ordine. Qui puoi usare `###` per i sottotitoli,
-elenchi, immagini e citazioni:
+elenchi, immagini e citazioni, oppure i passi numerati:
+
+<Steps>
+<Step title="Prima le domande">
+
+Cosa è successo in questo passo.
+
+</Step>
+<Step title="Poi la struttura">
+
+E in questo.
+
+</Step>
+</Steps>
 
 {/* <CaseFigure src={...} alt="..." caption="..." size="wide" /> */}
+
+</Chapter>
+
+<Chapter id="problemi">
+
+<ProblemSolution
+  title="Un titolo corto"
+  problem="Il problema concreto."
+  solution="Cosa ho fatto."
+  rationale="Perché così (opzionale)."
+  tradeoffs="Cosa ho sacrificato (opzionale)."
+  evidence="Come so che ha funzionato (opzionale)."
+/>
 
 </Chapter>
 

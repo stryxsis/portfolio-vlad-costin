@@ -1,0 +1,80 @@
+---
+# ⚠ BOZZA (draft: true): NON viene pubblicata. In `npm run dev` si vede, come
+# tutte le bozze, ed è l'unico case study con uno SCREENSHOT VERO — serve a
+# giudicare il palco su un progetto reale.
+#
+# ⚠ Contiene SOLO fatti già presenti nel repository: cliente, anno, URL e testo
+# vengono dalla vetrina della Home (FeaturedProjects.astro), gli screenshot da
+# src/assets/progetti/. Tutto ciò che non si poteva sapere da lì è marcato
+# `[da scrivere]` / `[da confermare]`: ruolo, stack, capitoli. Niente metriche.
+# Per pubblicarlo: compilare i capitoli, confermare il ruolo, `draft: false`.
+title: 'Network Day 2026'
+subtitle: 'Il Network Day, prima che cominci'
+description: "Il sito del Network Day 2026 di JEParma: countdown, tema, partner e guida pratica su una pagina sola."
+
+client: 'JEParma'
+role: '[da confermare]'
+year: 2026
+pubDate: 2026-09-25
+
+category: 'Sito evento'
+status: demo
+
+# ⚠ PALETTE PROVVISORIA (oliva): ricavata a occhio dal verde del sito vero
+# (bottone "scegli il tuo percorso", sottotitolo), portata al buio del
+# portfolio. Non è una palette fornita da JEParma. Contrasto verificato in build.
+palette:
+  background: '#0b0e06'
+  surface: '#151a0d'
+  accent: '#adc65e'
+  accentSecondary: '#6b8e23'
+  border: '#303c1a'
+  text: '#f7f5ec'
+  textMuted: '#b6b59e'
+
+# Screenshot VERI, catturati dal sito online (vedi la nota in FeaturedProjects).
+# La cattura desktop è alta 2,6 schermate: nel palco la si ritaglia tenendo in
+# vista l'apertura della pagina (focal in alto), senza deformarla.
+cover: ../../assets/progetti/network-day-desktop.png
+coverAlt: 'Il sito del Network Day 2026 di JEParma: la schermata di apertura con il countdown e il titolo «Schilderwald — Il sentiero dell’indecisione»'
+coverKind: screenshot
+coverFit: cover
+coverFocal: { x: 50, y: 0 }
+coverMobile: ../../assets/progetti/network-day-mobile.png
+coverMobileAlt: 'La versione per telefono dello stesso sito, con il countdown in apertura'
+
+liveUrl: 'https://network-day-2026-jeparma.netlify.app/'
+
+featured: false
+order: 0
+draft: true
+---
+
+import Chapter from '../../components/case-study/Chapter.astro';
+
+<Chapter id="contesto">
+
+[da scrivere]
+
+Un evento si gioca nelle settimane che lo precedono, non il giorno stesso.
+
+</Chapter>
+
+<Chapter id="sfida">
+
+[da scrivere]
+
+</Chapter>
+
+<Chapter id="processo">
+
+[da scrivere]
+
+</Chapter>
+
+<Chapter id="risultato">
+
+[da scrivere — solo risultati documentati. Se ci sono numeri, vanno in
+`metrics` nel frontmatter con `source` e `verified: true`.]
+
+</Chapter>

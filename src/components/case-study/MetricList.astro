@@ -1,0 +1,120 @@
+---
+/**
+ * I risultati di un case study — SOLO quelli verificati.
+ *
+ * Il filtro sta qui dentro e non nel chiamante: un componente che si chiama
+ * MetricList e che renderizzasse qualunque cosa gli si passi sarebbe l'unico
+ * punto in cui un `[placeholder]` può diventare un numero pubblicato. Chi lo
+ * usa non deve ricordarsi di filtrare.
+ *
+ * Due gruppi, e non per estetica: un risultato del CLIENTE (richieste dal
+ * form, tempo risparmiato) e una misura TECNICA di laboratorio (peso di
+ * pagina, tempo di build) dicono cose diverse, e mescolarli fa passare un
+ * benchmark per un risultato commerciale. Ogni numero porta con sé fonte e
+ * periodo: un valore senza provenienza è un'affermazione, non un dato.
+ */
+import { verifiedMetrics, type Metric } from '../../lib/collections';
+
+interface Props {
+  metrics: Metric[];
+}
+
+const verified = verifiedMetrics(Astro.props.metrics);
+const groups = [
+  { kind: 'cliente', title: 'Risultati' },
+  { kind: 'benchmark', title: 'Misure tecniche (laboratorio)' },
+]
+  .map((g) => ({ ...g, items: verified.filter((m) => m.kind === g.kind) }))
+  .filter((g) => g.items.length > 0);
+
+const provenance = (m: Metric) =>
+  [m.source, m.period, m.method].filter(Boolean).join(' · ');
+---
+
+{
+  groups.length > 0 && (
+    <section class="ml" aria-label="Risultati misurati" data-reveal>
+      {groups.map((g) => (
+        <div class="ml__group">
+          <h2 class="ml__title">{g.title}</h2>
+          <dl class="ml__grid">
+            {g.items.map((m) => (
+              <div class="ml__item">
+                <dt class="ml__label">{m.label}</dt>
+                <dd class="ml__value">
+                  {m.value}
+                  {m.unit && <span class="ml__unit"> {m.unit}</span>}
+                </dd>
+                {m.baseline && <dd class="ml__base">da {m.baseline}</dd>}
+                <dd class="ml__src">{provenance(m)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+<style>
+  .ml {
+    display: grid;
+    gap: clamp(2rem, 4vw, 3rem);
+    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .ml__title {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  .ml__grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+    margin-top: 1.25rem;
+  }
+
+  .ml__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cs-border, var(--color-hairline));
+  }
+
+  /* L'ordine visivo è valore sopra etichetta, ma nel DOM l'etichetta viene
+     prima: uno screen reader deve sentire "Richieste dal form: 42", non
+     "42: richieste dal form". */
+  .ml__label {
+    order: 2;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+  .ml__value {
+    order: 1;
+    margin: 0;
+    font-size: var(--text-h2);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--color-accent);
+  }
+  .ml__unit {
+    font-size: 0.45em;
+    letter-spacing: 0;
+  }
+  .ml__base,
+  .ml__src {
+    order: 3;
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+</style>

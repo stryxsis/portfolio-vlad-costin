@@ -1,0 +1,95 @@
+---
+/**
+ * Una coppia problema → intervento, dentro un capitolo (di solito
+ * `<Chapter id="problemi">`). Si ripete: un case study può averne quante
+ * servono, e aggiungerne una è una riga di MDX, non un layout nuovo.
+ *
+ *   <ProblemSolution
+ *     title="Due persone, un file"
+ *     problem="…"
+ *     solution="…"
+ *     rationale="…"   ← facoltativi: se mancano la riga non esiste,
+ *     tradeoffs="…"      nessuna etichetta resta appesa da sola
+ *     evidence="…"
+ *   />
+ *
+ * `<dl>` e non una lista: sono coppie etichetta → valore, la stessa primitiva
+ * di FactList. Il dispositivo visivo è il filetto con la label mono, cioè il
+ * modo in cui il sito enumera al posto degli elenchi puntati (vietati).
+ */
+interface Props {
+  title?: string;
+  problem: string;
+  solution: string;
+  rationale?: string;
+  tradeoffs?: string;
+  evidence?: string;
+}
+
+const { title, problem, solution, rationale, tradeoffs, evidence } = Astro.props;
+
+const rows = [
+  { k: 'Problema', v: problem },
+  { k: 'Intervento', v: solution },
+  { k: 'Perché così', v: rationale },
+  { k: 'Compromesso', v: tradeoffs },
+  { k: 'Evidenza', v: evidence },
+].filter((r): r is { k: string; v: string } => Boolean(r.v?.trim()));
+---
+
+<div class="ps" data-reveal>
+  {title && <h3 class="ps__title">{title}</h3>}
+  <dl class="ps__rows">
+    {
+      rows.map((r) => (
+        <div class="ps__row">
+          <dt>{r.k}</dt>
+          <dd>{r.v}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</div>
+
+<style>
+  .ps {
+    margin-block: clamp(2rem, 4vw, 3rem);
+    padding-left: clamp(1rem, 2vw, 1.5rem);
+    border-left: 2px solid var(--color-accent);
+  }
+
+  /* La prose del capitolo dà già un margine agli h3: qui si azzera, la
+     spaziatura della coppia la decide il blocco. */
+  .ps__title {
+    margin: 0 0 1.25rem;
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .ps__rows {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+  }
+
+  .ps__row {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* text-2 e non text-3: sul canvas nero text-3 è sotto AA (vedi CLAUDE.md). */
+    color: var(--color-text-2);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--color-text-1);
+  }
+</style>

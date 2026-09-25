@@ -10,7 +10,8 @@
  * `.md` non si risolverebbe.
  */
 import type { APIRoute, GetStaticPaths } from 'astro';
-import { allProjects } from '../../lib/collections';
+import { allProjects, verifiedMetrics } from '../../lib/collections';
+import { CHAPTERS, type ChapterId } from '../../lib/chapters';
 import { SITE } from '../../lib/site';
 import { abs } from '../../lib/seo';
 import { isoDate } from '../../lib/format';
@@ -29,18 +30,32 @@ export const GET: APIRoute = ({ props }) => {
   const body = (project.body ?? '')
     // Rimuove la riga di import dei componenti.
     .replace(/^import .*$/gm, '')
-    // <Chapter id="sfida"> -> ## La sfida
-    .replace(/<Chapter\s+id="(\w+)"(?:\s+title="([^"]*)")?\s*>/g, (_m, id: string, title?: string) => {
-      const titles: Record<string, string> = {
-        contesto: 'Il contesto',
-        sfida: 'La sfida',
-        processo: 'Il processo',
-        risultato: 'Il risultato',
-        note: 'Note tecniche',
-      };
-      return `\n## ${title || titles[id] || id}\n`;
+    // <Chapter id="sfida"> -> ## La sfida (i titoli da lib/chapters, la fonte unica)
+    .replace(/<Chapter\b([^>]*)>/g, (_m, attrs: string) => {
+      const id = /\bid="(\w+)"/.exec(attrs)?.[1] as ChapterId | undefined;
+      const title = /\btitle="([^"]*)"/.exec(attrs)?.[1];
+      return `\n## ${title || (id && CHAPTERS[id]?.title) || id}\n`;
     })
     .replace(/<\/Chapter>/g, '')
+    // I passi diventano ### (il numero lo dà l'ordine).
+    .replace(/<Step\s+title="([^"]*)"\s*>/g, '\n### $1\n')
+    .replace(/<\/?Steps>|<\/Step>/g, '')
+    // Una coppia problema/soluzione: le righe presenti, con la loro etichetta.
+    .replace(/<ProblemSolution\b([\s\S]*?)\/>/g, (_m, attrs: string) => {
+      const get = (k: string) => new RegExp(`\\b${k}="([^"]*)"`).exec(attrs)?.[1];
+      const rows: [string, string | undefined][] = [
+        ['Problema', get('problem')],
+        ['Intervento', get('solution')],
+        ['Perché così', get('rationale')],
+        ['Compromesso', get('tradeoffs')],
+        ['Evidenza', get('evidence')],
+      ];
+      const t = get('title');
+      return [
+        t ? `\n### ${t}\n` : '',
+        ...rows.filter(([, v]) => v).map(([k, v]) => `**${k}.** ${v}\n`),
+      ].join('\n');
+    })
     // Le citazioni diventano blockquote.
     .replace(/<CaseQuote[^>]*>/g, '\n> ')
     .replace(/<\/CaseQuote>/g, '\n')
@@ -56,7 +71,10 @@ export const GET: APIRoute = ({ props }) => {
     d.client ? `- Cliente: ${d.client}` : null,
     d.stack.length ? `- Stack: ${d.stack.join(', ')}` : null,
     d.liveUrl ? `- Online: ${d.liveUrl}` : null,
-    ...d.metrics.map((m) => `- ${m.label}: ${m.value}`),
+    // SOLO le verificate, con la loro fonte: vedi `verifiedMetrics`.
+    ...verifiedMetrics(d.metrics).map(
+      (m) => `- ${m.label}: ${m.value}${m.unit ? ` ${m.unit}` : ''} (fonte: ${m.source})`
+    ),
   ].filter(Boolean);
 
   const md = [
@@ -66,6 +84,7 @@ export const GET: APIRoute = ({ props }) => {
     '',
     d.description,
     '',
+    ...(d.status === 'demo' ? ['> ⚠ Progetto di esempio: i contenuti sono segnaposto.', ''] : []),
     '## Dati',
     '',
     ...facts,
