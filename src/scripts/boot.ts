@@ -14,6 +14,8 @@ import { initNav } from './nav';
 import { initBanner } from './banner';
 import { initLoader } from './loader';
 import { initGlobe404 } from './globe404';
+import { initLightfall } from './lightfall';
+import { initCampoBinario } from './campoBinario';
 
 declare global {
   interface Window {
@@ -49,6 +51,17 @@ function boot(): void {
     /* Esce da solo su ogni pagina che non sia la 404 (nessun `[data-globe]`
        da trovare), come initLoader fuori dalla Home. */
     initGlobe404();
+    /* Stessa forma: esce da solo dove non c'è `[data-lightfall]`, cioè ovunque
+       tranne la hero di /portfolio. ⚠ A differenza del globo, con movimento
+       ridotto NON esce — disegna un fotogramma solo e si ferma: il fondale deve
+       restare, fermo, o resterebbe un rettangolo vuoto. */
+    initLightfall();
+    /* Stessa forma ancora: esce da solo dove non c'è un campo binario VIVO,
+       cioè ovunque tranne la hero di /chi-sono. Non anima niente — misura i
+       fotogrammi durante lo scroll e decide se la griglia va alleggerita su
+       questo dispositivo. Vedi campoBinario.ts per il perché non lo decide un
+       controllo su `hardwareConcurrency` come faceva la prima stesura. */
+    initCampoBinario();
 
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).

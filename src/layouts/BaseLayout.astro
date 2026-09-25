@@ -74,6 +74,36 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
       }
     </script>
 
+    {/*
+      GATE DELLA DENSITÀ DEL CAMPO BINARIO (/chi-sono) — inline e sincrono come
+      i due qui sopra, e per lo stesso motivo: se il verdetto c'è già, va
+      applicato PRIMA del primo paint. Applicarlo dopo vorrebbe dire disegnare
+      mille cifre e poi vederne sparire tre quarti sotto gli occhi.
+
+      ⚠ QUI NON SI DECIDE NIENTE: SI RILEGGE SOLTANTO. La prima stesura
+      decideva proprio qui, guardando `hardwareConcurrency` e `deviceMemory`,
+      e ha sbagliato sul primo PC vero — quello di Vlad, potente, si è
+      ritrovato il fondale rado. Il difetto non era la soglia ma il metodo:
+      quei due numeri non dicono quanto è veloce una macchina (4 core del 2013
+      e 4 core di un Apple Silicon sono lo stesso valore, `deviceMemory` è
+      tagliato a 8 e quindi cieco proprio in alto, e i browser attenti alla
+      privacy li dichiarano FINTI e bassi apposta). A decidere è ora
+      `campoBinario.ts`, che MISURA i fotogrammi mentre si scorre la hero —
+      vedi lì il ragionamento per esteso.
+
+      ⚠ Conseguenza voluta: alla PRIMA visita nessuna classe, cioè densità
+      piena per tutti. Un dispositivo lento la tiene per il primo secondo di
+      scroll e poi si alleggerisce da solo; un dispositivo veloce non viene
+      declassato mai, il che è tutto il punto.
+    */}
+    <script is:inline>
+      try {
+        if (localStorage.getItem('vc:bf') === 'rado') {
+          document.documentElement.classList.add('bf-rado');
+        }
+      } catch (e) {}
+    </script>
+
     {
       loader && (
         <script is:inline>

@@ -17,16 +17,23 @@
  * avrebbe voluto dire ridisegnare 1092 glifi ad ogni fotogramma per far
  * cambiare i due o tre che stanno cambiando davvero.
  *
- * ⚠ IL COSTO PER FOTOGRAMMA È QUASI ZERO — ED È STATO RESO VERO DUE VOLTE.
- * Solo l'ENTRATA tocca tutte le 1092 celle, ed è un'animazione che FINISCE
- * (escono dalla lista attiva dopo ~1,7s, un costo one-shot). Chi resta
- * ATTIVO per sempre è solo `bf-flash`, il lampo della commutazione — e da
- * questa sessione vive SOLO sulle celle che commutano davvero (~200 su
- * 1092, il 18%), non più su tutte: vedi la nota su `.bf__c--f` più sotto per
- * il perché è la correzione vera del lag segnalato da Vlad, non la densità
- * della griglia. Ogni ciclo dura 7-11s e il cambiamento visibile ne occupa
- * ~150ms: in un fotogramma qualunque stanno cambiando due o tre glifi da
- * 13px, l'opposto di una pioggia di caratteri che li ridipinge tutti.
+ * ⚠⚠ IL LAG ERANO I LAYER DI COMPOSITING — e per due giri interi questo
+ * commento ha dichiarato il contrario. Diceva: «il costo per fotogramma è
+ * quasi zero, l'entrata è one-shot, a pesare sono solo le celle che
+ * commutano». MISURATO IL 2026-09-16, è falso in ogni sua parte: l'entrata
+ * NON era one-shot (con `fill: both` restava in effetto per sempre e teneva
+ * OGNI cella promossa a un layer di compositing — 1238 layer sulla pagina
+ * contro i 38 di una pagina normale), e il numero di celle che commutano non
+ * era la leva (dimezzarlo non sposta i fotogrammi di un millisecondo).
+ * Il colpevole vero: `PaintArtifactCompositor::Update` a ~39ms per
+ * fotogramma, il costo più grande dell'intero scroll della pagina.
+ * ⚠ LA LEZIONE, che vale oltre questo file: i due giri precedenti hanno
+ * RAGIONATO su quali animazioni esistessero invece di MISURARE dove andasse
+ * il tempo, e un ragionamento solido su una premessa sbagliata regge benissimo
+ * per mesi. Le tre correzioni sono qui sotto (`backwards` su `bf-in`, la
+ * commutazione senza `opacity`, `content-visibility` sul campo fermo) e sono
+ * tutte a costo visivo zero; vedi CLAUDE.md per il metodo e per le cinque
+ * leve plausibili che sono state provate e non compravano niente.
  *
  * ⚠ UNA SOLA GRIGLIA, 42 COLONNE SEMPRE, e su telefono se ne NASCONDE UNA SÌ
  * E UNA NO invece di ridistribuire le celle su meno colonne. Sembra la scelta
@@ -47,6 +54,10 @@
  * un bagliore dietro deve tornare ai due glifi in dissolvenza. E l'opacità di
  * riposo della cella non lo rompe: `opacity` appiattisce il GRUPPO, quindi lo
  * `::after` copre il glifo prima che il gruppo venga reso traslucido.
+ * ⚠ Dal 2026-09-16 lo `::after` NON è più nascosto da una propria `opacity`
+ * ma da colore e fondo trasparenti (vedi la nota sulla commutazione più
+ * sotto): l'argomento qui sopra riguarda l'`opacity` della CELLA, che è
+ * rimasta, e resta valido.
  *
  * ⚠ ECCEZIONE DICHIARATA al divieto di loop infiniti (la SETTIMA, vedi
  * CLAUDE.md), nella stessa famiglia del cielo della CTA, delle stelle della
@@ -319,10 +330,18 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
 <div class:list={['bf', !ingresso && 'bf--fermo']} aria-hidden="true">
   <div class="bf__grid">
     {
-      celle.map((c) => (
+      celle.map((c, i) => (
         <span
           class:list={[
             'bf__c',
+            /* ⚠ La riga dispari si marca QUI perché in CSS non è esprimibile.
+               Le colonne dispari sono `nth-child(2n)` (la griglia ha un numero
+               PARI di colonne, quindi la parità dell'indice È la parità della
+               colonna), ma una riga è un blocco di 42 figli consecutivi: un
+               selettore posizionale che li peschi tutti sarebbe una catena di
+               tredici intervalli, illeggibile e da riscrivere ad ogni cambio di
+               griglia. Serve alla densità adattiva — vedi `.bf-rado`. */
+            Math.floor(i / COLONNE) % 2 === 1 && 'bf__c--rd',
             c.flip !== null && 'bf__c--f',
             /* La cifra commutata è l'OPPOSTA di quella di base: se il testo è
                '1', lo `::after` deve dire '0'. */
@@ -369,8 +388,11 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        navbar) forza mai un ricalcolo di stile o layout dentro queste ~1092
        celle, e viceversa. È legale perché la dimensione di `.bf` non dipende
        dal contenuto: è un assoluto con `inset: 0`, la dimensiona il genitore.
-       `strict` = `size layout style paint` insieme: nessuno dei quattro
-       richiede di sapere cosa succede fuori da questo elemento. */
+       ⚠ `strict` = `size layout paint`, NON anche `style` — questa riga
+       diceva il contrario. La differenza conta se un giorno si andasse a
+       caccia di ricalcoli di stile pensando che questo sottoalbero ne sia
+       immune: non lo è, e infatti `Document::recalcStyle` resta la seconda
+       voce di costo dello scroll anche a layer sistemati. */
     contain: strict;
   }
 
@@ -435,7 +457,30 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
        segnalato lag residuo) NON C'È PIÙ NESSUNA `bf-flash`: il lampo della
        commutazione è stato fuso dentro `bf-flip`, l'unica animazione che vive
        su `.bf__c--f::after` più sotto — vedi quella nota per il perché. */
-    animation: bf-in 430ms var(--ease-snappy) calc(var(--b) * 40ms + 80ms) both;
+
+    /* ⚠⚠ `backwards` E NON `both`, ED È LA CORREZIONE PIÙ IMPORTANTE DI TUTTO
+       QUESTO FILE (2026-09-11, terzo giro sul lag). Una parola, e il campo
+       passa da 1090 LAYER DI COMPOSITING a ZERO.
+       Il meccanismo: `bf-in` anima `opacity` e `transform`, cioè due proprietà
+       compositabili, quindi Chrome promuove ogni cella a un layer proprio per
+       poterla animare sul thread del compositor. Legittimo mentre l'animazione
+       corre — ma `both` fa sì che l'animazione resti IN EFFETTO per sempre
+       anche dopo essere finita (è ciò che significa "fill forwards"), e finché
+       è in effetto il layer non viene rilasciato. Misurato: 1238 layer sulla
+       pagina contro i 38 di una pagina normale, e
+       `PaintArtifactCompositor::Update` a ~39ms per fotogramma — il singolo
+       costo più grande dell'intero scroll di /chi-sono.
+       ⚠ IL FILL IN AVANTI NON SERVIVA A NIENTE, ed è il punto: lo stato di
+       riposo dichiarato qui sopra (`opacity: calc(var(--o) * var(--bf-dim,1))`,
+       `color: var(--bf-c)`, nessun transform) è GIÀ identico al fotogramma
+       `to`. `both` stava tenendo in vita mille animazioni per riaffermare dei
+       valori che il CSS di base diceva già. `backwards` conserva l'altra metà,
+       quella che serve davvero: durante il RITARDO la cella sta al fotogramma
+       `from` (invisibile), che è ciò che rende l'onda un'onda.
+       ⚠ Non è una variante "più leggera" dell'effetto: a schermo è identica
+       fotogramma per fotogramma. Chi la rimettesse a `both` non vedrebbe
+       cambiare nulla, e riporterebbe indietro mille layer. */
+    animation: bf-in 430ms var(--ease-snappy) calc(var(--b) * 40ms + 80ms) backwards;
   }
 
   /* Il pizzico di colore. Non una seconda tinta: è lo stesso accento del sito,
@@ -508,13 +553,27 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
     position: relative;
   }
 
+  /* ⚠⚠ NON ANIMA PIÙ `opacity`, E NON È UN DETTAGLIO (2026-09-11, terzo giro).
+     `opacity` è compositabile, quindi un'animazione `infinite` che la tocca
+     promuove l'elemento a un layer di compositing e ce lo tiene PER SEMPRE:
+     erano 214 layer permanenti (una cella che commuta + il suo `::after`), e
+     con l'animazione che tocca anche `color` — non compositabile — il motore
+     non poteva nemmeno usarli, perché la corsa restava comunque sul main
+     thread. Il peggio dei due mondi: il costo del layer senza il beneficio.
+     ⚠ `color` e `background-color` fanno LO STESSO IDENTICO EFFETTO senza
+     promuovere niente: sono entrambe proprietà di solo paint, interpolano allo
+     stesso modo, e la cifra e il fondo che la copre sfumano insieme esattamente
+     come faceva il gruppo reso traslucido da `opacity`. Lo stato di riposo è
+     "entrambe trasparenti", cioè invisibile come prima.
+     Misurato alla pari (backwards + content-visibility attivi su entrambe):
+     layer 253 → 38, task 11,8s → 9,9s, p95 117ms → 100ms. */
   .bf__c--f::after {
     content: '1';
     position: absolute;
     inset: 0;
     text-align: center;
-    background-color: var(--color-canvas);
-    opacity: 0;
+    color: transparent;
+    background-color: transparent;
     animation: bf-flip var(--fd) linear var(--ft) infinite;
   }
 
@@ -533,22 +592,22 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
   @keyframes bf-flip {
     0%,
     42.4% {
-      opacity: 0;
-      color: var(--bf-c);
+      color: transparent;
+      background-color: transparent;
     }
     44% {
-      opacity: 1;
       color: var(--color-accent-hi);
+      background-color: var(--color-canvas);
     }
     50%,
     92.4% {
-      opacity: 1;
       color: var(--bf-c);
+      background-color: var(--color-canvas);
     }
     94%,
     100% {
-      opacity: 0;
-      color: var(--bf-c);
+      color: transparent;
+      background-color: transparent;
     }
   }
 
@@ -578,6 +637,25 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
   .bf--fermo .bf__c,
   .bf--fermo .bf__c::after {
     animation: none;
+  }
+
+  /* ⚠ IL CAMPO FERMO SI SALTA FINCHÉ NON SI VEDE (2026-09-11, terzo giro sul
+     lag). Quello della chiusura sta in fondo a una pagina lunga ~7000px: per
+     tutto il tempo in cui si legge e si scorre la HERO è fuori schermo, e il
+     motore lo teneva comunque in stile e paint — misurato, nasconderlo faceva
+     risparmiare 7 secondi di main thread su una corsa di scroll di venti.
+     `content-visibility: auto` ottiene lo stesso risparmio senza nasconderlo:
+     il browser salta il lavoro finché il campo non sta per entrare in vista,
+     e da lì lo rende normalmente.
+     ⚠ Non serve `contain-intrinsic-size`, che di solito accompagna questa
+     proprietà per non far collassare il layout: `.bf` è un assoluto con
+     `inset: 0`, quindi la sua misura gliela dà il genitore e non il proprio
+     contenuto — saltare il contenuto non può cambiarne le dimensioni.
+     ⚠ E vale SOLO per il campo fermo, non per quello della hero: quello è a
+     schermo dal primo istante, e la sua onda d'ingresso deve poter partire
+     subito invece di aspettare di essere dichiarata visibile. */
+  .bf--fermo {
+    content-visibility: auto;
   }
 
   .bf__scrim {
@@ -657,6 +735,39 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
     }
   }
 
+  /* ---- La densità adattiva -----------------------------------------------
+     ⚠ SI CAMPIONA LA STESSA GRIGLIA A PASSO DOPPIO, non se ne costruisce una
+     più piccola — ed è la stessa ragione per cui su telefono si nascondono le
+     colonne invece di ridistribuirle: la banda d'ingresso di ogni cella è
+     calcolata a build time sulla sua posizione nella griglia a 42×26. Tenendo
+     una cella su due in ENTRAMBE le direzioni, quelle che restano conservano
+     la propria posizione relativa, e l'onda si propaga identica — solo con
+     meno punti a raccontarla. Ricostruire una griglia 21×13 rifarebbe i conti
+     e darebbe un'onda diversa.
+     ⚠ SI DIMEZZA SU DUE ASSI E NON SU UNO, benché a far scendere i fotogrammi
+     basti dimezzare una volta sola: togliendo solo le colonne le cifre
+     resterebbero a 35px di distanza in verticale e 68px in orizzontale, cioè
+     un campo STIRATO invece che più rado — si legge come un difetto di
+     layout. Su due assi il reticolo resta quadrato e cambia solo di scala.
+     ⚠ Il tetto di `font-size` NON viene alzato per compensare: le cifre
+     restano della stessa taglia in celle più grandi. È il punto — deve
+     restare lo stesso fondale visto da più lontano, non un fondale con dei
+     caratteri più grossi.
+     ⚠ CHI ACCENDE `bf-rado` È `campoBinario.ts`, che MISURA i fotogrammi
+     durante lo scroll della hero. La prima stesura lo decideva invece da
+     `hardwareConcurrency`/`deviceMemory` in uno script inline, e ha declassato
+     il PC potente di Vlad il giorno stesso: quei due numeri non dicono quanto
+     è veloce una macchina. Vedi campoBinario.ts per il perché il rimedio non
+     era alzare la soglia. */
+  :global(html.bf-rado) .bf__grid {
+    grid-template-columns: repeat(21, minmax(0, 1fr));
+  }
+
+  :global(html.bf-rado) .bf__c:nth-child(2n),
+  :global(html.bf-rado) .bf__c--rd {
+    display: none;
+  }
+
   /* ⚠ SERVE UN BLOCCO DEDICATO, e non basta la regola globale di `global.css`
      (`animation-iteration-count: 1`): per una commutazione infinita "un giro
      solo" significa comunque una commutazione ogni dieci secondi. Qui il campo
@@ -671,8 +782,12 @@ const css = (n: number): string => n.toFixed(2).replace(/^0/, '');
       opacity: calc(var(--o) * var(--bf-dim, 1));
       transform: none;
     }
+    /* ⚠ Lo stato di riposo dello `::after` non è più `opacity: 0` ma "colore e
+       fondo trasparenti" (vedi la nota sulla commutazione senza `opacity`):
+       ridichiararlo qui è la rete se un domani la regola di base cambiasse. */
     .bf__c--f::after {
-      opacity: 0;
+      color: transparent;
+      background-color: transparent;
     }
   }
 </style>
