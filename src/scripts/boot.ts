@@ -16,6 +16,7 @@ import { initLoader } from './loader';
 import { initGlobe404 } from './globe404';
 import { initLightfall } from './lightfall';
 import { initCampoBinario } from './campoBinario';
+import { initWorks } from './works';
 
 declare global {
   interface Window {
@@ -62,6 +63,8 @@ function boot(): void {
        questo dispositivo. Vedi campoBinario.ts per il perché non lo decide un
        controllo su `hardwareConcurrency` come faceva la prima stesura. */
     initCampoBinario();
+    /* Esce da solo dove non c'è `[data-works]`, cioè ovunque tranne /portfolio. */
+    initWorks();
 
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).

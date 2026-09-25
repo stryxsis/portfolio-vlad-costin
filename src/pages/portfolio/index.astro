@@ -22,8 +22,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Handoff from '../../components/sections/Handoff.astro';
 import PortfolioHero from '../../components/sections/PortfolioHero.astro';
-import SectionIndex from '../../components/primitives/SectionIndex.astro';
-import ProjectCard from '../../components/primitives/ProjectCard.astro';
+import WorksStage from '../../components/sections/WorksStage.astro';
 import { allProjects } from '../../lib/collections';
 
 const projects = await allProjects();
@@ -39,85 +38,8 @@ const projects = await allProjects();
     {/* ⚠ L'entrante DEVE essere più alta di uno schermo perché l'occlusione
         avvenga mentre l'uscente è ancora incollata (il vincolo geometrico è
         scritto per esteso in Handoff.astro, e `.ho__in` lo impone con un
-        `min-height: 104svh`). Con tre progetti in griglia lo è ampiamente. */}
-    <section class="pf" data-section id="lavori" slot="in">
-      <div class="pf__wrap">
-        <div class="pf__head">
-          <SectionIndex n="01" label={`Lavori · ${projects.length}`} />
-          {/* h2 e non h1: l'h1 della pagina è il titolo della hero. Prima
-              questa sezione portava l'h1 perché la hero non esisteva. */}
-          <h2 class="pf__title">Lavori</h2>
-          <p class="pf__lede" data-split="lines">
-            Ogni progetto qui sotto ha una pagina che spiega il contesto, il problema,
-            come l'ho affrontato e cosa è cambiato dopo. Niente slide, niente mockup finti.
-          </p>
-        </div>
-
-        <ul class="pf__grid">
-          {
-            projects.map((p, i) => (
-              <li class="pf__item" data-span={p.data.span} data-reveal>
-                {/* level=3: sopra c'è l'h1 della hero e l'h2 "Lavori", quindi
-                    h3 è il livello corretto e non salta nulla. */}
-                <ProjectCard
-                  project={p}
-                  index={i + 1}
-                  level={3}
-                  eager={i < 2}
-                  sizes="(min-width: 56.25rem) 44vw, 92vw"
-                />
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-    </section>
+        `min-height: 104svh`). Il palco dei lavori riempie esattamente quel
+        minimo (`--ho-in-floor`): è alto uno schermo e poco più. */}
+    <WorksStage slot="in" projects={projects} />
   </Handoff>
 </BaseLayout>
-
-<style>
-  .pf {
-    padding-top: calc(var(--nav-h) + clamp(3rem, 8vh, 6rem));
-    padding-bottom: var(--spacing-section);
-  }
-
-  .pf__wrap {
-    max-width: 90rem;
-    margin-inline: auto;
-    padding-inline: var(--spacing-gutter);
-  }
-
-  .pf__title {
-    margin-top: 1.5rem;
-    font-size: var(--text-mega);
-    line-height: 0.84;
-    letter-spacing: -0.045em;
-  }
-
-  .pf__lede {
-    margin-top: 1.5rem;
-    max-width: min(44ch, 100%);
-    font-size: var(--text-lede);
-    color: var(--color-text-2);
-  }
-
-  .pf__grid {
-    display: grid;
-    gap: clamp(2.5rem, 5vw, 4rem);
-    margin-top: clamp(4rem, 8vw, 7rem);
-    list-style: none;
-    padding: 0;
-  }
-  @media (min-width: 56.25rem) {
-    .pf__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  /* La geometria della cella sta qui, l'interno della card sta in
-     ProjectCard.astro. `data-span` è già sul <li> ma non è ancora usato: la
-     griglia non ortogonale che lo legge arriva nel milestone 8. */
-  .pf__item {
-    display: grid;
-  }
-</style>

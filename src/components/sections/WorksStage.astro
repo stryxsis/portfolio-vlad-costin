@@ -1,0 +1,477 @@
+---
+/**
+ * §01 LAVORI — il palco dei progetti, dentro /portfolio.
+ *
+ * Il disegno viene da un riferimento video portato da Vlad (frame
+ * `01_00.50s.png` nella radice): immagine del progetto a tutto schermo come
+ * fondo, a sinistra etichetta + titolo grande + descrizione + bottone, a destra
+ * una fila di card con gli ALTRI progetti, sotto frecce tonde, una linea di
+ * avanzamento e il contatore grande.
+ *
+ * Il gesto: si sceglie una card (o una freccia) e quella card SI ALLARGA fino a
+ * diventare il fondo, mentre le altre scorrono al loro posto e il titolo nuovo
+ * sale da sotto. Lo guida `src/scripts/works.ts`.
+ *
+ * Adattato al sito, non copiato: Geist al posto del font condensato del
+ * riferimento, l'accento viola al posto del giallo, nessun avanzamento
+ * automatico.
+ *
+ * ⚠ SENZA JS è comunque completo: il primo progetto è in scena, e le card sono
+ * LINK veri ai case study — si naviga invece di cambiare scena. Il JS le prende
+ * in mano e le fa diventare comandi del palco; per aprire un case study resta
+ * il bottone "Leggi il case study".
+ */
+import { Picture } from 'astro:assets';
+import SectionIndex from '../primitives/SectionIndex.astro';
+import Button from '../primitives/Button.astro';
+import type { Project } from '../../lib/collections';
+
+interface Props {
+  projects: Project[];
+}
+
+const { projects } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+const href = (p: Project) => `/portfolio/${p.id}`;
+---
+
+<section class="wk" data-section id="lavori" aria-labelledby="lavori-h" data-works>
+  {/* I fondi: uno per progetto, impilati. È acceso solo quello in scena. */}
+  <div class="wk__bgs" aria-hidden="true">
+    {
+      projects.map((p, i) => (
+        <div class:list={['wk__bg', { 'is-on': i === 0 }]} data-bg={i}>
+          <Picture
+            src={p.data.cover}
+            alt=""
+            widths={[800, 1280, 1920, 2560]}
+            sizes="100vw"
+            formats={['avif', 'webp']}
+            loading="lazy"
+            decoding="async"
+            class="wk__bg-img"
+          />
+        </div>
+      ))
+    }
+  </div>
+  <div class="wk__shade" aria-hidden="true"></div>
+
+  <div class="wk__inner">
+    <div class="wk__idx">
+      <SectionIndex n="01" label={`Lavori · ${projects.length}`} />
+    </div>
+    <h2 id="lavori-h" class="sr-only">Lavori</h2>
+
+    {/* Il testo del progetto in scena. Una scheda per progetto nella stessa
+        cella: il JS ne mostra una sola alla volta. */}
+    <div class="wk__copy">
+      {
+        projects.map((p, i) => (
+          <article class:list={['wk__slide', { 'is-on': i === 0 }]} data-slide={i} hidden={i !== 0}>
+            <p class="wk__label">
+              {p.data.year} · {p.data.role}
+            </p>
+            <h3 class="wk__title">
+              <span class="wk__mask">
+                <span class="wk__title-in">{p.data.title}</span>
+              </span>
+            </h3>
+            <p class="wk__sub">{p.data.subtitle}</p>
+            <div class="wk__cta">
+              <span class="wk__cta-dot" aria-hidden="true" />
+              <Button href={href(p)} variant="outline">
+                Leggi il case study
+              </Button>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    {/* La fila di card: gli ALTRI progetti. Quella del progetto in scena è
+        nascosta (è diventata il fondo). L'ordine visivo lo decide il JS. */}
+    <div class="wk__rail">
+      <ul class="wk__cards" data-cards>
+        {
+          projects.map((p, i) => (
+            <li class:list={['wk__item', { 'is-current': i === 0 }]} data-card={i} style={`order: ${i}`}>
+              <a class="wk__card" href={href(p)} data-card-link={i}>
+                <span class="wk__card-media">
+                  <Picture
+                    src={p.data.cover}
+                    alt=""
+                    widths={[320, 480, 640]}
+                    sizes="(min-width: 56.25rem) 16rem, 10rem"
+                    formats={['avif', 'webp']}
+                    loading="lazy"
+                    decoding="async"
+                    class="wk__card-img"
+                  />
+                </span>
+                <span class="wk__card-text">
+                  <span class="wk__card-label">{p.data.year}</span>
+                  <span class="wk__card-title">{p.data.title}</span>
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="wk__ctrl">
+      <div class="wk__arrows">
+        <button class="wk__arrow" type="button" data-prev aria-label="Progetto precedente">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <button class="wk__arrow" type="button" data-next aria-label="Progetto successivo">
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+      <span class="wk__line" aria-hidden="true">
+        <span class="wk__line-fill" data-fill style={`transform: scaleX(${1 / projects.length})`}></span>
+      </span>
+      <p class="wk__count">
+        <span class="sr-only">Progetto </span>
+        <span data-count>{pad(1)}</span>
+        <span class="sr-only"> di {projects.length}</span>
+      </p>
+    </div>
+
+    {/* Annuncia il progetto nuovo a chi usa uno screen reader, una volta sola. */}
+    <p class="sr-only" aria-live="polite" data-live></p>
+  </div>
+</section>
+
+<style>
+  .wk {
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+    /* Riempie tutto l'occlusore del handoff (vedi Handoff.astro), non 100svh:
+       il fondo è una foto, e 4svh scoperti in fondo sarebbero una banda nera. */
+    min-height: var(--ho-in-floor, 100svh);
+    background-color: var(--color-canvas);
+  }
+
+  /* ---- I fondi ---------------------------------------------------------- */
+  .wk__bgs,
+  .wk__bg,
+  .wk__shade {
+    position: absolute;
+    inset: 0;
+  }
+  .wk__bgs {
+    z-index: 0;
+  }
+  .wk__bg {
+    opacity: 0;
+  }
+  .wk__bg.is-on {
+    opacity: 1;
+  }
+  .wk__bg :global(picture),
+  .wk__bg-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Il velo che tiene leggibile il testo: più scuro a sinistra, dove sta il
+     titolo, e in basso, dove stanno i comandi. */
+  .wk__shade {
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--color-canvas) 82%, transparent) 0%,
+        color-mix(in oklab, var(--color-canvas) 45%, transparent) 42%,
+        color-mix(in oklab, var(--color-canvas) 10%, transparent) 75%
+      ),
+      linear-gradient(
+        to top,
+        color-mix(in oklab, var(--color-canvas) 70%, transparent) 0%,
+        transparent 35%
+      );
+  }
+
+  /* ---- La scena ----------------------------------------------------------- */
+  /* ⚠ `.wk__inner` NON è un contesto di impilamento (niente z-index): i suoi
+     figli devono stare nello stesso piano della card che si allarga, che il
+     JS appende alla sezione. L'ordine voluto, come nel riferimento, è
+     fondo < velo < testo < card che si allarga < fila delle altre < comandi. */
+  .wk__inner {
+    position: relative;
+    display: grid;
+    gap: 2rem;
+    max-width: 90rem;
+    min-height: inherit;
+    margin-inline: auto;
+    padding: calc(var(--nav-h) + 2rem) var(--spacing-gutter) clamp(2rem, 5vh, 3.5rem);
+  }
+
+  @media (min-width: 56.25rem) {
+    .wk__inner {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        'idx  idx'
+        'copy rail'
+        '.    ctrl';
+      column-gap: clamp(2rem, 4vw, 4rem);
+      row-gap: 1.5rem;
+    }
+    .wk__idx {
+      grid-area: idx;
+    }
+    .wk__copy {
+      grid-area: copy;
+      align-self: center;
+    }
+    .wk__rail {
+      grid-area: rail;
+      align-self: center;
+      /* La fila esce dal margine destro e viene tagliata dal bordo della
+         sezione, come nel riferimento: dice che ce ne sono altre. */
+      margin-right: calc(-1 * var(--spacing-gutter));
+    }
+    .wk__ctrl {
+      grid-area: ctrl;
+    }
+  }
+
+  .wk__idx,
+  .wk__ctrl {
+    position: relative;
+    z-index: 5;
+  }
+  .wk__copy {
+    position: relative;
+    z-index: 2;
+  }
+  .wk__rail {
+    position: relative;
+    z-index: 4;
+  }
+
+  /* La card che si allarga (creata dal JS): il clone dell'immagine di fondo
+     la riempie come il fondo vero. */
+  .wk :global(.wk__fly picture) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* L'indice qui non è sticky: la sezione è alta uno schermo. */
+  .wk__idx :global([data-section-index]) {
+    position: static;
+  }
+
+  /* ---- Il testo ----------------------------------------------------------- */
+  .wk__copy {
+    display: grid;
+    min-width: 0;
+  }
+  /* Tutte le schede nella stessa cella: durante il cambio l'uscente e
+     l'entrante stanno una sopra l'altra, senza far saltare l'altezza. */
+  .wk__slide {
+    grid-area: 1 / 1;
+    display: grid;
+    gap: 1.1rem;
+    align-content: center;
+  }
+  .wk__slide[hidden] {
+    display: none;
+  }
+
+  /* Il trattino sopra l'etichetta, come nel riferimento. */
+  .wk__label {
+    display: grid;
+    gap: 0.7rem;
+    font-size: var(--text-sm);
+    color: var(--color-text-1);
+  }
+  .wk__label::before {
+    content: '';
+    width: 1.5rem;
+    height: 2px;
+    background-color: var(--color-text-1);
+  }
+
+  .wk__title {
+    font-size: clamp(2.5rem, 1.2rem + 4.4vw, 5.75rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+    max-width: 12ch;
+  }
+  /* La maschera dell'ingresso: il titolo sale da sotto il proprio bordo. */
+  .wk__mask {
+    display: block;
+    overflow: clip;
+    padding-bottom: 0.06em;
+  }
+  .wk__title-in {
+    display: block;
+  }
+
+  .wk__sub {
+    max-width: min(34ch, 100%);
+    font-size: var(--text-base);
+    color: var(--color-text-2);
+  }
+
+  .wk__cta {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.4rem;
+  }
+  .wk__cta-dot {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+  }
+
+  /* ---- Le card ------------------------------------------------------------ */
+  .wk__rail {
+    min-width: 0;
+  }
+  .wk__cards {
+    display: flex;
+    gap: clamp(0.75rem, 1.4vw, 1.25rem);
+    margin: 0;
+    padding: 0 0 0.5rem;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  @media (min-width: 56.25rem) {
+    .wk__cards {
+      overflow: visible;
+    }
+  }
+  .wk__item {
+    flex: 0 0 clamp(10rem, 16vw, 16rem);
+  }
+  /* La card del progetto in scena non c'è: è diventata il fondo. */
+  .wk__item.is-current {
+    display: none;
+  }
+
+  .wk__card {
+    position: relative;
+    display: block;
+    aspect-ratio: 3 / 4.2;
+    overflow: clip;
+    border-radius: var(--radius-card);
+    color: var(--color-text-1);
+    text-decoration: none;
+    box-shadow: 0 18px 40px -18px rgb(0 0 0 / 0.8);
+    transition: transform 200ms var(--ease-snappy);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .wk__card:hover {
+      transform: translateY(-4px);
+    }
+  }
+  .wk__card-media,
+  .wk__card-media :global(picture),
+  .wk__card-img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Il testo sta in basso, su un velo: leggibile su qualunque immagine. */
+  .wk__card-text {
+    position: absolute;
+    inset: auto 0 0;
+    display: grid;
+    gap: 0.35rem;
+    padding: 2.5rem 0.9rem 0.9rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--color-canvas) 88%, transparent),
+      transparent
+    );
+  }
+  .wk__card-label {
+    font-size: var(--text-micro);
+    color: var(--color-text-2);
+  }
+  .wk__card-label::before {
+    content: '';
+    display: block;
+    width: 0.9rem;
+    height: 1px;
+    margin-bottom: 0.45rem;
+    background-color: var(--color-text-1);
+  }
+  .wk__card-title {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  /* ---- I comandi ---------------------------------------------------------- */
+  .wk__ctrl {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+  .wk__arrows {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .wk__arrow {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid color-mix(in oklab, var(--color-text-1) 45%, transparent);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-text-1);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 180ms var(--ease-snappy), color 180ms var(--ease-snappy);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .wk__arrow:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+  }
+
+  .wk__line {
+    position: relative;
+    flex: 1;
+    height: 1px;
+    background-color: color-mix(in oklab, var(--color-text-1) 30%, transparent);
+  }
+  .wk__line-fill {
+    position: absolute;
+    inset: -1px 0;
+    background-color: var(--color-accent);
+    transform-origin: left;
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .wk__count {
+    font-size: clamp(2rem, 1.4rem + 2vw, 3rem);
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
