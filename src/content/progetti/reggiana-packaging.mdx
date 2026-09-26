@@ -1,0 +1,164 @@
+---
+# ⚠ TESTO SCRITTO DA CLAUDE (2026-09-26) su fatti letti nei file del progetto
+# (brief JEParma, repository del sito, note di lavoro). Da rivedere con Vlad:
+# i punti incerti sono segnati con DA VERIFICARE nel corpo.
+title: 'Reggiana Packaging'
+subtitle: 'Il sito di una consulenza di packaging alimentare, in italiano e in inglese'
+description: 'Il sito di Reggiana Packaging, consulenza di packaging alimentare B2B: nove famiglie di soluzioni, due lingue e un modulo contatti che regge.'
+
+client: 'Reggiana Packaging'
+role: 'Sviluppo web · Area IT JEParma'
+year: 2026
+pubDate: 2026-09-09
+
+stack:
+  - Next.js
+  - React
+  - TypeScript
+  - Tailwind CSS
+  - next-intl
+  - Resend
+  - Vercel
+
+# Numeri letti nel repository del sito, non stimati.
+metrics:
+  - label: 'Lingue, con URL tradotti'
+    value: '2'
+  - label: 'Famiglie di soluzioni'
+    value: '9'
+  - label: 'Layout shift, era 0,33'
+    value: '≈ 0'
+  - label: 'Total Blocking Time'
+    value: '−19%'
+
+cover: ../../assets/progetti/reggiana-packaging/reggiana-packaging-home.jpg
+coverAlt: 'La home del sito di Reggiana Packaging: il titolo «Il giusto packaging nasce dall’esigenza» sopra una composizione di imballaggi alimentari con il marchio dell’azienda'
+
+liveUrl: 'https://www.reggianapackaging.it/it'
+
+featured: true
+order: 1
+span: wide
+draft: false
+---
+
+import Chapter from '../../components/case-study/Chapter.astro';
+import CaseFigure from '../../components/case-study/CaseFigure.astro';
+import CaseQuote from '../../components/case-study/CaseQuote.astro';
+import soluzioni from '../../assets/progetti/reggiana-packaging/reggiana-packaging-soluzioni.jpg';
+import sostenibilita from '../../assets/progetti/reggiana-packaging/reggiana-packaging-sostenibilita.jpg';
+import mobile from '../../assets/progetti/reggiana-packaging/reggiana-packaging-mobile.jpg';
+
+<Chapter id="contesto" title="Tre amici e quindici anni di packaging">
+
+Reggiana Packaging nasce a gennaio 2025 da Francesco Fantesini, Giorgio
+Canalini e Stefano Marcacci: tre amici che si conoscono dai campi da basket e
+che, prima di mettersi in proprio, hanno passato più di quindici anni a
+lavorare nel packaging alimentare. Non producono imballaggi: li scelgono, li
+adattano e seguono il cliente dalla scelta del materiale fino alla linea di
+confezionamento.
+
+Il progetto è arrivato tramite JEParma, la Junior Enterprise dell’Università
+di Parma, a fine giugno 2026. L’azienda cresceva grazie alle relazioni e a una
+rete commerciale già attiva, ma online non raccontava quasi niente di quello
+che sapeva fare.
+
+<CaseQuote cite="Dal brief del progetto">
+  Supportare la crescita commerciale dell’azienda attraverso una comunicazione
+  più strutturata e la valorizzazione del ruolo consulenziale.
+</CaseQuote>
+
+</Chapter>
+
+<Chapter id="sfida" title="Vendere competenza, non un catalogo">
+
+Una consulenza non ha un carrello da riempire. Il sito doveva far capire a
+un’azienda alimentare che dall’altra parte c’è qualcuno che conosce vassoi,
+film per termoformatura, buste per sottovuoto ed etichette, e che sa dire
+quale serve a quel prodotto su quella linea.
+
+Il lavoro era diviso: l’area Marketing di JEParma curava la grafica e il
+posizionamento, io la parte tecnica. Il mio compito era trasformare quei
+mockup in un sito vero, veloce anche da telefono, in due lingue e trovabile
+sui motori di ricerca. E con un modulo contatti che arrivasse davvero a
+destinazione, perché per un’azienda B2B la richiesta di contatto è l’unico
+risultato che conta.
+
+</Chapter>
+
+<Chapter id="processo" title="Cinque prototipi, poi il sito">
+
+### Prima di scrivere il sito, ho provato a scriverlo male
+
+A luglio ho costruito cinque prototipi, uno per ogni idea da verificare: una
+prima versione in HTML semplice, poi tre in Next.js con librerie di
+componenti e di animazione, poi una dedicata solo ai colori. Servivano a
+decidere insieme al cliente, non a finire online. Il sito vero è ripartito da
+zero ad agosto, con quello che i prototipi avevano insegnato.
+
+### Due lingue, e gli indirizzi tradotti
+
+Il sito è in Next.js con next-intl. L’italiano è la lingua principale,
+l’inglese ha indirizzi suoi: `/it/soluzioni` diventa `/en/solutions`, così
+anche chi cerca in inglese trova una pagina scritta per lui. Niente CMS e
+niente database: tutti i testi stanno in due file di traduzione, e le
+traduzioni inglesi le ho scritte io.
+
+<CaseFigure
+  src={soluzioni}
+  alt="La sezione delle soluzioni: una griglia di card con vassoi preformati, film per termoformatura, film per confezionamento, buste per sottovuoto, contenitori ed etichette"
+  caption="Le nove famiglie di soluzioni: un testo breve sulla card, quello lungo dentro un elemento nativo che si apre."
+  size="wide"
+/>
+
+### Un modulo contatti che regge
+
+Il modulo invia due email con Resend: una all’azienda con la richiesta e una
+di conferma a chi l’ha scritta. La validazione è scritta a mano e ripetuta sul
+server, e il modulo si difende da solo dallo spam con un campo trappola, un
+controllo sull’origine e un limite di richieste per indirizzo. Si possono
+allegare fino a cinque file, con una barra di caricamento che mostra il
+progresso reale e non un’animazione di attesa.
+
+### Togliere invece di aggiungere
+
+La parte che mi ha insegnato di più è stata quella sulle prestazioni. Ho tolto
+la libreria di animazioni che usavo nei prototipi: gli ingressi ora sono CSS,
+avviati da un solo osservatore, e rispettano chi chiede meno movimento. Un
+font di ripiego con le stesse misure di quello vero ha portato lo spostamento
+del layout al caricamento da 0,33 a praticamente zero. Separare il codice del
+modulo dal resto della pagina ha ridotto il Total Blocking Time del 19%.
+
+Per i motori di ricerca ogni pagina ha i suoi dati strutturati, le versioni
+alternate per lingua e i file `llms.txt` per gli assistenti AI.
+
+<CaseFigure
+  src={sostenibilita}
+  alt="Il blocco dei numeri dell’azienda e l’inizio della sezione sulla sostenibilità, con il titolo «Il packaging sta cambiando»"
+  caption="La sostenibilità ha una pagina sua, con una sezione dedicata al nuovo regolamento europeo sugli imballaggi."
+  size="wide"
+/>
+
+</Chapter>
+
+<Chapter id="risultato" title="Online, e ancora in crescita">
+
+Il sito è online su reggianapackaging.it: cinque pagine di contenuto più le
+due legali, tutte in italiano e in inglese. Dopo la pubblicazione è arrivata
+la RP Academy, il percorso di formazione dell’azienda, e un banner per la
+fiera iMEAT che si chiude da solo quando l’evento è passato.
+
+Il brief prevede la manutenzione fino a ottobre, e il lavoro continua sulle
+richieste dei soci.
+
+{/* DA VERIFICARE: se ci sono risultati commerciali (richieste arrivate dal
+    modulo, clienti nuovi) vanno qui, detti dai soci. */}
+
+<CaseFigure
+  src={mobile}
+  alt="Tre schermate del sito su telefono: la home, la presentazione della squadra e le card delle soluzioni"
+  caption="Da telefono: la home, la squadra e le soluzioni."
+  size="wide"
+/>
+
+</Chapter>

@@ -57,7 +57,12 @@ import DemoCard from '../primitives/DemoCard.astro';
 import Lightfall from '../primitives/Lightfall.astro';
 import SectionIndex from '../primitives/SectionIndex.astro';
 import type { Demo } from '../primitives/DemoCard.astro';
-import netDayShot from '../../assets/progetti/network-day-desktop.png';
+import rpDesktop from '../../assets/progetti/reggiana-packaging-desktop.png';
+import rpMobile from '../../assets/progetti/reggiana-packaging-mobile.png';
+import ndDesktop from '../../assets/progetti/network-day-desktop.png';
+import ndMobile from '../../assets/progetti/network-day-mobile.png';
+import alsiDesktop from '../../assets/progetti/alsi-gluten-free-desktop.png';
+import alsiMobile from '../../assets/progetti/alsi-gluten-free-mobile.png';
 
 interface Props {
   /** Ancora del bottone: dove porta "Guarda i lavori". */
@@ -73,34 +78,61 @@ const { href = '#lavori' } = Astro.props;
  */
 const DEMO: Demo[] = [
   {
+    titolo: 'Reggiana Packaging',
+    meta: 'Sito aziendale · 2026',
+    formato: 'desktop',
+    shot: rpDesktop,
+    shotAlt: 'Il sito di Reggiana Packaging da computer: la home e la presentazione della squadra',
+  },
+  {
+    titolo: 'Network Day',
+    meta: 'JEParma · 2026',
+    formato: 'mobile',
+    shot: ndMobile,
+    shotAlt: 'Il sito del Network Day 2026 da telefono: la home e il tema Schilderwald',
+  },
+  {
+    titolo: 'ALSI Gluten Free',
+    meta: 'Sito aziendale · 2026',
+    formato: 'desktop',
+    shot: alsiDesktop,
+    shotAlt: 'Il sito di ALSI Gluten Free da computer: la home «Sì, è Gluten Free»',
+  },
+  /* ⚠ Kimere resta sul wireframe apposta: il sito sta per essere rifatto e
+     Vlad ha chiesto di non catturarlo finché non è definitivo. */
+  { titolo: 'Kimere', meta: 'Sito aziendale · 2026', formato: 'desktop', wire: 0 },
+  {
+    titolo: 'Reggiana Packaging',
+    meta: 'Versione mobile',
+    formato: 'mobile',
+    shot: rpMobile,
+    shotAlt: 'Il sito di Reggiana Packaging da telefono',
+  },
+  {
     titolo: 'Network Day',
     meta: 'JEParma · 2026',
     formato: 'desktop',
-    shot: netDayShot,
-    shotAlt:
-      "Il sito del Network Day 2026 di JEParma: la schermata di apertura con il countdown all'evento",
+    shot: ndDesktop,
+    shotAlt: "Il sito del Network Day 2026 da computer: la schermata di apertura con il countdown all'evento",
   },
-  { titolo: 'App mobile', meta: 'Segnaposto', formato: 'mobile', wire: 2 },
-  { titolo: 'Gestionale', meta: 'Segnaposto', formato: 'desktop', wire: 1 },
-  { titolo: 'Catalogo', meta: 'Segnaposto', formato: 'desktop', wire: 3 },
-  { titolo: 'Agente vocale', meta: 'Segnaposto', formato: 'mobile', wire: 2 },
-  { titolo: 'Sito vetrina', meta: 'Segnaposto', formato: 'desktop', wire: 0 },
-  { titolo: 'Dashboard', meta: 'Segnaposto', formato: 'mobile', wire: 1 },
-  { titolo: 'Landing', meta: 'Segnaposto', formato: 'desktop', wire: 0 },
+  {
+    titolo: 'ALSI Gluten Free',
+    meta: 'Versione mobile',
+    formato: 'mobile',
+    shot: alsiMobile,
+    shotAlt: 'Il sito di ALSI Gluten Free da telefono',
+  },
 ];
 
 /**
- * ⚠ IN VETRINA C'È SOLO IL NETWORK DAY, cioè l'unico lavoro vero (richiesta di
- * Vlad, 2026-08-14). Le sette voci qui sopra restano perché servivano — e
- * servono ancora — a giudicare lo STILE della card: si riaccendono allargando
- * lo slice, si sostituiscono scrivendo i lavori veri al loro posto. È lo stesso
- * dispositivo, riconoscibile a vista e reversibile in una riga, già usato per
- * `VISIBLE_SHOWCASE` in FeaturedProjects e `VISIBLE_LOGOS` in SocialProof.
- *
- * ⚠ NON ALLARGARLO DI PROPRIA INIZIATIVA: i segnaposto tornano visibili quando
- * lo chiede Vlad o quando al loro posto c'è un lavoro vero.
+ * ⚠ DAL 2026-09-26 IN VETRINA CI SONO SOLO LAVORI VERI: i quattro siti, ognuno
+ * nei due formati tranne Kimere. I sette segnaposto di prima (App mobile,
+ * Gestionale, Catalogo…) sono stati tolti. Con sette card la sequenza supera
+ * lo schermo di riferimento, quindi la fascia scorre da sola (vedi `SI_MUOVE`).
+ * ⚠ L'ordine rispetta l'alternanza scritta sopra, anche a cavallo del giro:
+ * l'ultima card (mobile) tocca la prima (desktop).
  */
-const VISIBILI = DEMO.slice(0, 1);
+const VISIBILI = DEMO;
 
 /* ═══ QUANDO LA FASCIA COMINCIA A MUOVERSI ══════════════════════════════
    ⚠ CHIESTO DA VLAD: «per adesso ho pochi progetti per avere la barra che si

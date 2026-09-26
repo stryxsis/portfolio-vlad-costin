@@ -1,0 +1,117 @@
+---
+# ⚠ TESTO SCRITTO DA CLAUDE (2026-09-26) su fatti letti nei file del progetto
+# (appunti della prima call, analisi strategica, audit e documenti del sito).
+# Da rivedere con Vlad: i punti incerti sono segnati con DA VERIFICARE.
+# ⚠ Nessuno screenshot del sito, per scelta di Vlad: il restyling sta per
+# sostituire la versione online. La copertina è il logo; le catture si fanno
+# quando il sito nuovo è pubblicato.
+title: 'Kimere'
+subtitle: 'Il sito di una consulenza per chi vuole studiare all’estero, in inglese e in italiano'
+description: 'Il sito di Kimere, consulenza per studiare all’estero: due lingue, un percorso per gli studenti e uno per le università, e un restyling in corso.'
+
+client: 'Kimere International Academy & Consulting'
+role: 'Sviluppo web'
+year: 2026
+pubDate: 2026-09-19
+
+stack:
+  - Astro
+  - TypeScript
+  - Tailwind CSS
+  - Zod
+  - Vercel
+
+metrics:
+  - label: 'Lingue del sito'
+    value: '2'
+  - label: 'Pagine generate'
+    value: '30'
+  - label: 'Coppie di colori verificate WCAG'
+    value: '63'
+
+cover: ../../assets/progetti/kimere/kimere-copertina.jpg
+coverAlt: 'Il logo di Kimere, una bussola con una freccia che sale e un libro aperto, su un fondo blu notte'
+
+liveUrl: 'https://kimereconsulting.com/'
+
+featured: true
+order: 3
+span: wide
+draft: false
+---
+
+import Chapter from '../../components/case-study/Chapter.astro';
+import CaseQuote from '../../components/case-study/CaseQuote.astro';
+
+<Chapter id="contesto" title="Studiare all’estero è soprattutto burocrazia">
+
+Kimere è una consulenza fondata da Chiara Pedretti per chi vuole studiare
+all’estero, con l’Italia come destinazione su cui offre il servizio più
+completo. Lavora con una rete di collaboratori in più paesi e con insegnanti
+che tengono corsi in sette lingue oltre all’italiano e si occupano di
+traduzioni e legalizzazione dei documenti.
+
+Già dalla prima call il problema era chiaro: per uno studente straniero la
+parte difficile non è l’ammissione, sono le borse di studio, le tasse, l’ISEE
+e il riconoscimento dei titoli.
+
+<CaseQuote cite="Dagli appunti della prima call">
+  Il principale problema per gli studi all’estero sono le borse di studio e
+  le tasse.
+</CaseQuote>
+
+</Chapter>
+
+<Chapter id="sfida" title="Tre pubblici che non si parlano">
+
+Kimere parla a tre pubblici diversi: studenti internazionali che vogliono
+venire in Italia, studenti italiani che non sanno ancora cosa scegliere, e
+università e agenzie con cui costruire collaborazioni. Hanno domande diverse,
+e a volte lingue diverse.
+
+E prima di questo sito Kimere non ne aveva uno suo: ogni contatto passava dalle
+relazioni personali. L’obiettivo era dare a tutti e tre un posto dove capire
+cosa fa Kimere e prenotare una consulenza.
+
+</Chapter>
+
+<Chapter id="processo" title="Un sito statico che si controlla da solo">
+
+### Astro, in due lingue
+
+Il sito è in Astro, statico, con l’inglese come lingua principale e
+l’italiano accanto. I contenuti sono in raccolte validate da uno schema, così
+un campo mancante è un errore di build e non una pagina rotta. Ci sono pagine
+dedicate agli studenti, ai partner, ai corsi di lingua e traduzioni, ai
+tirocini e al perché studiare in Italia. Ogni invito all’azione porta al
+modulo di prenotazione del cliente.
+
+### I controlli prima di ogni pubblicazione
+
+Un unico comando verifica che le versioni italiana e inglese abbiano gli
+stessi contenuti, che 63 coppie di colori testo e sfondo rispettino il
+contrasto minimo WCAG, che il codice compili senza errori e che la build
+generi davvero le pagine attese. Un sito in due lingue si rompe quasi sempre
+così: si aggiorna una versione e ci si dimentica l’altra.
+
+### Il restyling, già in corso
+
+A settembre ho fatto un audit del sito online: la home contava circa mille
+parole, la pagina dei servizi più di milleottocento. Il restyling che sto
+costruendo ha un obiettivo solo, portare a una call qualificata di circa
+un’ora dicendo molto meno. Il prototipo separa i percorsi fin dall’inizio: gli
+studenti prenotano la consulenza, le università chiedono il seminario online
+gratuito.
+
+</Chapter>
+
+<Chapter id="risultato" title="Online, e presto nuovo">
+
+Il sito è online su kimereconsulting.com, in inglese e in italiano. Il
+restyling è in fase di prototipo e sostituirà la versione attuale quando sarà
+pronto: questo case study verrà aggiornato con le schermate del sito nuovo.
+
+{/* DA VERIFICARE: data di pubblicazione della prima versione, e se ci sono
+    già richieste arrivate dal sito. */}
+
+</Chapter>

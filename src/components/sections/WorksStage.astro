@@ -178,24 +178,56 @@ const href = (p: Project) => `/portfolio/${p.id}`;
     height: 100%;
     object-fit: cover;
   }
+  /* ⚠ LO SFONDO È SFOCATO, e non per gusto (2026-09-26). Le copertine sono
+     screenshot di SITI: nitide, il titolo del sito del cliente e la sua barra
+     di navigazione finivano esattamente dietro il nostro titolo — misurato su
+     Reggiana Packaging, «IL GIUSTO PACKAGING» si leggeva attraverso
+     «REGGIANA PACKAGING». Sfocato resta il colore e l'atmosfera del progetto,
+     sparisce il testo che compete. Lo `scale` nasconde il bordo chiaro che la
+     sfocatura lascia ai margini. La card nella fila resta nitida: è lì che
+     l'immagine si guarda. Costo: un paint quando cambia il progetto, non per
+     fotogramma — lo sfondo è fermo. */
+  .wk__bg-img {
+    /* `brightness` scurisce alla fonte: il Network Day ha un fondo avorio, e
+       il velo da solo lo lasciava a 2,1:1 sotto la descrizione (misurato sul
+       pixel più chiaro dietro il testo). */
+    filter: blur(14px) saturate(1.1) brightness(0.55);
+    transform: scale(1.08);
+  }
 
   /* Il velo che tiene leggibile il testo: più scuro a sinistra, dove sta il
      titolo, e in basso, dove stanno i comandi. */
   .wk__shade {
     z-index: 1;
     pointer-events: none;
+    /* Su telefono il testo occupa TUTTA la larghezza e sta sopra le card: il
+       velo è uniforme, con un rinforzo in basso dove stanno i comandi. */
     background:
       linear-gradient(
-        90deg,
-        color-mix(in oklab, var(--color-canvas) 82%, transparent) 0%,
-        color-mix(in oklab, var(--color-canvas) 45%, transparent) 42%,
-        color-mix(in oklab, var(--color-canvas) 10%, transparent) 75%
-      ),
-      linear-gradient(
         to top,
-        color-mix(in oklab, var(--color-canvas) 70%, transparent) 0%,
-        transparent 35%
-      );
+        color-mix(in oklab, var(--color-canvas) 80%, transparent) 0%,
+        transparent 40%
+      ),
+      color-mix(in oklab, var(--color-canvas) 62%, transparent);
+  }
+  /* Da desktop il testo sta a sinistra: il velo è scuro lì e si apre a destra,
+     dove le card hanno un fondo proprio. */
+  @media (min-width: 56.25rem) {
+    .wk__shade {
+      background:
+        linear-gradient(
+          90deg,
+          color-mix(in oklab, var(--color-canvas) 90%, transparent) 0%,
+          color-mix(in oklab, var(--color-canvas) 78%, transparent) 38%,
+          color-mix(in oklab, var(--color-canvas) 30%, transparent) 68%,
+          color-mix(in oklab, var(--color-canvas) 12%, transparent) 100%
+        ),
+        linear-gradient(
+          to top,
+          color-mix(in oklab, var(--color-canvas) 70%, transparent) 0%,
+          transparent 35%
+        );
+    }
   }
 
   /* ---- La scena ----------------------------------------------------------- */

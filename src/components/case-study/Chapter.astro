@@ -42,20 +42,29 @@ const meta = CHAPTERS[id];
     border-top: 1px solid var(--color-hairline);
   }
 
-  @media (min-width: 56.25rem) {
-    .chapter {
-      grid-template-columns: 4rem minmax(0, 1fr);
-      gap: 0 clamp(2rem, 4vw, 4rem);
-    }
-    .chapter__head {
-      display: contents;
-    }
-  }
-
   .chapter__head {
     display: flex;
     align-items: baseline;
     gap: 1rem;
+  }
+
+  /* ⚠ QUESTO BLOCCO DEVE STARE DOPO `.chapter__head` qui sopra. Stava prima, e
+     una media query non aggiunge specificità: a parità di selettore vinceva la
+     regola base scritta dopo, `display: contents` non si applicava mai, e il
+     titolo restava chiuso nella colonna da 4rem del numero — «Il / contesto»
+     andava a capo e debordava SOPRA il testo del capitolo. Misurato su tutti i
+     case study sopra i 900px (2026-09-26). */
+  @media (min-width: 56.25rem) {
+    .chapter {
+      grid-template-columns: 4rem minmax(0, 1fr);
+      gap: 1.25rem clamp(2rem, 4vw, 4rem);
+    }
+    .chapter__head {
+      display: contents;
+    }
+    .chapter__title {
+      grid-column: 2;
+    }
   }
 
   /* Il numero resta agganciato mentre si legge il capitolo: dice "sei qui"

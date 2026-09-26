@@ -138,6 +138,21 @@ export function initWorks(): void {
     const to = { left: '0px', top: '0px', width: `${rootBox.width}px`, height: `${rootBox.height}px`, borderRadius: '0px' };
     anims.push(fly.animate([from, to], { duration: T_GROW, easing: EASE, fill: 'both' }));
     anims.push(shade.animate([{ opacity: 0 }, { opacity: 1 }], { duration: T_GROW, easing: EASE, fill: 'both' }));
+    /* La card nella fila è nitida, lo sfondo è sfocato (vedi WorksStage): la
+       sfocatura cresce insieme alla card, o al primo fotogramma la card
+       diventerebbe sfocata di colpo. */
+    const flyImg = fly.querySelector('img');
+    if (flyImg) {
+      anims.push(
+        flyImg.animate(
+          [
+            { filter: 'blur(0px) saturate(1) brightness(1)', transform: 'scale(1)' },
+            { filter: 'blur(14px) saturate(1.1) brightness(0.55)', transform: 'scale(1.08)' },
+          ],
+          { duration: T_GROW, easing: EASE, fill: 'both' }
+        )
+      );
+    }
 
     /* 2. Le altre card scorrono al loro posto nuovo. */
     before.forEach((left, li) => {
