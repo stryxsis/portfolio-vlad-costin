@@ -116,6 +116,14 @@ export function initWorks(): void {
     const shade = root!.querySelector('.wk__shade')!.cloneNode() as HTMLElement;
     shade.classList.add('wk__fly-shade');
     fly.append(shade);
+    /* La card nella fila mostra il logo, il fondo lo screenshot del sito: la
+       card che cresce parte dal logo e si dissolve nel fondo, o al primo
+       fotogramma si vedrebbe l'immagine cambiare di colpo. */
+    const tile = card?.querySelector('picture')?.cloneNode(true) as HTMLElement | undefined;
+    if (tile) {
+      tile.classList.add('wk__fly-tile');
+      fly.append(tile);
+    }
     Object.assign(fly.style, {
       position: 'absolute',
       zIndex: '3',
@@ -138,6 +146,9 @@ export function initWorks(): void {
     const to = { left: '0px', top: '0px', width: `${rootBox.width}px`, height: `${rootBox.height}px`, borderRadius: '0px' };
     anims.push(fly.animate([from, to], { duration: T_GROW, easing: EASE, fill: 'both' }));
     anims.push(shade.animate([{ opacity: 0 }, { opacity: 1 }], { duration: T_GROW, easing: EASE, fill: 'both' }));
+    if (tile) {
+      anims.push(tile.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T_GROW * 0.6, easing: 'ease-in', fill: 'both' }));
+    }
     /* La card nella fila è nitida, lo sfondo è sfocato (vedi WorksStage): la
        sfocatura cresce insieme alla card, o al primo fotogramma la card
        diventerebbe sfocata di colpo. */

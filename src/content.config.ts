@@ -53,6 +53,10 @@ const projects = defineCollection({
 
       cover: image(),
       coverAlt: z.string(),
+      /** La card piccola nel palco di /portfolio: il logo del cliente su un
+       *  fondo del colore del marchio, in verticale (1000×1400). Se assente la
+       *  card usa la cover. Decorativa: nessun alt, il titolo è scritto sotto. */
+      thumb: image().optional(),
       gallery: z.array(z.object({ src: image(), alt: z.string() })).default([]),
       /** Se assente, l'immagine OG viene derivata dalla cover. */
       ogImage: image().optional(),

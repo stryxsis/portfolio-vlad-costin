@@ -99,7 +99,7 @@ const href = (p: Project) => `/portfolio/${p.id}`;
               <a class="wk__card" href={href(p)} data-card-link={i}>
                 <span class="wk__card-media">
                   <Picture
-                    src={p.data.cover}
+                    src={p.data.thumb ?? p.data.cover}
                     alt=""
                     widths={[320, 480, 640]}
                     sizes="(min-width: 56.25rem) 16rem, 10rem"
@@ -295,6 +295,12 @@ const href = (p: Project) => `/portfolio/${p.id}`;
     display: block;
     width: 100%;
     height: 100%;
+  }
+  /* Sopra, il clone della miniatura (il logo): parte identico alla card nella
+     fila e si dissolve nel fondo mentre cresce. */
+  .wk :global(.wk__fly .wk__fly-tile) {
+    position: absolute;
+    inset: 0;
   }
 
   /* L'indice qui non è sticky: la sezione è alta uno schermo. */
