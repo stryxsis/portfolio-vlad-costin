@@ -9,6 +9,9 @@
  * l'unica cosa che, se scoperta, azzera la fiducia in tutto il resto della
  * pagina.
  *
+ * ✓ VERE finora: Francesco Fantesini (2026-10-03). Le altre cinque restano
+ *   provvisorie.
+ *
  * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
  * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
  *
@@ -83,7 +86,10 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      'Quando incontro un’azienda nuova, il sito è la prima cosa che guardano. Oggi lo mando prima della riunione, non dopo, e non devo più spiegare cosa manca.',
+      /* ⚠ VERA, inviata da Francesco il 2026-10-03. Ritocchi solo di forma:
+         «può essere seguita» → «definita» (refuso evidente), tolta la nota fra
+         parentesi in cui lasciava a noi se nominare l'azienda, tolta la firma. */
+      'La collaborazione con Vlad Costin per la creazione del nostro portale può essere definita come un’esperienza decisamente positiva. Paziente, preciso e tempestivo. Ha saputo tradurre in realtà ogni nostra idea ed ha fatto in modo che ogni concetto venisse espresso e reso al massimo del suo significato sia in termini di espressione che graficamente. Il nostro sito è diventato così facile da trovare, accattivante, intuitivo ed elegante. Non possiamo che dirci più che soddisfatti del risultato ottenuto, anche in termini di spiegazione e contenuti. Lo consiglieremo sicuramente a chiunque.',
     name: 'Francesco Fantesini',
     role: 'Cofondatore · Reggiana Packaging',
     avatar: francescoFantesini,
