@@ -1,15 +1,17 @@
 ---
-# ⚠ TESTO SCRITTO DA CLAUDE (2026-09-26) su fatti letti nei file del progetto
-# (sorgente del sito, deck di candidatura e per gli sponsor, scaletta). Da
-# rivedere con Vlad: i punti incerti sono segnati con DA VERIFICARE nel corpo.
+# Testo riscritto il 2026-10-04 a partire dall'intervista con Vlad: i fatti
+# sono suoi, la forma è mia. Schermate prese dal sito online lo stesso giorno.
+# ⚠ Le aziende che hanno fatto i complimenti al sito NON vanno nominate
+# (richiesta di Vlad). La testimonianza di Andrea D'Amico è in arrivo.
 title: 'Network Day 2026'
-subtitle: 'Il sito dell’evento nazionale delle Junior Enterprise, ospitato da JEParma a Parma'
-description: 'Il sito del Network Day 2026 delle Junior Enterprise italiane: il tema Schilderwald, i partner, il programma e le iscrizioni. Senza framework.'
+subtitle: 'Il sito dell’evento nazionale delle Junior Enterprise, ospitato da JEParma a Parma. Il mio primo progetto in associazione.'
+description: 'Il sito del Network Day 2026 delle Junior Enterprise: una foresta di cartelli disegnata da zero, senza framework. Il mio primo progetto in JEParma.'
 
 client: 'JEParma'
-role: 'Sviluppo del sito · Area IT JEParma'
+role: 'Sviluppo front-end · Area IT JEParma'
 year: 2026
 pubDate: 2026-02-04
+updatedDate: 2026-10-04
 
 stack:
   - HTML
@@ -19,10 +21,10 @@ stack:
   - Netlify
 
 metrics:
+  - label: 'Associati all’evento'
+    value: '250+'
   - label: 'Partner, su sei livelli'
     value: '22'
-  - label: 'Pagine'
-    value: '4'
   - label: 'Framework JavaScript'
     value: '0'
 
@@ -41,100 +43,106 @@ draft: false
 import Chapter from '../../components/case-study/Chapter.astro';
 import CaseFigure from '../../components/case-study/CaseFigure.astro';
 import tema from '../../assets/progetti/network-day-2026/network-day-2026-tema.jpg';
-import programma from '../../assets/progetti/network-day-2026/network-day-2026-programma.jpg';
+import sentiero from '../../assets/progetti/network-day-2026/network-day-2026-sentiero.jpg';
+import guida from '../../assets/progetti/network-day-2026/network-day-2026-guida.jpg';
 import mobile from '../../assets/progetti/network-day-2026/network-day-2026-mobile.jpg';
 
-<Chapter id="contesto" title="Una giornata, tutte le Junior Enterprise d’Italia">
+<Chapter id="contesto" title="Il mio primo progetto in JEParma">
 
-Il Network Day è l’evento che riunisce le Junior Enterprise italiane, e nel
-2026 toccava a JEParma ospitarlo. Il 21 febbraio 2026, al Crédit Agricole
-Green Life di Parma, più di 250 associati da tutta Italia hanno passato una
-giornata fra workshop, un business game, tavoli di confronto, una fiera delle
-aziende e un aperitivo di networking.
+Il Network Day riunisce le Junior Enterprise di tutta Italia, e nel 2026
+toccava a JEParma ospitarlo. Il 21 febbraio, al Crédit Agricole Green Life di
+Parma, più di 250 associati hanno passato una giornata fra workshop, business
+game, tavoli di confronto e aziende.
 
-Il tema scelto era Schilderwald, «la foresta dei cartelli»: l’indecisione di
-chi ha davanti troppe strade possibili, raccontata in tre parole — Boldness,
-Sense of Self, Pathfinding.
+Ero appena entrato nell’Area IT e il sito dell’evento è stato il mio primo
+progetto. Mi occupavo del front-end, insieme a Ciprian, che poi ha seguito
+anche il back-end delle iscrizioni. Volevo far vedere di cosa ero capace, e ci
+ho messo tutto.
 
 </Chapter>
 
-<Chapter id="sfida" title="Un sito che vive due mesi">
+<Chapter id="sfida" title="Un tema, poche indicazioni e due settimane">
 
-Il sito di un evento ha una vita breve e un lavoro preciso: far arrivare le
-persone. Doveva presentare il tema, i partner, il programma e la logistica,
-contare i giorni che mancavano e raccogliere le iscrizioni — con la scelta dei
-workshop e il curriculum in PDF, perché le aziende partner lo avrebbero letto.
+Il tema era Schilderwald, «la foresta dei cartelli»: l’indecisione di chi ha
+davanti troppe strade. Ci hanno dato quello, qualche indicazione e due
+settimane di tempo.
 
-E doveva sembrare il tema, non parlarne soltanto. Un sito generico con scritto
-«foresta dei cartelli» sarebbe stato l’esatto contrario di quello che
-l’evento voleva dire.
+Online non c’era quasi niente a cui ispirarsi. E volevamo un sito che si
+muovesse insieme a chi lo legge, senza annoiare e senza diventare pesante.
 
 </Chapter>
 
 <Chapter id="processo" title="La foresta come interfaccia">
 
-### Prima React, poi nessun framework
+### Il prototipo in React, poi riscritto a mano
 
-Il primo prototipo, a fine dicembre 2025, era in React. Per un sito di poche
-pagine che doveva essere leggero l’ho riscritto in HTML, CSS e JavaScript
-senza dipendenze: nove moduli, ognuno con un compito, e nessun passaggio di
-build. Le animazioni usano quello che il browser sa già fare — osservatori di
-scroll, animazioni CSS, un canvas per foglie e lucciole, tracciati SVG che si
-disegnano.
+Il primo prototipo l’ho fatto con l’AI, ed è uscito in React. All’epoca React
+e Tailwind non li conoscevo bene, e non volevo un sito che non avrei saputo
+modificare. Così l’ho riscritto da zero in HTML, CSS e JavaScript: conoscevo
+ogni riga, e a ogni richiesta sapevo dove mettere le mani.
+
+### Il tema, senza raccontarlo e basta
+
+Dopo i primi mockup l’organizzazione si è fidata e il front-end l’ho deciso
+io. I tre pilastri del tema sono cartelli di legno appesi, e nella pagina si
+muovono foglie e lucciole disegnate su canvas.
 
 <CaseFigure
   src={tema}
   alt="La sezione del tema: tre cartelli di legno appesi, con i pilastri Boldness, Sense of Self e Pathfinding"
-  caption="I tre pilastri del tema sono cartelli appesi, non tre colonne di testo."
+  caption="Boldness, Sense of Self, Pathfinding: tre cartelli invece di tre colonne di testo."
   size="wide"
 />
 
-### Il programma è un sentiero
+### Il sentiero, e la paperella
 
-Il programma della giornata è un sentiero che si percorre scorrendo, con
-quattro tappe al posto di una tabella di orari. All’apertura del sito
-un’introduzione di circa quindici secondi alterna quattro parole e poi
-presenta l’evento: si salta con un clic e si vede una volta sola per
-sessione, perché la seconda volta sarebbe solo un’attesa.
+Il programma è stata la parte più difficile da disegnare: ogni mockup del
+sentiero ci costava fatica. Alla fine abbiamo trovato un percorso illuminato
+che si disegna mentre scorri, con le tappe della giornata. In fondo, idea di
+Ciprian, c’è una paperella.
 
 <CaseFigure
-  src={programma}
-  alt="Il programma dell’evento disegnato come un sentiero che scende, con le tappe «Il Bivio» e «Mappa delle Opportunità» e i loro orari"
-  caption="«Il Sentiero»: il programma della giornata in quattro tappe."
+  src={sentiero}
+  alt="L’ultimo tratto del sentiero del programma, con la tappa «Addestramento sul campo» e una paperella gialla alla fine del percorso"
+  caption="Il sentiero finisce con una paperella."
   size="wide"
 />
 
 ### Le iscrizioni
 
-Il modulo di iscrizione chiedeva i dati, la Junior Enterprise di
-provenienza, il corso di studi, fino a tre workshop fra mattina e pomeriggio
-e il curriculum in PDF. I dati andavano a un backend in FastAPI con database
-PostgreSQL.
-
-{/* DA VERIFICARE: chi ha scritto il backend (io, l'Area IT, entrambi)? Il
-    footer del sito dice «Engineered with passion by IT Area». */}
+Il Network Day è un evento chiuso: il modulo serviva a confermare la
+partecipazione, con la scelta dei workshop e il curriculum in PDF per le
+aziende. Poco prima di aprire le iscrizioni ci siamo accorti che il piano di
+hosting non includeva il server che serviva al back-end. L’abbiamo aggiunto, e
+Ciprian ha messo tutto online in tempo.
 
 ### Dopo il lancio
 
-Nelle settimane prima dell’evento sono arrivate una pagina dei partner —
-ventidue, divisi in sei livelli —, una guida di sopravvivenza in undici
-capitoli con la versione PDF da scaricare, e un blog.
+Nelle settimane prima dell’evento sono arrivate la pagina dei 22 partner, una
+Survival Guide in undici capitoli da scaricare anche in PDF, e un blog.
+
+<CaseFigure
+  src={guida}
+  alt="La copertina della Survival Guide, edizione Schilderwald, su un fondo di alberi chiari"
+  caption="La Survival Guide: tutto quello che serviva sapere per la giornata."
+  size="wide"
+/>
 
 </Chapter>
 
-<Chapter id="risultato" title="L’evento c’è stato, il sito resta">
+<Chapter id="risultato" title="Più tempo del previsto, e ne valeva la pena">
 
-Il Network Day si è svolto il 21 febbraio 2026. Oggi le iscrizioni sono
-chiuse e il sito resta online come archivio dell’evento: il tema, i partner e
-il programma, così come li hanno visti i partecipanti.
+Ci abbiamo messo più delle due settimane previste: un sito così ha bisogno del
+suo tempo. È andato online prima dell’evento, e i complimenti sono arrivati da
+JEParma, dalle altre Junior Enterprise e dalle aziende che l’hanno visto.
 
-{/* DA VERIFICARE: quante persone si sono iscritte dal sito, e se si può
-    dire. */}
+È uno dei siti migliori che abbia mai fatto, forse il migliore. Oggi resta
+online come archivio dell’evento.
 
 <CaseFigure
   src={mobile}
-  alt="Tre schermate del sito su telefono: la home dell’evento, la presentazione del tema Schilderwald e il contatore dei partecipanti"
-  caption="Da telefono: la home, il tema e i numeri dell’evento."
+  alt="Tre schermate del sito su telefono: la home dell’evento, la fine del sentiero con la paperella e la copertina della Survival Guide"
+  caption="Da telefono: la home, il sentiero e la Survival Guide."
   size="wide"
 />
 
