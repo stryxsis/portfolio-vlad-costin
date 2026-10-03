@@ -9,8 +9,8 @@
  * l'unica cosa che, se scoperta, azzera la fiducia in tutto il resto della
  * pagina.
  *
- * ✓ VERE finora: Francesco Fantesini (2026-10-03). Le altre cinque restano
- *   provvisorie.
+ * ✓ VERE finora: Francesco Fantesini e Stefano Marcacci (2026-10-03). Le
+ *   altre quattro restano provvisorie.
  *
  * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
  * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
@@ -97,7 +97,8 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      'Ogni modifica che abbiamo chiesto è arrivata spiegata, non solo fatta. E quando una richiesta non aveva senso ce l’ha detto, con un’alternativa già pronta.',
+      /* ⚠ VERA, inviata da Stefano il 2026-10-03. Tolta solo la firma. */
+      'Io e i miei soci abbiamo avuto il piacere di affidarci a Vlad per la realizzazione del sito internet della nostra azienda. Essendo per noi la prima esperienza di questo tipo, cercavamo qualcuno che sapesse non solo occuparsi della parte tecnica, ma anche guidarci nelle varie scelte che questo lavoro comporta. Vlad, nonostante la giovane età, ha dimostrato grande competenza, consapevolezza e professionalità, accompagnandoci passo dopo passo con disponibilità e pazienza. Abbiamo apprezzato in particolare la sua tempestività, la capacità di comprendere le nostre esigenze e l’ottimo problem solving. Il risultato finale ha superato le nostre aspettative, riuscendo a tradurre al meglio ciò che avevamo in mente, anche quando non era semplice per noi esprimerlo. Un’esperienza decisamente positiva e un professionista che ci sentiamo di consigliare.',
     name: 'Stefano Marcacci',
     role: 'Cofondatore · Reggiana Packaging',
     avatar: stefanoMarcacci,
