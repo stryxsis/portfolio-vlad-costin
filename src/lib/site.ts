@@ -92,7 +92,9 @@ export const SITE = {
     givenName: 'Vlad',
     familyName: 'Costin',
     jobTitle: 'Sviluppatore web',
-    email: 'vladcostin58@gmail.com',
+    /** Email di lavoro sul dominio di Vlad (dal 2026-10-03; era una Gmail
+     *  personale). La leggono navbar, footer e CTA: cambiarla qui basta. */
+    email: 'info@vladcostin-developer.com',
 
     /**
      * WhatsApp — canale di contatto della CTA finale.
