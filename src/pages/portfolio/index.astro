@@ -23,6 +23,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Handoff from '../../components/sections/Handoff.astro';
 import PortfolioHero from '../../components/sections/PortfolioHero.astro';
 import WorksStage from '../../components/sections/WorksStage.astro';
+import FuoriProgramma from '../../components/sections/FuoriProgramma.astro';
 import { allProjects } from '../../lib/collections';
 
 const projects = await allProjects();
@@ -42,4 +43,8 @@ const projects = await allProjects();
         minimo (`--ho-in-floor`): è alto uno schermo e poco più. */}
     <WorksStage slot="in" projects={projects} />
   </Handoff>
+
+  {/* Fuori dall'handoff, in flusso normale: è una pausa da leggere, non una
+      scena. Un errore vero e come l'ho raddrizzato (vedi il componente). */}
+  <FuoriProgramma />
 </BaseLayout>

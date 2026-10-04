@@ -21,11 +21,18 @@
  *  1. Dicono su paper, impilata con Statement nello stesso `slot="in"`.
  *  2. Dicono su buio subito dopo i Progetti, poi un taglio netto SENZA
  *     occlusione (`slot="out"` vuoto) verso Statement — "staccare tutto".
- *  3. QUESTA VERSIONE: fra Progetti e Dicono non deve succedere NIENTE di
+ *  3. Fra Progetti e Dicono non deve succedere NIENTE di
  *     speciale ("continua a scrollare e vedo anche le testimonianze"); la
  *     dissolvenza-e-copertura che piace ("quella shamless transition") va
  *     invece fra Dicono e Statement, dove PRIMA (versione 2) c'era il taglio
  *     a secco. Cioè: la vera occlusione sticky si sposta da §30→§50 a §50→§40.
+ *  4. QUESTA VERSIONE (2026-10-04): Vlad ha cambiato idea sul punto 3 e vuole
+ *     l'occlusione ANCHE fra Progetti e Dicono («le recensioni devono passare
+ *     sopra i progetti», come la sezione dopo la hero). Restano entrambe:
+ *     Dicono copre il mazzo, Statement copre Dicono. Per averle tutte e due,
+ *     "dicono" è annidato nello `slot="in"` di "featured" (vedi lì), e
+ *     "featured" non è più `bareIn`. Le note qui sotto su `bareIn` sono la
+ *     storia della versione 3.
  *
  * PERCHÉ DUE HANDOFF ANCHE QUI, E NON UNO CHE FA TUTTO.
  * Un `[slot="out"]` non deve MAI superare la viewport mentre è incollato (vedi
@@ -144,33 +151,45 @@ const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
       voluto. La coda ferma sta in stage.ts come tween finale, ma lo SPAZIO in
       cui esistere glielo dà questa riga. */
   }
-  <Handoff name="featured" tone="canvas" travel={440} bareIn>
+  <Handoff name="featured" tone="canvas" travel={440}>
     <FeaturedProjects slot="out" name="featured" />
-  </Handoff>
+    {/* ⚠ DAL 2026-10-04 IL SECONDO HANDOFF STA DENTRO IL PRIMO (versione 4,
+        vedi la storia in testa al file). Vlad ha chiesto che le recensioni
+        salgano SOPRA i progetti, come la Home sopra la hero. Dicono doveva
+        quindi essere insieme l'entrante di "featured" e l'uscente di
+        "dicono": l'unico modo senza duplicare il meccanismo è annidare.
+        L'intero handoff "dicono" è l'occlusore di "featured" — il suo bordo
+        alto è Dicono, quindi è Dicono a coprire il mazzo, e il resto
+        (corsa di lettura + Statement) scorre sopra il mazzo ancora incollato
+        e ormai nascosto. Il fondo opaco viene da `.ho__in--canvas` qui e da
+        `.ho__backdrop` (nero) di "dicono": il mazzo non si vede in nessun
+        buco, nemmeno durante il rientro di Dicono. */}
+    <div slot="in">
+      {
+        /* Vedi "PERCHÉ DUE HANDOFF" qui sopra. `travel=140`: tempo per leggere le
+           tre card mentre Dicono è incollata, prima che Statement salga a coprirla
+           — stessa logica di lettura del `travel=100` di "closing" sotto, un po'
+           più lungo perché qui ci sono tre citazioni da leggere e non un teaser.
 
-  {
-    /* Vedi "PERCHÉ DUE HANDOFF" qui sopra. `travel=140`: tempo per leggere le
-       tre card mentre Dicono è incollata, prima che Statement salga a coprirla
-       — stessa logica di lettura del `travel=100` di "closing" sotto, un po'
-       più lungo perché qui ci sono tre citazioni da leggere e non un teaser.
-
-       ⚠ CONDIZIONATO A `hasTestimonials`, dal 2026-08-08. Con la sezione spenta
-       `<Testimonials>` non renderizza niente: `.ho__out` resta a 0 di altezza
-       (misurato via CDP) e un `travel=140` incondizionato diventava 140svh di
-       scroll a vuoto — nessuna card da leggere, solo `.ho__backdrop` nero fra il
-       mazzo di §30 e Statement. Non un difetto di taratura: tempo di lettura per
-       un contenuto che non c'è è scroll morto puro, la stessa categoria di
-       problema che questo prop esiste per evitare quando il contenuto INVECE
-       c'è. `undefined` e non `0`: guardare `Handoff.astro`, `travel && (...)`
-       — un `travel` falsy salta il rendering del div, non lo crea alto zero.
-       ⚠ SPREAD e non `travel={hasTestimonials ? 140 : undefined}`: sotto
-       `exactOptionalPropertyTypes` (tsconfig strictest) un prop opzionale
-       ASSENTE e un prop opzionale VALORIZZATO A `undefined` sono due tipi
-       diversi — `travel?: number` accetta il primo, non il secondo. */
-  }
-  <Handoff name="dicono" tone="paper" {...(hasTestimonials ? { travel: 140 } : {})}>
-    <Testimonials slot="out" n="04" />
-    <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
+           ⚠ CONDIZIONATO A `hasTestimonials`, dal 2026-08-08. Con la sezione spenta
+           `<Testimonials>` non renderizza niente: `.ho__out` resta a 0 di altezza
+           (misurato via CDP) e un `travel=140` incondizionato diventava 140svh di
+           scroll a vuoto — nessuna card da leggere, solo `.ho__backdrop` nero fra il
+           mazzo di §30 e Statement. Non un difetto di taratura: tempo di lettura per
+           un contenuto che non c'è è scroll morto puro, la stessa categoria di
+           problema che questo prop esiste per evitare quando il contenuto INVECE
+           c'è. `undefined` e non `0`: guardare `Handoff.astro`, `travel && (...)`
+           — un `travel` falsy salta il rendering del div, non lo crea alto zero.
+           ⚠ SPREAD e non `travel={hasTestimonials ? 140 : undefined}`: sotto
+           `exactOptionalPropertyTypes` (tsconfig strictest) un prop opzionale
+           ASSENTE e un prop opzionale VALORIZZATO A `undefined` sono due tipi
+           diversi — `travel?: number` accetta il primo, non il secondo. */
+      }
+      <Handoff name="dicono" tone="paper" {...(hasTestimonials ? { travel: 140 } : {})}>
+        <Testimonials slot="out" n="04" />
+        <Statement slot="in" statement={STATEMENTS.home} tone="paper" id="nota" />
+      </Handoff>
+    </div>
   </Handoff>
 
   {

@@ -1,0 +1,313 @@
+---
+/**
+ * /portfolio §02 — Fuori programma: un errore vero, e come l'ho raddrizzato.
+ *
+ * Chiesta da Vlad il 2026-10-04: «una sezione con un progetto non riuscito ma
+ * che poi sono riuscito a fare, qualcosa di più umano — non far vedere sempre
+ * che va tutto bene». Il tono viene dal suo esempio («Pensi che mi riesca
+ * sempre tutto bene al primo colpo? Magari.»).
+ *
+ * ⚠⚠ LA STORIA È VERA, E NON È UN CASO. Vlad aveva detto che nei suoi progetti
+ * non è mai andato storto niente e mi aveva lasciato libero di inventarne una
+ * «realistica». Non l'ho fatto: un fallimento inventato su un portfolio è una
+ * falsa dichiarazione a chi lo legge, cioè proprio a un possibile cliente — la
+ * stessa categoria di una recensione inventata. La storia è quella del lag del
+ * campo binario di /chi-sono (vedi CLAUDE.md, «Il lag vero erano i LAYER DI
+ * COMPOSITING»): due correzioni a vuoto, poi la misura, 1238 → 38 livelli.
+ * Tutti i numeri qui sotto vengono da quella misura. Se un giorno arriva un
+ * errore più adatto da raccontare, si cambia il testo, non la regola.
+ *
+ * ⚠ SLATE e non canvas: arriva dopo il palco dei lavori, e il cambio di
+ * superficie dice «qui si parla d'altro» senza bisogno di un titolo che lo
+ * annunci. Nessun handoff: è una pausa che si legge scorrendo.
+ */
+import SectionIndex from '../primitives/SectionIndex.astro';
+import Button from '../primitives/Button.astro';
+
+interface Props {
+  n?: string;
+  id?: string;
+}
+const { n = '02', id = 'fuori-programma' } = Astro.props;
+
+const PASSI = [
+  {
+    titolo: 'L’errore',
+    testo:
+      'La pagina Chi sono si apre con un campo di 0 e 1 che si accendono. Sul mio computer era perfetto. Su un telefono economico, appena scorrevi, la pagina scattava.',
+  },
+  {
+    titolo: 'Due correzioni a vuoto',
+    testo:
+      'Ho tolto animazioni e diradato le cifre. Due volte. Ogni volta andava un po’ meglio, mai abbastanza: stavo tirando a indovinare dove fosse il problema.',
+  },
+  {
+    titolo: 'La causa vera',
+    testo:
+      'Poi ho registrato cosa faceva il browser, fotogramma per fotogramma. Ogni cifra era diventata un livello a sé, da ricomporre a ogni movimento. Quasi tutti dipendevano da una sola parola nel CSS. Corretta quella, l’effetto è rimasto identico e la pagina ha smesso di scattare.',
+  },
+];
+---
+
+<section class="fp2 theme-slate" data-section id={id} aria-labelledby={`${id}-h`}>
+  <div class="fp2__grid">
+    <div class="fp2__idx">
+      <SectionIndex n={n} label="Fuori programma" />
+    </div>
+
+    <div class="fp2__body">
+      {/* `data-activate` sul contenitore, `data-split` sul titolo: mai sullo
+          stesso elemento (vedi reveal.ts). Stesso schema di `.sk__intro`. */}
+      <div class="fp2__intro" data-activate>
+        <h2 class="fp2__title" id={`${id}-h`} data-split="lines">
+          Pensi che mi riesca tutto al primo colpo? <span class="fp2__magari">Magari.</span>
+        </h2>
+        <p class="fp2__lede">
+          Il mio errore più istruttivo l’ho fatto proprio su questo sito. Ecco com’è andata, come
+          l’ho risolto e cosa faccio adesso per non ripeterlo.
+        </p>
+      </div>
+
+      <ol class="fp2__steps">
+        {
+          PASSI.map((p, i) => (
+            <li class="fp2__step" data-reveal>
+              <span class="fp2__n" aria-hidden="true">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <h3 class="fp2__step-t">{p.titolo}</h3>
+              <p class="fp2__step-p">{p.testo}</p>
+            </li>
+          ))
+        }
+      </ol>
+
+      {/* Il numero è il cuore della storia, quindi ha il corpo grande. Il
+          testo per lo screen reader è scritto per intero: il barrato da solo
+          non si legge come «prima». */}
+      <div class="fp2__num" data-activate>
+        <p class="fp2__num-row">
+          <span class="sr-only">Da 1.238 a 38 livelli.</span>
+          <span class="fp2__before" aria-hidden="true">1.238</span>
+          <span class="fp2__arrow" aria-hidden="true">→</span>
+          <span class="fp2__after" aria-hidden="true">38</span>
+        </p>
+        <p class="fp2__num-label">
+          livelli da ricomporre a ogni fotogramma, prima e dopo. Su un telefono lento la pagina
+          è passata da 30 a 60 fotogrammi al secondo.
+        </p>
+      </div>
+
+      <div class="fp2__lesson" data-reveal>
+        <h3 class="fp2__lesson-t">Cosa ho imparato</h3>
+        <p class="fp2__lesson-p">
+          Prima si misura, poi si corregge. Oggi, quando qualcosa va lento, la prima cosa che apro è
+          lo strumento che registra cosa fa il browser, non il codice.
+        </p>
+        <div class="fp2__cta">
+          <Button href="/chi-sono" variant="outline">Guarda il campo di 0 e 1</Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .fp2 {
+    padding-block: var(--spacing-section);
+    background-color: var(--color-canvas);
+  }
+
+  .fp2__grid {
+    display: grid;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    gap: 2rem;
+  }
+  @media (min-width: 56.25rem) {
+    .fp2__grid {
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+    }
+    .fp2__idx {
+      grid-column: 11 / span 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    .fp2__body {
+      grid-column: 2 / span 8;
+      grid-row: 1;
+    }
+  }
+
+  .fp2__title {
+    max-width: 20ch;
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .fp2__magari {
+    color: var(--color-accent);
+  }
+
+  .fp2__lede {
+    margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+    max-width: 56ch;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+  /* Entra dopo il titolo, con gli stessi numeri di `.sk__lede` (M1 non è
+     cambiato: ~1s di righe che salgono, la lede arriva a metà). */
+  :global(html.js-anim) .fp2__lede {
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition:
+      opacity 700ms var(--ease-out-expo) 550ms,
+      transform 700ms var(--ease-out-expo) 550ms;
+  }
+  :global(html.js-anim) .fp2__intro.is-in .fp2__lede {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ---- I tre passi ----------------------------------------------------------
+     Il dispositivo del sito per enumerare: numero mono e filetto ORIZZONTALE
+     sopra ogni voce. Mai filetti verticali fra le colonne — è il disegno di
+     una tabella (la lezione della fascia «Adesso» di /chi-sono). */
+  .fp2__steps {
+    list-style: none;
+    padding: 0;
+    margin-top: clamp(3rem, 6vw, 4.5rem);
+    display: grid;
+    gap: 2.5rem;
+  }
+  @media (min-width: 56.25rem) {
+    .fp2__steps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(1.5rem, 2.5vw, 2.5rem);
+    }
+  }
+  .fp2__step {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-hairline);
+  }
+  .fp2__n {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+  .fp2__step-t {
+    margin-top: 0.9rem;
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    font-weight: 500;
+  }
+  .fp2__step-p {
+    margin-top: 0.75rem;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+
+  /* ---- Il numero -------------------------------------------------------------
+     Due battute M14 su `is-in`: il barrato si tira sopra «1.238», poi «38» si
+     accende d'accento. Entrambi i numeri sono leggibili da subito — la pausa
+     trattiene il colore, non l'informazione (invariante di M14). */
+  .fp2__num {
+    margin-top: clamp(3.5rem, 7vw, 5.5rem);
+  }
+  .fp2__num-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 clamp(0.75rem, 2vw, 1.5rem);
+    font-size: clamp(3rem, 1.5rem + 6vw, 6.5rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .fp2__before {
+    position: relative;
+    color: var(--color-text-2);
+  }
+  .fp2__before::after {
+    content: '';
+    position: absolute;
+    left: -0.04em;
+    right: -0.04em;
+    top: 54%;
+    height: 0.06em;
+    background-color: var(--color-accent);
+    transform-origin: left;
+  }
+  .fp2__arrow {
+    color: var(--color-text-3);
+    font-size: 0.6em;
+  }
+  .fp2__after {
+    color: var(--color-accent);
+  }
+  .fp2__num-label {
+    margin-top: 1rem;
+    max-width: 52ch;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  :global(html.js-anim) .fp2__before::after {
+    transform: scaleX(0);
+    transition: transform 700ms var(--ease-out-expo) 200ms;
+  }
+  :global(html.js-anim) .fp2__after {
+    color: var(--color-text-2);
+    transition: color 600ms var(--ease-out-expo) 900ms;
+  }
+  :global(html.js-anim) .fp2__num.is-in .fp2__before::after {
+    transform: none;
+  }
+  :global(html.js-anim) .fp2__num.is-in .fp2__after {
+    color: var(--color-accent);
+  }
+  /* Attraversato in un salto: stato finale, durata e ritardo a zero. */
+  :global(html.js-anim) .fp2__num.is-instant .fp2__before::after,
+  :global(html.js-anim) .fp2__num.is-instant .fp2__after {
+    transition-duration: 0ms;
+    transition-delay: 0ms;
+  }
+
+  /* ---- La lezione ---------------------------------------------------------- */
+  .fp2__lesson {
+    margin-top: clamp(3rem, 6vw, 4.5rem);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-hairline);
+    max-width: 44rem;
+  }
+  .fp2__lesson-t {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+  .fp2__lesson-p {
+    margin-top: 1rem;
+    font-size: var(--text-lede);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--color-text-1);
+  }
+  .fp2__cta {
+    margin-top: 2rem;
+  }
+</style>
