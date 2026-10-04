@@ -77,7 +77,13 @@ export function initStages(): void {
         ease: 'none',
         scrollTrigger: {
           trigger: occluder,
-          start: 'top bottom', // la entrante affaccia dal basso
+          /* La entrante affaccia dal BORDO INFERIORE DELLO SCHERMO USCENTE, non
+             della viewport. Per uno schermo alto quanto la viewport (tutti quelli
+             della Home e di /portfolio) è la stessa cosa di 'top bottom'. Per
+             uno più basso — la testata dei case study, ~650px — 'top bottom'
+             sarebbe già superato a pagina ferma, e il titolo arriverebbe
+             spento e rimpicciolito prima di qualunque scroll (2026-10-04). */
+          start: () => `top ${Math.min(screen.offsetHeight, window.innerHeight)}px`,
           end: 'top top', // ...e ha finito di coprire
           scrub: true,
           invalidateOnRefresh: true,

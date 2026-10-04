@@ -15,6 +15,9 @@
  * opt-in (`blurOut`) proprio per questa richiesta — vedi il perché del
  * default-off accanto alla prop.
  *
+ * Dal 2026-10-04 c'è un secondo handoff annidato: «Fuori programma» sale sopra
+ * il palco dei lavori (vedi sotto).
+ *
  * ⚠ NIENTE `travel`: quello serve alle stage che devono svolgersi nel tempo
  * (il mazzo di §30). Qui non c'è niente da far succedere fra la hero e la
  * griglia, quindi sarebbe solo scroll morto.
@@ -39,12 +42,21 @@ const projects = await allProjects();
     {/* ⚠ L'entrante DEVE essere più alta di uno schermo perché l'occlusione
         avvenga mentre l'uscente è ancora incollata (il vincolo geometrico è
         scritto per esteso in Handoff.astro, e `.ho__in` lo impone con un
-        `min-height: 104svh`). Il palco dei lavori riempie esattamente quel
-        minimo (`--ho-in-floor`): è alto uno schermo e poco più. */}
-    <WorksStage slot="in" projects={projects} />
-  </Handoff>
+        `min-height: 104svh`).
 
-  {/* Fuori dall'handoff, in flusso normale: è una pausa da leggere, non una
-      scena. Un errore vero e come l'ho raddrizzato (vedi il componente). */}
-  <FuoriProgramma />
+        ⚠ DAL 2026-10-04 IL PALCO È ANCHE UN USCENTE: «Fuori programma» gli
+        sale sopra, con lo stesso gesto con cui il palco sale sulla hero (Vlad:
+        «l'effetto handoff in qualsiasi punto in cui abbia senso»). Handoff
+        annidato, come Dicono in Home. Il palco riempiva il floor dell'occlusore
+        (`--ho-in-floor`); dentro uno schermo quel floor è azzerato e torna alto
+        esattamente uno schermo (vedi `.ho__out` in Handoff.astro). */}
+    <div slot="in">
+      <Handoff name="fuori" tone="canvas">
+        <WorksStage slot="out" projects={projects} />
+        {/* Un errore vero e come l'ho raddrizzato (vedi il componente). È alta
+            più di uno schermo, quindi soddisfa il vincolo da sola. */}
+        <FuoriProgramma slot="in" />
+      </Handoff>
+    </div>
+  </Handoff>
 </BaseLayout>

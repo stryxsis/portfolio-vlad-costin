@@ -12,6 +12,7 @@
  * il blocco di note sopra `.ab` più sotto.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Handoff from '../components/sections/Handoff.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
 import BinaryField from '../components/primitives/BinaryField.astro';
 import Timeline from '../components/primitives/Timeline.astro';
@@ -32,90 +33,100 @@ import { SITE } from '../lib/site';
       fuoco con `transform` + `filter`, che non escludono dal calcolo (stessa
       riga della regola LCP che governa il ritratto della Home e il titolone
       di /portfolio). */}
-  <section class="ab" data-section id="chi-sono">
-    {/* Il fondale. Sta PRIMA del contenuto nel markup e non dopo: è dietro, e
-        l'ordine del DOM è il modo più economico di dirlo — nessuno z-index da
-        rincorrere se un domani si aggiunge un elemento. */}
-    <BinaryField />
+  {/* ⚠ HANDOFF M12 (dal 2026-10-04, Vlad: «l'effetto handoff in qualsiasi
+      punto in cui abbia senso»). La hero resta incollata e la fascia del
+      metodo le sale sopra, seguita dal percorso: lo stesso gesto della Home
+      dopo la hero e di /portfolio. NESSUNA sfocatura (`blurOut`): sotto c'è il
+      campo binario, e `filter` è paint su 1092 celle — proprio il costo che il
+      giro sul lag ha tolto. Il rientro resta scala + opacità, compositor. */}
+  <Handoff name="metodo" tone="canvas">
+    <section class="ab" data-section id="chi-sono" slot="out">
+      {/* Il fondale. Sta PRIMA del contenuto nel markup e non dopo: è dietro, e
+          l'ordine del DOM è il modo più economico di dirlo — nessuno z-index da
+          rincorrere se un domani si aggiunge un elemento. */}
+      <BinaryField />
 
-    <div class="ab__wrap">
-      <div class="ab__top">
-        <SectionIndex n="00" label="Chi sono" />
-        {/* ⚠ DUE REGISTRI, e la divisione NON è arbitraria: è la punteggiatura
-            del testo di Vlad (2026-08-13). Sono due frasi con due lavori
-            diversi — la prima è una DOMANDA rivolta a chi legge, la seconda è
-            un inciso che la commenta ("Ti avviso: …"). Al corpo pieno la
-            seconda è larga ~4000px contro i 1310 della colonna: andrebbe a
-            capo tre volte e la domanda si perderebbe dentro il paragrafo che
-            la segue. Scesa di corpo e smorzata di colore, la domanda resta il
-            gesto e l'inciso resta un inciso — che è come si legge ad alta voce.
-            ⚠ Resta un solo <h1>: l'inciso è parte del titolo, non un
-            sottotitolo separato, quindi sta dentro e non in un <p> accanto. */}
-        <h1 class="ab__title">
-          Curioso di sapere<br />chi sono?<span class="ab__coda"
-            >Ti avviso: faccio un sacco di cose, spesso nello stesso pomeriggio.</span
-          >
-        </h1>
-        {/* ⚠ `bioIo` e NON `bio`: la seconda è la stringa in terza persona
-            destinata alle macchine (JSON-LD, llms.txt, meta description) e
-            leggerla qui significherebbe far parlare Vlad di sé al "lui".
-            Vedi la nota accanto ai due campi in `lib/site.ts`.
-            ⚠ NIENTE PIÙ `data-split="lines"` (tolto il 2026-08-23): questo
-            paragrafo nasce SOPRA LA PIEGA, ed è precisamente l'elemento che
-            l'11-08 era rimasto invisibile per sempre perché uno ScrollTrigger
-            nato oltre la propria soglia veniva reclamato prima di giocare
-            (vedi `settleSplits` in reveal.ts). La rete di sicurezza resta e
-            copre gli altri utenti di M1, ma qui non serve più correre il
-            rischio: la lede è ora una battuta della coreografia CSS della
-            hero, come il pannello Adesso e per la stessa ragione — sopra la
-            piega il sito usa animazioni CSS a tempo, non trigger di scroll. */}
-        <p class="ab__lede">{SITE.bioIo}</p>
+      <div class="ab__wrap">
+        <div class="ab__top">
+          <SectionIndex n="00" label="Chi sono" />
+          {/* ⚠ DUE REGISTRI, e la divisione NON è arbitraria: è la punteggiatura
+              del testo di Vlad (2026-08-13). Sono due frasi con due lavori
+              diversi — la prima è una DOMANDA rivolta a chi legge, la seconda è
+              un inciso che la commenta ("Ti avviso: …"). Al corpo pieno la
+              seconda è larga ~4000px contro i 1310 della colonna: andrebbe a
+              capo tre volte e la domanda si perderebbe dentro il paragrafo che
+              la segue. Scesa di corpo e smorzata di colore, la domanda resta il
+              gesto e l'inciso resta un inciso — che è come si legge ad alta voce.
+              ⚠ Resta un solo <h1>: l'inciso è parte del titolo, non un
+              sottotitolo separato, quindi sta dentro e non in un <p> accanto. */}
+          <h1 class="ab__title">
+            Curioso di sapere<br />chi sono?<span class="ab__coda"
+              >Ti avviso: faccio un sacco di cose, spesso nello stesso pomeriggio.</span
+            >
+          </h1>
+          {/* ⚠ `bioIo` e NON `bio`: la seconda è la stringa in terza persona
+              destinata alle macchine (JSON-LD, llms.txt, meta description) e
+              leggerla qui significherebbe far parlare Vlad di sé al "lui".
+              Vedi la nota accanto ai due campi in `lib/site.ts`.
+              ⚠ NIENTE PIÙ `data-split="lines"` (tolto il 2026-08-23): questo
+              paragrafo nasce SOPRA LA PIEGA, ed è precisamente l'elemento che
+              l'11-08 era rimasto invisibile per sempre perché uno ScrollTrigger
+              nato oltre la propria soglia veniva reclamato prima di giocare
+              (vedi `settleSplits` in reveal.ts). La rete di sicurezza resta e
+              copre gli altri utenti di M1, ma qui non serve più correre il
+              rischio: la lede è ora una battuta della coreografia CSS della
+              hero, come il pannello Adesso e per la stessa ragione — sopra la
+              piega il sito usa animazioni CSS a tempo, non trigger di scroll. */}
+          <p class="ab__lede">{SITE.bioIo}</p>
+        </div>
+
+        {/* Le informazioni rapide: non più una colonna a destra della bio, ma la
+            fascia di strumenti a piede dello schermo. Il perché sta in testa a
+            NowPanel.astro. */}
+        <NowPanel />
       </div>
+    </section>
 
-      {/* Le informazioni rapide: non più una colonna a destra della bio, ma la
-          fascia di strumenti a piede dello schermo. Il perché sta in testa a
-          NowPanel.astro. */}
-      <NowPanel />
+    <div slot="in">
+      {/* La pausa fra la hero e il percorso: una frase sola, su una superficie
+          diversa. Senza numero d'indice di proposito — vedi Approach.astro. */}
+      <Approach />
+
+      {/* §20 — Il percorso. Il filetto verticale della timeline sborda in basso di
+          proposito: questa sezione non deve avere overflow clippato. */}
+      <section class="jr" data-section id="percorso">
+        <div class="jr__wrap">
+          <div class="jr__idx">
+            <SectionIndex n="02" label="Percorso" />
+          </div>
+          {/* `data-activate` sul contenitore e `data-split` sul titolo: mai sullo
+              stesso elemento (vedi reveal.ts). Da qui le classi governano in CSS
+              l'ingresso della lede e l'accensione delle sue parole chiave. */}
+          <div class="jr__head" data-activate>
+            <h2 class="jr__title" data-split="lines">
+              Niente curriculum impolverati in formato europeo, te lo prometto.
+            </h2>
+            {/* Testo dettato da Vlad (2026-08-14), parola per parola.
+                ⚠ Le parole d'accento NON sono "nottate": quella parola è già
+                accesa nella fascia del metodo poco sopra, sulla stessa pagina, e
+                vederla in viola due volte a mezzo schermo di distanza legge come
+                una ripetizione involontaria. Marcate invece le due che dicono di
+                cosa parla l'elenco. */}
+            <p class="jr__lede">
+              Ecco le <strong class="jr__key" style="--i: 0">tappe fondamentali</strong> – tra
+              nottate passate a studiare e prime vere <strong class="jr__key" style="--i: 1"
+                >vittorie sul campo</strong
+              > – che mi hanno portato a essere chi sono oggi:
+            </p>
+          </div>
+          {/* Wrapper e non `class` sul componente: vedi la nota in Timeline.astro. */}
+          <div class="jr__tl">
+            <Timeline entries={TIMELINE} closing />
+          </div>
+        </div>
+      </section>
     </div>
-  </section>
-
-  {/* La pausa fra la hero e il percorso: una frase sola, su una superficie
-      diversa. Senza numero d'indice di proposito — vedi Approach.astro. */}
-  <Approach />
-
-  {/* §20 — Il percorso. Il filetto verticale della timeline sborda in basso di
-      proposito: questa sezione non deve avere overflow clippato. */}
-  <section class="jr" data-section id="percorso">
-    <div class="jr__wrap">
-      <div class="jr__idx">
-        <SectionIndex n="02" label="Percorso" />
-      </div>
-      {/* `data-activate` sul contenitore e `data-split` sul titolo: mai sullo
-          stesso elemento (vedi reveal.ts). Da qui le classi governano in CSS
-          l'ingresso della lede e l'accensione delle sue parole chiave. */}
-      <div class="jr__head" data-activate>
-        <h2 class="jr__title" data-split="lines">
-          Niente curriculum impolverati in formato europeo, te lo prometto.
-        </h2>
-        {/* Testo dettato da Vlad (2026-08-14), parola per parola.
-            ⚠ Le parole d'accento NON sono "nottate": quella parola è già
-            accesa nella fascia del metodo poco sopra, sulla stessa pagina, e
-            vederla in viola due volte a mezzo schermo di distanza legge come
-            una ripetizione involontaria. Marcate invece le due che dicono di
-            cosa parla l'elenco. */}
-        <p class="jr__lede">
-          Ecco le <strong class="jr__key" style="--i: 0">tappe fondamentali</strong> – tra
-          nottate passate a studiare e prime vere <strong class="jr__key" style="--i: 1"
-            >vittorie sul campo</strong
-          > – che mi hanno portato a essere chi sono oggi:
-        </p>
-      </div>
-      {/* Wrapper e non `class` sul componente: vedi la nota in Timeline.astro. */}
-      <div class="jr__tl">
-        <Timeline entries={TIMELINE} closing />
-      </div>
-    </div>
-  </section>
+  </Handoff>
 
   <SkillsGrid n="03" />
 
@@ -214,9 +225,11 @@ import { SITE } from '../lib/site';
   .ab {
     /* ⚠ `min-` e non `height` secca: se il contenuto (titolo + lede + le
        quattro celle della fascia) diventasse più alto di una viewport corta,
-       la sezione deve poter crescere invece di tagliarlo. Questa NON è la
-       sezione uscente di un handoff M12: ciò che sfora resta raggiungibile
-       scorrendo, quindi crescere è sicuro. */
+       la sezione deve poter crescere invece di tagliarlo.
+       ⚠ DAL 2026-10-04 È LA SEZIONE USCENTE DI UN HANDOFF M12 (vedi il markup),
+       quindi ciò che sfora la viewport resta coperto mentre è incollata.
+       Misurato: sfora solo a 1280×800, di 4px, e sono padding — nessun testo
+       perso. Se un giorno il contenuto cresce, è qui che va ricontrollato. */
     min-height: 100svh;
     display: grid;
     /* Il fondale è un assoluto a `inset: 0`: senza questo, si aggancerebbe

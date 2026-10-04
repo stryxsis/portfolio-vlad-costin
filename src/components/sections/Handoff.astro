@@ -151,6 +151,17 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
     background-color: #000;
   }
 
+  /* ⚠ Lo schermo uscente AZZERA il floor dell'occlusore, e serve solo agli
+     handoff ANNIDATI (dal 2026-10-04: /portfolio, dove il palco dei lavori è
+     insieme l'entrante della hero e l'uscente di «Fuori programma»). Una
+     sezione che legge `var(--ho-in-floor, 100svh)` per riempire il proprio
+     occlusore, messa dentro uno schermo annidato, erediterebbe i 104svh
+     dell'occlusore ESTERNO — e uno schermo incollato più alto della viewport
+     ha gli ultimi pixel irraggiungibili. `initial` rende la variabile non
+     valida, quindi vale il fallback: uno schermo è alto uno schermo. */
+  .ho__out {
+    --ho-in-floor: initial;
+  }
   .ho__in {
     position: relative;
     /* Sopra l'uscente: entrambi sono posizionati, quindi vince l'ordine nel DOM,

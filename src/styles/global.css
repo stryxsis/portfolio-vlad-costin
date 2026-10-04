@@ -453,3 +453,72 @@ html.ld-on .hero * {
   background-color: var(--color-canvas);
   color: var(--color-text-1);
 }
+/* =========================================================================
+   CAMBIO PAGINA — View Transitions fra documenti (dal 2026-10-04)
+   Vlad: «quando cambio pagina mi sparisce e mi ricompare l'altra, vorrei un
+   effettino carino». La pagina che se ne va si abbassa e si spegne, quella
+   nuova sale di poco e si accende — lo stesso verso dei reveal del sito.
+
+   ⚠ NIENTE `ClientRouter` di Astro, ed è la scelta che regge tutto il resto.
+   Quello trasforma il sito in una single-page app: ogni script (GSAP,
+   ScrollTrigger, Lenis, i WebGL, gli observer) andrebbe smontato e rimontato
+   a ogni cambio — boot.ts lo dice già nella sua guardia d'idempotenza. La
+   transizione NATIVA fra documenti è solo CSS: il browser fotografa la pagina
+   vecchia, carica la nuova come sempre, e anima fra le due. Zero JS.
+   Dove non è supportata (Firefox, oggi) la navigazione resta quella di
+   sempre, che è esattamente il comportamento di prima: niente da degradare.
+
+   ⚠ La navbar ha un nome suo e quindi NON partecipa alla dissolvenza: resta
+   ferma e il browser la porta da uno stato all'altro (pillola raccolta →
+   barra piena, se la pagina vecchia era scorsa). Il nome sta sulla BARRA e
+   non sull'header `.nav`: un elemento con `view-transition-name` diventa una
+   «backdrop root», e messo sul genitore avrebbe tolto alla barra il vetro
+   (`backdrop-filter`) su tutto il sito, non solo durante il cambio.
+
+   Con `prefers-reduced-motion` la regola non esiste: cambio secco, come prima.
+   ========================================================================= */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+.nav__bar {
+  view-transition-name: nav-bar;
+}
+
+::view-transition-old(root) {
+  animation: vt-esce 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(root) {
+  animation: vt-entra 620ms var(--ease-out-expo) 120ms both;
+}
+::view-transition-group(nav-bar) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-out-expo);
+}
+/* ⚠ Le due istantanee della barra NON si scalano. Di default il browser le
+   stira sulla larghezza del riquadro che si trasforma, e passando dalla
+   pillola (468px) alla barra piena (tutto lo schermo) i link diventavano un
+   rettangolino schiacciato per metà transizione — visto in un fotogramma,
+   non dedotto. Così restano a grandezza naturale e si scambiano in
+   dissolvenza mentre il riquadro cambia forma. */
+::view-transition-old(nav-bar),
+::view-transition-new(nav-bar) {
+  height: 100%;
+  object-fit: none;
+  overflow: clip;
+}
+
+@keyframes vt-esce {
+  to {
+    opacity: 0;
+    transform: translateY(-1.25rem) scale(0.985);
+  }
+}
+@keyframes vt-entra {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+}

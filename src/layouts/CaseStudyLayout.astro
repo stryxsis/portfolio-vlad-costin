@@ -8,6 +8,7 @@
  */
 import { Picture } from 'astro:assets';
 import BaseLayout from './BaseLayout.astro';
+import Handoff from '../components/sections/Handoff.astro';
 import Breadcrumbs from '../components/chrome/Breadcrumbs.astro';
 import FactList, { type Fact } from '../components/primitives/FactList.astro';
 import { NAV_CHAPTERS, REQUIRED_CHAPTERS, CHAPTERS } from '../lib/chapters';
@@ -57,105 +58,117 @@ const facts: Fact[] = [
   ogImageAlt={d.coverAlt}
 >
   <article class="cs">
-    {/* ---- Hero: il titolo NON si anima, è il candidato LCP di questa pagina ---- */}
-    <header class="cs__hero">
-      <div class="cs__wrap">
-        <Breadcrumbs
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Portfolio', href: '/portfolio' },
-            { label: d.title },
-          ]}
-        />
+    {/* ⚠ HANDOFF M12 (dal 2026-10-04): il titolo resta incollato e la
+        copertina gli sale sopra, seguita da tutto il resto — lo stesso gesto
+        della hero di /portfolio da cui si arriva qui. Il vincolo dello schermo
+        uscente («mai più alto della viewport») qui vale perché la testata è
+        bassa: misurata da 576 a 664px su quattro case study e cinque finestre.
+        Sotto i 660px di altezza lo sticky si spegne (regola in fondo allo
+        stile), o la riga della data finirebbe irraggiungibile. Nessuna
+        sfocatura: il titolo è il candidato LCP, e qui basta il rientro. */}
+    <Handoff name="copertina" tone="canvas">
+      {/* ---- Hero: il titolo NON si anima, è il candidato LCP di questa pagina ---- */}
+      <header class="cs__hero" slot="out">
+        <div class="cs__wrap">
+          <Breadcrumbs
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'Portfolio', href: '/portfolio' },
+              { label: d.title },
+            ]}
+          />
 
-        <h1 class="cs__title">{d.title}</h1>
-        <p class="cs__subtitle">{d.subtitle}</p>
+          <h1 class="cs__title">{d.title}</h1>
+          <p class="cs__subtitle">{d.subtitle}</p>
 
-        {/*
-          Il margine sta su un wrapper e non passato come `class` a FactList:
-          uno stile scoped di Astro non raggiunge l'elemento radice di un
-          componente figlio (l'attributo di scoping non combacia), quindi la
-          classe arriverebbe ma la regola no.
-        */}
-        <div class="cs__facts">
-          <FactList items={facts} />
+          {/*
+            Il margine sta su un wrapper e non passato come `class` a FactList:
+            uno stile scoped di Astro non raggiunge l'elemento radice di un
+            componente figlio (l'attributo di scoping non combacia), quindi la
+            classe arriverebbe ma la regola no.
+          */}
+          <div class="cs__facts">
+            <FactList items={facts} />
+          </div>
+
+          <p class="cs__date">
+            <span class="cs__read">{minutes} min di lettura</span>
+            <span aria-hidden="true"> · </span>
+            Pubblicato il <time datetime={isoDate(d.pubDate)}>{fullDate(d.pubDate)}</time>
+            {
+              d.updatedDate && (
+                <>
+                  {' · aggiornato il '}
+                  <time datetime={isoDate(d.updatedDate)}>{fullDate(d.updatedDate)}</time>
+                </>
+              )
+            }
+          </p>
+        </div>
+      </header>
+
+      <div slot="in">
+        {/* ---- Cover: sconfina in alto con margine negativo, così cuce hero e corpo ---- */}
+        <div class="cs__cover clip-frame">
+          <Picture
+            src={d.cover}
+            alt={d.coverAlt}
+            widths={[640, 1000, 1400, 2000]}
+            sizes="(min-width: 90rem) 84rem, 100vw"
+            formats={['avif', 'webp']}
+            loading="eager"
+            decoding="async"
+            class="cs__cover-img"
+          />
         </div>
 
-        <p class="cs__date">
-          <span class="cs__read">{minutes} min di lettura</span>
-          <span aria-hidden="true"> · </span>
-          Pubblicato il <time datetime={isoDate(d.pubDate)}>{fullDate(d.pubDate)}</time>
-          {
-            d.updatedDate && (
-              <>
-                {' · aggiornato il '}
-                <time datetime={isoDate(d.updatedDate)}>{fullDate(d.updatedDate)}</time>
-              </>
-            )
-          }
-        </p>
-      </div>
-    </header>
+        <div class="cs__wrap cs__main">
+          {/* Rail dei capitoli: sticky puro, nessuno ScrollTrigger. Solo ≥1200px. */}
+          <nav class="cs__rail" aria-label="Capitoli del case study" data-case-rail>
+            <ol>
+              {
+                NAV_CHAPTERS.map((id) => (
+                  <li>
+                    <a href={`#${id}`}>
+                      <span class="cs__rail-n">{CHAPTERS[id].n}</span>
+                      {CHAPTERS[id].title}
+                    </a>
+                  </li>
+                ))
+              }
+            </ol>
+          </nav>
 
-    {/* ---- Cover: sconfina in alto con margine negativo, così cuce hero e corpo ---- */}
-    <div class="cs__cover clip-frame">
-      <Picture
-        src={d.cover}
-        alt={d.coverAlt}
-        widths={[640, 1000, 1400, 2000]}
-        sizes="(min-width: 90rem) 84rem, 100vw"
-        formats={['avif', 'webp']}
-        loading="eager"
-        decoding="async"
-        class="cs__cover-img"
-      />
-    </div>
-
-    <div class="cs__wrap cs__main">
-      {/* Rail dei capitoli: sticky puro, nessuno ScrollTrigger. Solo ≥1200px. */}
-      <nav class="cs__rail" aria-label="Capitoli del case study" data-case-rail>
-        <ol>
-          {
-            NAV_CHAPTERS.map((id) => (
-              <li>
-                <a href={`#${id}`}>
-                  <span class="cs__rail-n">{CHAPTERS[id].n}</span>
-                  {CHAPTERS[id].title}
-                </a>
-              </li>
-            ))
-          }
-        </ol>
-      </nav>
-
-      <div class="cs__body">
-        {
-          d.metrics.length > 0 && (
-            <div class="cs__metrics" data-reveal>
-              {d.metrics.map((m) => (
-                <div class="cs__metric">
-                  <span class="cs__metric-value">{m.value}</span>
-                  <span class="cs__metric-label">{m.label}</span>
+          <div class="cs__body">
+            {
+              d.metrics.length > 0 && (
+                <div class="cs__metrics" data-reveal>
+                  {d.metrics.map((m) => (
+                    <div class="cs__metric">
+                      <span class="cs__metric-value">{m.value}</span>
+                      <span class="cs__metric-label">{m.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )
+            }
+
+            <slot />
+          </div>
+        </div>
+
+        {/* ---- Prossimo lavoro ---- */}
+        {
+          next && (
+            <a class="cs__next" href={`/portfolio/${next.id}`}>
+              <span class="cs__next-label">Prossimo lavoro</span>
+              <span class="cs__next-title">{next.data.title}</span>
+              <span class="cs__next-arrow" aria-hidden="true">→</span>
+            </a>
           )
         }
-
-        <slot />
       </div>
-    </div>
-
-    {/* ---- Prossimo lavoro ---- */}
-    {
-      next && (
-        <a class="cs__next" href={`/portfolio/${next.id}`}>
-          <span class="cs__next-label">Prossimo lavoro</span>
-          <span class="cs__next-title">{next.data.title}</span>
-          <span class="cs__next-arrow" aria-hidden="true">→</span>
-        </a>
-      )
-    }
+    </Handoff>
   </article>
 </BaseLayout>
 
@@ -373,5 +386,16 @@ const facts: Fact[] = [
   }
   .cs__next:hover .cs__next-arrow {
     transform: translateX(6px);
+  }
+
+  /* Lo schermo uscente non deve superare la viewport (Handoff.astro). La
+     testata misura fino a 664px: sotto i 660px di altezza si sgancia e la
+     pagina scorre normale. Specificità alzata con `body` di proposito: la
+     regola di Handoff ha lo stesso peso, e fra due stili di componenti
+     diversi l'ordine nel bundle non è garantito. */
+  @media (max-height: 41.25rem) {
+    :global(html.js-anim body .cs [data-screen='copertina']) {
+      position: relative;
+    }
   }
 </style>
