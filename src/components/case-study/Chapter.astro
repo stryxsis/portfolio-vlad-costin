@@ -9,7 +9,11 @@
  * Cosa garantisce, senza che tu ci pensi:
  *  - emette sempre <h2>, quindi la gerarchia dei heading resta corretta
  *    (dentro il capitolo usi ###)
- *  - applica `data-reveal`, quindi l'animazione allo scroll si attacca da sola
+ *  - ⚠ NON porta `data-reveal` (tolto il 2026-10-04): M4 sposta l'elemento
+ *    dell'8% della SUA altezza, e un capitolo da 3000px partiva 242px più in
+ *    basso e trasparente — sotto il capitolo precedente restava un buco nero, e
+ *    il filetto del capitolo dopo tagliava l'ultima foto. Si animano figure e
+ *    citazioni, che sono blocchi piccoli; il testo è già lì.
  *  - ogni capitolo è una <section id> autocontenuta: è la forma che un motore
  *    di risposta generativo estrae e cita
  */
@@ -26,7 +30,7 @@ const { id, title } = Astro.props;
 const meta = CHAPTERS[id];
 ---
 
-<section id={id} class="chapter" aria-labelledby={`${id}-h`} data-reveal>
+<section id={id} class="chapter" aria-labelledby={`${id}-h`}>
   <header class="chapter__head">
     <span class="chapter__n" aria-hidden="true">{meta.n}</span>
     <h2 id={`${id}-h`} class="chapter__title">{title ?? meta.title}</h2>

@@ -17,6 +17,7 @@ import { initGlobe404 } from './globe404';
 import { initLightfall } from './lightfall';
 import { initCampoBinario } from './campoBinario';
 import { initWorks } from './works';
+import { initCaseRail } from './caseRail';
 
 declare global {
   interface Window {
@@ -69,6 +70,9 @@ function boot(): void {
     // Fuori dal try dei precedenti solo concettualmente: non è movimento ma
     // stato, e deve funzionare anche con movimento ridotto (vedi reveal.ts).
     initSectionState();
+    /* Stessa natura: lo stato "capitolo che stai leggendo" nell'indice dei
+       case study. Esce da solo dove non c'è `[data-case-rail]`. */
+    initCaseRail();
   } catch (err) {
     // Se l'inizializzazione fallisce, il contenuto pre-nascosto resterebbe
     // invisibile: un sito rotto è peggio di un sito senza animazioni.

@@ -12,6 +12,7 @@ import Breadcrumbs from '../components/chrome/Breadcrumbs.astro';
 import FactList, { type Fact } from '../components/primitives/FactList.astro';
 import { NAV_CHAPTERS, REQUIRED_CHAPTERS, CHAPTERS } from '../lib/chapters';
 import { fullDate, isoDate } from '../lib/format';
+import { readingMinutes } from '../lib/reading';
 import type { Project } from '../lib/collections';
 
 interface Props {
@@ -34,6 +35,9 @@ if (missing.length > 0) {
       `Duplica src/content/progetti/_template.mdx: contiene già i quattro <Chapter> e gli import.`
   );
 }
+
+/* Il tempo di lettura conta anche ciò che il layout stampa sopra il corpo. */
+const minutes = readingMinutes(body, [d.subtitle, ...d.metrics.flatMap((m) => [m.value, m.label])]);
 
 const facts: Fact[] = [
   { label: 'Anno', value: String(d.year) },
@@ -78,6 +82,8 @@ const facts: Fact[] = [
         </div>
 
         <p class="cs__date">
+          <span class="cs__read">{minutes} min di lettura</span>
+          <span aria-hidden="true"> · </span>
           Pubblicato il <time datetime={isoDate(d.pubDate)}>{fullDate(d.pubDate)}</time>
           {
             d.updatedDate && (
@@ -107,7 +113,7 @@ const facts: Fact[] = [
 
     <div class="cs__wrap cs__main">
       {/* Rail dei capitoli: sticky puro, nessuno ScrollTrigger. Solo ≥1200px. */}
-      <nav class="cs__rail" aria-label="Capitoli del case study">
+      <nav class="cs__rail" aria-label="Capitoli del case study" data-case-rail>
         <ol>
           {
             NAV_CHAPTERS.map((id) => (
@@ -154,6 +160,14 @@ const facts: Fact[] = [
 </BaseLayout>
 
 <style>
+  /* ⚠ Nei case study l'ingresso di M4 parte da uno spostamento FISSO, non
+     dall'8% dell'altezza dell'elemento (la regola globale). Le figure qui sono
+     alte fino a ~1000px: in percentuale scendevano di 80px e la didascalia
+     finiva sotto il filetto del capitolo seguente. Misurato il 2026-10-04. */
+  :global(html.js-anim) .cs :global([data-reveal]) {
+    transform: translate3d(0, 1.5rem, 0);
+  }
+
   .cs__wrap {
     max-width: 84rem;
     margin-inline: auto;
@@ -182,6 +196,10 @@ const facts: Fact[] = [
 
   .cs__facts {
     margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .cs__read {
+    color: var(--color-text-2);
   }
 
   .cs__date {
@@ -268,6 +286,26 @@ const facts: Fact[] = [
   }
   .cs__rail-n {
     color: var(--color-hairline-strong);
+    transition: color 200ms var(--ease-snappy);
+  }
+  /* Il capitolo in cui si trova chi legge (lo marca `caseRail.ts`): numero,
+     nome e un tratto sul filetto, tutti d'accento. Il tratto sta sul bordo
+     della lista e non sul link, così si legge come «sei qui» lungo il filo. */
+  .cs__rail li {
+    position: relative;
+  }
+  .cs__rail a[aria-current='location'],
+  .cs__rail a[aria-current='location'] .cs__rail-n {
+    color: var(--color-accent);
+  }
+  .cs__rail a[aria-current='location']::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: -0.2em;
+    bottom: -0.2em;
+    width: 1px;
+    background-color: var(--color-accent);
   }
 
   /* Riga di risultati misurati. */

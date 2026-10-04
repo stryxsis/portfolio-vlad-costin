@@ -337,6 +337,10 @@ export function initReveal(): void {
       fresh.forEach((el) => revealed.add(el));
 
       gsap.to(fresh, {
+        /* `y` oltre a `yPercent`: dove la partenza è in pixel (i case study,
+           vedi CaseStudyLayout) GSAP la legge come `y`, e senza riportarla a
+           zero l'elemento resterebbe spostato per sempre. Altrove è già 0. */
+        y: 0,
         yPercent: 0,
         autoAlpha: 1,
         duration: animate ? 0.8 : 0,

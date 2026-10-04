@@ -13,12 +13,17 @@ year: 2026
 pubDate: 2026-02-04
 updatedDate: 2026-10-04
 
+# ⚠ Lo stack del sito VERO (detto da Vlad il 2026-10-04): il front-end in
+# HTML/CSS/JS e il back-end in FastAPI su Docker, su una VPS Aruba. Il link
+# Netlify qui sotto è una copia dello stesso sito tenuta online come vetrina:
+# Netlify NON va nello stack.
 stack:
   - HTML
   - CSS
   - JavaScript
-  - Canvas
-  - Netlify
+  - FastAPI
+  - Docker
+  - Aruba (VPS)
 
 metrics:
   - label: 'Associati all’evento'
@@ -85,7 +90,7 @@ ogni riga, e a ogni richiesta sapevo dove mettere le mani.
 
 Dopo i primi mockup l’organizzazione si è fidata e il front-end l’ho deciso
 io. I tre pilastri del tema sono cartelli di legno appesi, e nella pagina si
-muovono foglie e lucciole disegnate su canvas.
+muovono foglie e lucciole.
 
 <CaseFigure
   src={tema}
@@ -112,9 +117,10 @@ Ciprian, c’è una paperella.
 
 Il Network Day è un evento chiuso: il modulo serviva a confermare la
 partecipazione, con la scelta dei workshop e il curriculum in PDF per le
-aziende. Poco prima di aprire le iscrizioni ci siamo accorti che il piano di
-hosting non includeva il server che serviva al back-end. L’abbiamo aggiunto, e
-Ciprian ha messo tutto online in tempo.
+aziende. Il back-end è in FastAPI, dentro Docker. Poco prima di aprire le
+iscrizioni ci siamo accorti che il piano Aruba non includeva una VPS, e senza
+non c’era dove farlo girare. L’abbiamo aggiunta, e Ciprian ha messo tutto
+online in tempo.
 
 ### Dopo il lancio
 
