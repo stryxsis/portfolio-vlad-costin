@@ -9,8 +9,8 @@
  * l'unica cosa che, se scoperta, azzera la fiducia in tutto il resto della
  * pagina.
  *
- * ✓ VERE finora: Francesco Fantesini e Stefano Marcacci (2026-10-03). Le
- *   altre quattro restano provvisorie.
+ * ✓ VERE finora: Francesco Fantesini e Stefano Marcacci (2026-10-03),
+ *   Giorgio Canalini (2026-10-04). Le altre tre restano provvisorie.
  *
  * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
  * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
@@ -51,7 +51,9 @@ export const TESTIMONIALS: Testimonial[] = [
   /* -- Prima colonna: l'unica visibile su telefono ------------------------ */
   {
     quote:
-      'Gli abbiamo portato nove famiglie di prodotti e tre modi diversi di raccontarle. Ne è uscito un sito che un cliente capisce al primo giro, e che finalmente somiglia a come lavoriamo davvero.',
+      /* ⚠ VERA, inviata da Giorgio il 2026-10-04. Tolta solo la firma; i
+         quattro capoversi sono uniti in uno, come le altre citazioni. */
+      'Ci siamo affidati a lui per la realizzazione del sito Internet della nostra società e siamo rimasti davvero molto soddisfatti del risultato. Fin dal primo momento si è dimostrato una persona estremamente competente, disponibile e attenta alle nostre esigenze. Ha saputo trasformare le nostre idee in un sito moderno, professionale e curato in ogni dettaglio, lavorando con grande precisione e puntualità. Il risultato finale è stato impeccabile e ha pienamente rispecchiato quello che avevamo in mente. Una persona seria, professionale e soprattutto sempre disponibile ad ascoltare e trovare la soluzione migliore. Lo consiglio assolutamente a chiunque abbia bisogno di realizzare o rinnovare il proprio sito web.',
     name: 'Giorgio Canalini',
     role: 'Cofondatore · Reggiana Packaging',
     avatar: giorgioCanalini,
