@@ -128,15 +128,22 @@ import { SITE } from '../lib/site';
     </div>
   </Handoff>
 
-  <SkillsGrid n="03" />
+  {/* ⚠ HANDOFF DI CHIUSURA (2026-10-05): la scelta finale sale sopra
+      l'inventario, come la CTA della Home sale sul percorso e quella di
+      /portfolio su «Fuori programma». L'inventario è più alto di uno schermo,
+      quindi variante `tall`: si incolla dal fondo, dopo essere stato letto
+      tutto (vedi il prop in Handoff.astro). */}
+  <Handoff name="chiusura" tone="canvas" tall>
+    <SkillsGrid slot="out" n="03" />
 
-  {/* La chiusura: il campo binario della hero torna, fermo, e si dirada per
-      lasciare le due destinazioni. È il BOOKEND della pagina — si apre e si
-      chiude con le stesse cifre. Senza numero d'indice come la fascia del
-      metodo, e NON può chiamarsi `.cta` (il footer legge quella classe per
-      accendersi): il perché di entrambe sta in Scelta.astro, insieme ai
-      cinque difetti misurati del portale che questa sezione ha sostituito. */}
-  <Scelta />
+    {/* La chiusura: il campo binario della hero torna, fermo, e si dirada per
+        lasciare le due destinazioni. È il BOOKEND della pagina — si apre e si
+        chiude con le stesse cifre. Senza numero d'indice come la fascia del
+        metodo, e NON può chiamarsi `.cta` (il footer legge quella classe per
+        accendersi): il perché di entrambe sta in Scelta.astro, insieme ai
+        cinque difetti misurati del portale che questa sezione ha sostituito. */}
+    <Scelta slot="in" />
+  </Handoff>
 </BaseLayout>
 
 <style>

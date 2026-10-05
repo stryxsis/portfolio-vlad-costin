@@ -33,7 +33,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
 
 <BaseLayout
   title="Contatti"
-  description="Scrivi a Vlad Costin: raccontami il tuo progetto, anche se è solo un'idea. Modulo con allegati, email, WhatsApp e LinkedIn."
+  description="Scrivi a Vlad Costin: raccontami il tuo progetto, anche se è solo un'idea. Modulo con allegati, email, WhatsApp, LinkedIn e GitHub."
 >
   <section class="ct" data-section id="contatti">
     {/* Il cielo: un contenitore alto quanto la sezione, e dentro un riquadro
@@ -88,6 +88,14 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
             <dd>
               <a href={SITE.author.linkedin} target="_blank" rel="noopener noreferrer">
                 vlad-costin
+              </a>
+            </dd>
+          </div>
+          <div class="ct__canale">
+            <dt>GitHub</dt>
+            <dd>
+              <a href={SITE.author.github.url} target="_blank" rel="noopener noreferrer">
+                {SITE.author.github.handle}
               </a>
             </dd>
           </div>

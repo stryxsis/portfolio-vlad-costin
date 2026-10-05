@@ -69,6 +69,29 @@ export function initStages(): void {
          esplicitamente. */
       const conBlur = screen.dataset.screenBlur !== undefined;
 
+      /* ⚠ USCENTE ALTA (prop `tall`, 2026-10-05): si incolla dal FONDO. Il `top`
+         negativo dipende dall'altezza della sezione e della finestra, quindi si
+         misura qui e si riscrive a ogni cambio di misura. Il rientro rimpicciolisce
+         verso il centro della parte VISIBILE: dal centro della sezione intera
+         (che sta sopra lo schermo) sembrerebbe scivolare verso l'alto. */
+      if (screen.dataset.screenTall !== undefined) {
+        const misura = () => {
+          const h = screen.offsetHeight;
+          screen.style.setProperty('--ho-out-top', `${Math.min(0, window.innerHeight - h)}px`);
+          screen.style.transformOrigin = `50% ${Math.max(h - window.innerHeight / 2, h / 2)}px`;
+        };
+        misura();
+        const ro = new ResizeObserver(misura);
+        ro.observe(screen);
+        window.addEventListener('resize', misura);
+        cleanups.push(() => {
+          ro.disconnect();
+          window.removeEventListener('resize', misura);
+          screen.style.removeProperty('--ho-out-top');
+          screen.style.transformOrigin = '';
+        });
+      }
+
       const bersaglio: gsap.TweenVars = {
         scale: 0.96,
         autoAlpha: 0.45,

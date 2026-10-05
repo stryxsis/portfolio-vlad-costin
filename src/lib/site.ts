@@ -135,6 +135,14 @@ export const SITE = {
     linkedin: 'https://www.linkedin.com/in/vlad-costin/',
 
     /**
+     * GitHub — profilo reale (fornito il 2026-10-05). Non è un canale per
+     * scrivergli ma un posto dove vedere il codice: per questo sta nel footer e
+     * fra i recapiti di /contatti, NON fra i canali diretti della CTA della Home
+     * (lì ci sono solo modi per parlargli). Ripetuto in `sameAs`, come LinkedIn.
+     */
+    github: { url: 'https://github.com/stryxsis', handle: 'stryxsis' },
+
+    /**
      * Località. Scelta di privacy deliberata: la data di nascita NON compare sul
      * sito pubblico. Il numero di telefono invece SÌ, da agosto 2026, ma solo
      * come link WhatsApp — vedi il campo `whatsapp` qui sopra.
@@ -152,8 +160,7 @@ export const SITE = {
      */
     sameAs: [
       'https://www.linkedin.com/in/vlad-costin/',
-      // [placeholder] GitHub: inserire l'URL reale quando c'è un profilo da mostrare.
-      // 'https://github.com/...',
+      'https://github.com/stryxsis',
     ] as string[],
   },
 

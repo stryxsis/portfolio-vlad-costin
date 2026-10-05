@@ -60,14 +60,21 @@ const projects = await allProjects();
       <Handoff name="fuori" tone="canvas" travel={60}>
         <WorksStage slot="out" projects={projects} />
         {/* Un errore vero e come l'ho raddrizzato (vedi il componente). È alta
-            più di uno schermo, quindi soddisfa il vincolo da sola. */}
-        <FuoriProgramma slot="in" />
+            più di uno schermo, quindi soddisfa il vincolo da sola.
+
+            ⚠ DAL 2026-10-05 È ANCHE UN USCENTE, il terzo livello di annidamento:
+            la CTA finale le sale sopra, come la CTA della Home sale sul
+            percorso. Ogni pagina che finisce con un invito ora lo fa con lo
+            stesso gesto. «Fuori programma» è alta quasi due schermi, quindi
+            usa la variante `tall` (si incolla dal fondo: si legge tutta, poi
+            l'ultima schermata resta ferma). Vedi il prop in Handoff.astro. */}
+        <div slot="in">
+          <Handoff name="invito" tone="canvas" tall>
+            <FuoriProgramma slot="out" />
+            <PortfolioCta slot="in" />
+          </Handoff>
+        </div>
       </Handoff>
     </div>
   </Handoff>
-
-  {/* La chiusura: dopo i problemi risolti, il suo (vedi il componente). In
-      flusso normale, fuori dagli handoff: «Fuori programma» è più alto di uno
-      schermo e non può essere uno schermo incollato. */}
-  <PortfolioCta />
 </BaseLayout>

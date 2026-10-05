@@ -80,8 +80,24 @@ interface Props {
    * progressivamente».
    */
   blurOut?: boolean;
+  /**
+   * Uscente PIÙ ALTA di uno schermo (2026-10-05). Lo sticky normale (`top: 0`)
+   * incolla il bordo SUPERIORE, e tutto ciò che sta sotto la piega diventa
+   * irraggiungibile — è il vincolo che finora escludeva le sezioni lunghe.
+   * Con `tall` l'uscente si incolla quando il suo bordo INFERIORE tocca il
+   * fondo dello schermo: si legge tutta scorrendo, poi l'ultima schermata
+   * resta ferma e l'entrante le sale sopra.
+   *
+   * Il `top` negativo (altezza schermo − altezza sezione) lo scrive stage.ts in
+   * `--ho-out-top`. ⚠ Il CSS NON ha un fallback: finché la variabile manca il
+   * `top` non è valido, vale `auto`, e lo sticky non fa niente — la sezione
+   * resta in flusso. È il ramo sicuro per costruzione: un `0px` di riserva
+   * renderebbe irraggiungibile il fondo della sezione proprio quando il JS
+   * che dovrebbe misurarla non è partito.
+   */
+  tall?: boolean;
 }
-const { name, tone, travel, bareIn = false, blurOut = false } = Astro.props;
+const { name, tone, travel, bareIn = false, blurOut = false, tall = false } = Astro.props;
 
 /* Le classi che in global.css riportano il focus ring a un colore leggibile
    sopra i fondi invertiti. */
@@ -93,7 +109,12 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
 
   {/* `data-screen-blur` è un attributo e non una classe perché a leggerlo è
       stage.ts, non il CSS: la sfocatura la scrive GSAP in scrub. */}
-  <div class="ho__out" data-screen={name} data-screen-blur={blurOut ? '' : undefined}>
+  <div
+    class:list={['ho__out', tall && 'ho__out--tall']}
+    data-screen={name}
+    data-screen-blur={blurOut ? '' : undefined}
+    data-screen-tall={tall ? '' : undefined}
+  >
     <slot name="out" />
   </div>
 
@@ -236,6 +257,10 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
     :global(html.js-anim) .ho__travel {
       display: block;
       height: var(--travel);
+    }
+    /* Vedi il prop `tall`: nessun fallback di proposito. */
+    :global(html.js-anim) .ho__out--tall {
+      top: var(--ho-out-top);
     }
   }
 

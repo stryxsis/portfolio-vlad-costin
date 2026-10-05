@@ -198,7 +198,9 @@ const STRADE: Strada[] = [
      nota in testa al file sul perché la corsa è passata da 2295px a questo. */
   .sc {
     position: relative;
-    min-height: 100svh;
+    /* Dal 2026-10-05 è l'entrante dell'handoff `chiusura`: riempie il suo
+       occlusore (104svh) invece di lasciarne scoperto il fondo. */
+    min-height: var(--ho-in-floor, 100svh);
     display: grid;
     align-content: center;
     padding-block: clamp(4rem, 12vh, 7rem);
