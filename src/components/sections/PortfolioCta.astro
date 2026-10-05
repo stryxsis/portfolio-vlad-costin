@@ -1,0 +1,303 @@
+---
+/**
+ * /portfolio — la chiusura: «adesso tocca al tuo progetto» (2026-10-05).
+ *
+ * Chiesta da Vlad dopo «Fuori programma», con la sua traccia: chi è arrivato
+ * fin qui ha visto i problemi che ho risolto, ora deve pensare al SUO. Una CTA
+ * diretta, orientata al risultato. Il testo riprende il suo esempio («un
+ * progetto chiuso nel cassetto o un problema che ti sta facendo impazzire:
+ * smettiamo di immaginarlo e iniziamo a costruirlo»), accorciato.
+ *
+ * ⚠ L'ORIZZONTE È UN ANTICIPO DI /contatti, non una decorazione a caso: la
+ * pagina contatti si apre su un cielo con un pianeta in basso, e questo è lo
+ * stesso pianeta visto da più lontano. Chi clicca il bottone «atterra» lì.
+ * Qui è solo CSS statico (un disegno, una volta) che sale UNA volta all'ingresso
+ * — M14, `is-in` — e poi sta fermo. Il cielo vivo è della pagina contatti.
+ *
+ * ⚠ La classe NON è `.cta`: il footer legge `body:has(.cta)` per accendere il
+ * bagliore che continua il cielo viola della Home. Qui non c'è nessun cielo
+ * viola da continuare (stesso motivo di `.sc` in Scelta.astro).
+ *
+ * Senza numero d'indice, come le altre chiusure del sito (Scelta, la CTA
+ * della Home): è un invito, non un capitolo.
+ */
+import Button from '../primitives/Button.astro';
+import { SITE } from '../../lib/site';
+
+interface Props {
+  id?: string;
+}
+const { id = 'il-tuo-progetto' } = Astro.props;
+
+/* Le stelle: poche, ferme, da un seme fisso (stessa tecnica di Starfield e
+   BinaryField: due build dello stesso commit danno lo stesso cielo). Stanno
+   SOPRA il pianeta nel cielo, mai davanti: il pianeta le copre. */
+function mulberry32(a: number) {
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rnd = mulberry32(20261005);
+const STELLE = Array.from({ length: 70 }, () => ({
+  x: +(rnd() * 1600).toFixed(1),
+  y: +(rnd() * 900).toFixed(1),
+  r: +(0.5 + rnd() * rnd() * 1.4).toFixed(2),
+  o: +(0.18 + rnd() * 0.5).toFixed(2),
+}));
+---
+
+<section class="pcta" id={id} aria-labelledby={`${id}-h`}>
+  <div class="pcta__sky" aria-hidden="true">
+    <svg class="pcta__stars" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      {STELLE.map((s) => <circle cx={s.x} cy={s.y} r={s.r} fill="#fff" opacity={s.o} />)}
+    </svg>
+  </div>
+
+  {/* `data-activate` sul contenitore che porta ANCHE l'orizzonte: la stessa
+      soglia fa salire il pianeta e cominciare il testo, così i due arrivano
+      come una scena sola. */}
+  <div class="pcta__stage" data-activate>
+    <div class="pcta__horizon" aria-hidden="true">
+      <span class="pcta__atmo"></span>
+      <span class="pcta__planet"></span>
+    </div>
+
+    <div class="pcta__wrap">
+      <p class="pcta__label">Il tuo turno</p>
+      <h2 class="pcta__title" id={`${id}-h`}>
+        <span class="pcta__line pcta__line--quiet">Hai visto i problemi che ho risolto.</span>
+        <span class="pcta__line">Adesso tocca al <em>tuo</em>.</span>
+      </h2>
+      <p class="pcta__lede">
+        Un progetto chiuso nel cassetto o un problema che ti fa impazzire: smettiamo di
+        immaginarlo e cominciamo a costruirlo.
+      </p>
+      <div class="pcta__actions">
+        <Button href="/contatti" variant="filled" tone="dark">
+          Parliamo del tuo progetto
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path d="M1 7h12M8 2l5 5-5 5"></path>
+          </svg>
+        </Button>
+        <p class="pcta__direct">
+          oppure scrivimi a <a href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pcta {
+    position: relative;
+    /* `clip` e non `hidden`: il pianeta sborda di proposito, e `hidden`
+       creerebbe un contenitore di scorrimento. */
+    overflow: clip;
+    background-color: var(--color-canvas);
+  }
+
+  .pcta__sky {
+    position: absolute;
+    inset: 0;
+  }
+  .pcta__stars {
+    width: 100%;
+    height: 100%;
+  }
+
+  .pcta__stage {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    /* Il testo sta nella parte alta: la fascia bassa è del pianeta. */
+    align-content: center;
+    padding-block: var(--spacing-section) clamp(9rem, 26svh, 15rem);
+  }
+
+  .pcta__wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 62rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+    text-align: center;
+  }
+
+  .pcta__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent-hi);
+  }
+
+  /* Due registri, come i titoli delle altre chiusure: la premessa smorzata,
+     la frase che conta al corpo pieno. */
+  .pcta__title {
+    margin-top: 1.5rem;
+    font-size: var(--text-h1, var(--text-h2));
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .pcta__line {
+    display: block;
+  }
+  .pcta__line--quiet {
+    font-size: 0.48em;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--color-text-2);
+    margin-bottom: 0.35em;
+  }
+  .pcta__title em {
+    font-style: normal;
+    color: var(--color-accent);
+  }
+
+  .pcta__lede {
+    margin: 1.75rem auto 0;
+    max-width: 46ch;
+    font-size: var(--text-lede);
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+    color: var(--color-text-2);
+    text-wrap: pretty;
+  }
+
+  .pcta__actions {
+    margin-top: 2.5rem;
+    display: grid;
+    justify-items: center;
+    gap: 1.25rem;
+  }
+  .pcta__direct {
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+  .pcta__direct a {
+    color: var(--color-text-1);
+    text-decoration: underline;
+    text-decoration-color: var(--color-hairline-strong);
+    text-underline-offset: 0.25em;
+    transition: text-decoration-color 200ms var(--ease-snappy);
+  }
+  .pcta__direct a:hover {
+    text-decoration-color: var(--color-accent);
+  }
+
+  /* ---- L'orizzonte -----------------------------------------------------------
+     Un cerchio enorme di cui si vede solo la calotta. ⚠ Centrato con i margini
+     e non con `translate(-50%)`: il transform serve all'ingresso. Il diametro
+     ha un pavimento in px perché sotto i ~1200px una curvatura in vw diventa
+     una cupola invece di un orizzonte. */
+  .pcta__horizon {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .pcta__planet {
+    --d: max(230vw, 1900px);
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--d) * -1 + clamp(6rem, 20svh, 12rem));
+    width: var(--d);
+    height: var(--d);
+    margin-left: calc(var(--d) / -2);
+    border-radius: 50%;
+    /* La superficie: appena più chiara del cielo verso il bordo, dove la luce
+       la sfiora, e nera al centro. */
+    background: radial-gradient(
+      circle at 50% 0%,
+      color-mix(in oklab, var(--color-accent-deep) 22%, #07060c) 0%,
+      #07060c 8%,
+      var(--color-canvas) 30%
+    );
+    /* Il bordo illuminato e l'atmosfera. Le ombre si dipingono UNA volta: il
+       pianeta poi si muove solo di transform. */
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, var(--color-accent-hi) 75%, transparent),
+      inset 0 2.5rem 4rem -2.5rem color-mix(in oklab, var(--color-accent) 55%, transparent);
+  }
+  /* ⚠ L'ATMOSFERA È UN GRADIENTE A PARTE, non un'ombra esterna del pianeta. La
+     prima stesura la faceva con due `box-shadow` enormi (fino a 18rem di
+     sfocatura su un cerchio di 3300px): Chrome ritagliava lo strato composito
+     e a schermo il bagliore partiva da un BORDO DRITTO orizzontale (visto in
+     uno screenshot a 1440 e a 390). Un gradiente finisce a zero da sé. */
+  .pcta__atmo {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: clamp(14rem, 48svh, 30rem);
+    background: radial-gradient(
+      70% 70% at 50% 100%,
+      color-mix(in oklab, var(--color-accent) 30%, transparent) 0%,
+      color-mix(in oklab, var(--color-accent-deep) 14%, transparent) 45%,
+      transparent 75%
+    );
+  }
+
+  /* ---- L'ingresso (M14) ------------------------------------------------------
+     L'orizzonte (pianeta + atmosfera) sale dal basso, poi il testo — premessa, frase, lede, bottone.
+     Niente è invisibile per sempre: senza JS, con reduced-motion o in un salto
+     (`is-instant`) tutto è già al suo posto. */
+  :global(html.js-anim) .pcta__horizon {
+    transform: translateY(14svh);
+    opacity: 0.4;
+    transition:
+      transform 1.8s var(--ease-out-expo),
+      opacity 1.8s var(--ease-out-expo);
+  }
+  :global(html.js-anim) .pcta__label,
+  :global(html.js-anim) .pcta__line,
+  :global(html.js-anim) .pcta__lede,
+  :global(html.js-anim) .pcta__actions {
+    opacity: 0;
+    transform: translateY(1rem);
+    transition:
+      opacity 800ms var(--ease-out-expo) var(--wait, 0ms),
+      transform 800ms var(--ease-out-expo) var(--wait, 0ms);
+  }
+  :global(html.js-anim) .pcta__label {
+    --wait: 250ms;
+  }
+  :global(html.js-anim) .pcta__line--quiet {
+    --wait: 380ms;
+  }
+  :global(html.js-anim) .pcta__line:not(.pcta__line--quiet) {
+    --wait: 520ms;
+  }
+  :global(html.js-anim) .pcta__lede {
+    --wait: 720ms;
+  }
+  :global(html.js-anim) .pcta__actions {
+    --wait: 900ms;
+  }
+  :global(html.js-anim) .pcta__stage.is-in .pcta__horizon,
+  :global(html.js-anim) .pcta__stage.is-in .pcta__label,
+  :global(html.js-anim) .pcta__stage.is-in .pcta__line,
+  :global(html.js-anim) .pcta__stage.is-in .pcta__lede,
+  :global(html.js-anim) .pcta__stage.is-in .pcta__actions {
+    opacity: 1;
+    transform: none;
+  }
+  :global(html.js-anim) .pcta__stage.is-instant * {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+</style>

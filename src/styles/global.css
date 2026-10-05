@@ -49,13 +49,21 @@
      (keyword, CTA, stato attivo) e può essere di qualunque tinta, mentre il
      verde qui non decora niente — dice "aperto", che è una convenzione che
      il viola non sa esprimere (un pallino viola accanto a "accetto nuovi
-     progetti" non significherebbe nulla). Ha ESATTAMENTE UN UTENTE, la riga
-     Disponibilità del pannello "Adesso" nella hero di /chi-sono. Il giorno
+     progetti" non significherebbe nulla). Ha DUE UTENTI con lo STESSO
+     significato: la riga Disponibilità del pannello "Adesso" nella hero di
+     /chi-sono, e la stessa pill nella pagina /contatti (dal 2026-10-05). Il giorno
      in cui ne spuntasse un secondo è il momento di chiedersi se il sito
      abbia due accenti, non di aggiungerne un terzo uso.
      11.7:1 su --color-canvas: è un pallino da 8px, e a quella taglia il
      contrasto non è pignoleria ma l'unica cosa che lo rende visibile.       */
   --color-ok: #4ade80; /* disponibile                             11.7:1 */
+
+  /* L'ERRORE di un modulo (dal 2026-10-05, /contatti). Stessa logica di
+     --color-ok qui sopra: non è un secondo accento, è una CONVENZIONE — il
+     rosso dice «qui c'è un problema» come il verde dice «aperto», e il viola
+     non sa dire nessuna delle due. Mai da solo: ogni errore ha anche il testo
+     che lo spiega (WCAG 1.4.1). 7.4:1 su --color-canvas. */
+  --color-err: #f87171; /* errore di un campo                       7.4:1 */
 
   /* Sezioni invertite full-bleed ("le finestre" nella stanza scura").
      Avorio caldo invece di un bianco-grigio neutro — la stessa correzione

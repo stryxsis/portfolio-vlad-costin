@@ -18,6 +18,8 @@ import { initLightfall } from './lightfall';
 import { initCampoBinario } from './campoBinario';
 import { initWorks } from './works';
 import { initCaseRail } from './caseRail';
+import { initSpazio } from './spazio';
+import { initContatti } from './contatti';
 
 declare global {
   interface Window {
@@ -73,11 +75,22 @@ function boot(): void {
     /* Stessa natura: lo stato "capitolo che stai leggendo" nell'indice dei
        case study. Esce da solo dove non c'è `[data-case-rail]`. */
     initCaseRail();
+    /* Il cielo di /contatti: esce da solo dove non c'è `[data-spazio]`. */
+    initSpazio();
   } catch (err) {
     // Se l'inizializzazione fallisce, il contenuto pre-nascosto resterebbe
     // invisibile: un sito rotto è peggio di un sito senza animazioni.
     console.error('[boot] inizializzazione animazioni fallita:', err);
     showEverything();
+  }
+
+  /* Il modulo di /contatti FUORI dal blocco delle animazioni: è una funzione,
+     non un effetto, e non deve restare senza script perché un'animazione prima
+     di lui è fallita (senza, funziona comunque come modulo HTML nudo). */
+  try {
+    initContatti();
+  } catch (err) {
+    console.error('[boot] modulo contatti:', err);
   }
 }
 

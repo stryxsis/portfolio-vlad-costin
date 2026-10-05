@@ -1,0 +1,876 @@
+---
+/**
+ * /contatti (2026-10-05) — M8, costruita su richiesta esplicita di Vlad.
+ *
+ * «Qualcosa di veramente bello di design, a tema spazio, con uno sfondo che si
+ * muove dietro e componenti che si muovono, che interagisca con l'utente — ma
+ * non pesante, deve girare anche sui telefoni, e niente stile da nerd o da
+ * gaming.» Più il modulo funzionante, con gli allegati, su Vercel + Resend.
+ *
+ * Tre pezzi:
+ *   - il cielo: `spazio.ts` su un canvas incollato dietro la sezione (vedi lì
+ *     cosa si muove e quanto costa);
+ *   - il modulo: questo markup funziona da solo (anche senza JS), `contatti.ts`
+ *     lo migliora;
+ *   - la spedizione: `api/contatti.ts`, una funzione Vercel che chiama Resend.
+ *
+ * ⚠ L'ATTERRAGGIO È UNA RIMA CON /portfolio: la CTA in fondo a quella pagina
+ * mostra lo stesso pianeta da lontano. Chi clicca «Parliamo del tuo progetto»
+ * arriva qui e ce l'ha davanti.
+ *
+ * ⚠ IL TESTO È SCRITTO DA ME, non dettato. Nessuna promessa sui tempi di
+ * risposta: Vlad non ne ha data una, e una scadenza inventata è peggio di
+ * nessuna scadenza.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionIndex from '../components/primitives/SectionIndex.astro';
+import Button from '../components/primitives/Button.astro';
+import { SITE } from '../lib/site';
+import { ACCEPT } from '../lib/allegati';
+
+const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 'Ancora non lo so'];
+---
+
+<BaseLayout
+  title="Contatti"
+  description="Scrivi a Vlad Costin: raccontami il tuo progetto, anche se è solo un'idea. Modulo con allegati, email, WhatsApp e LinkedIn."
+>
+  <section class="ct" data-section id="contatti">
+    {/* Il cielo: un contenitore alto quanto la sezione, e dentro un riquadro
+        INCOLLATO alto uno schermo. Così il canvas è grande quanto la viewport e
+        non quanto la pagina (su telefono il modulo è lungo), e resta dietro la
+        sezione senza mai finire sopra il footer. */}
+    <div class="ct__sky" aria-hidden="true">
+      <div class="ct__pin">
+        <canvas class="ct__canvas" data-spazio></canvas>
+      </div>
+    </div>
+
+    <div class="ct__wrap">
+      <div class="ct__intro">
+        <div class="ct__idx">
+          <SectionIndex n="00" label="Contatti" />
+        </div>
+
+        {/* L'h1 è il candidato LCP: entra con transform + blur, mai opacity. */}
+        <h1 class="ct__title">
+          Parliamo del tuo progetto.
+          <span class="ct__coda">Anche se per ora è solo un’idea.</span>
+        </h1>
+
+        <p class="ct__lede">
+          Raccontami cosa hai in mente, anche in due righe. Ti rispondo io, di persona, e capiamo
+          insieme da dove partire.
+        </p>
+
+        <span class="ct__badge">
+          <span class="ct__ok-dot" aria-hidden="true"></span>
+          {SITE.availability}
+        </span>
+
+        {/* I canali diretti: la pagina non è mai un vicolo cieco, nemmeno se il
+            modulo si rompe. Coppie etichetta/valore, quindi `<dl>`. */}
+        <dl class="ct__canali">
+          <div class="ct__canale">
+            <dt>Email</dt>
+            <dd><a href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a></dd>
+          </div>
+          <div class="ct__canale">
+            <dt>WhatsApp</dt>
+            <dd>
+              <a href={SITE.author.whatsapp.url} target="_blank" rel="noopener noreferrer">
+                Scrivimi su WhatsApp
+              </a>
+            </dd>
+          </div>
+          <div class="ct__canale">
+            <dt>LinkedIn</dt>
+            <dd>
+              <a href={SITE.author.linkedin} target="_blank" rel="noopener noreferrer">
+                vlad-costin
+              </a>
+            </dd>
+          </div>
+          <div class="ct__canale">
+            <dt>Dove</dt>
+            <dd>{SITE.author.locationLabel}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="ct__panel">
+        {/* Gli esiti dell'invio SENZA JavaScript: la funzione risponde con un
+            303 verso #inviato o #errore, e `:target` li mostra. Con JS si usa
+            il pannello di conferma qui sotto. */}
+        <div class="ct__nojs ct__nojs--ok" id="inviato" tabindex="-1">
+          <p class="ct__ok-title">Messaggio partito.</p>
+          <p class="ct__ok-text">Grazie: ti rispondo appena posso.</p>
+        </div>
+        <div class="ct__nojs ct__nojs--err" id="errore" tabindex="-1">
+          <p class="ct__ok-title">Qualcosa non ha funzionato.</p>
+          <p class="ct__ok-text">
+            Scrivimi direttamente a <a href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>.
+          </p>
+        </div>
+
+        <form
+          class="ct__form"
+          action="/api/contatti"
+          method="post"
+          enctype="multipart/form-data"
+          data-contatti
+        >
+          <p class="ct__form-label">Raccontami</p>
+
+          <div class="ct__row">
+            <div class="ct__field">
+              <label for="ct-nome">Nome</label>
+              <input id="ct-nome" name="nome" type="text" autocomplete="name" required maxlength="120" placeholder="Mario Rossi" aria-describedby="ct-nome-err" />
+              <p class="ct__err" id="ct-nome-err" data-err-for="nome" hidden></p>
+            </div>
+            <div class="ct__field">
+              <label for="ct-email">Email</label>
+              <input id="ct-email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="mario@azienda.it" aria-describedby="ct-email-err" />
+              <p class="ct__err" id="ct-email-err" data-err-for="email" hidden></p>
+            </div>
+          </div>
+
+          <div class="ct__field">
+            <label for="ct-azienda">Azienda o progetto <span class="ct__opt">facoltativo</span></label>
+            <input id="ct-azienda" name="azienda" type="text" autocomplete="organization" maxlength="160" />
+          </div>
+
+          <fieldset class="ct__chips">
+            <legend>Di cosa hai bisogno?</legend>
+            <div class="ct__chips-list">
+              {
+                BISOGNI.map((b) => (
+                  <label class="ct__chip">
+                    <input type="checkbox" name="bisogno" value={b} />
+                    <span>{b}</span>
+                  </label>
+                ))
+              }
+            </div>
+          </fieldset>
+
+          <div class="ct__field">
+            <label for="ct-msg">Il messaggio</label>
+            <textarea
+              id="ct-msg"
+              name="messaggio"
+              rows="5"
+              required
+              minlength="10"
+              maxlength="6000"
+              placeholder="Cosa vorresti costruire? Anche due righe vanno benissimo."
+              aria-describedby="ct-msg-err"></textarea>
+            <p class="ct__err" id="ct-msg-err" data-err-for="messaggio" hidden></p>
+          </div>
+
+          <div class="ct__field">
+            <span class="ct__label" id="ct-files-l">Allegati <span class="ct__opt">facoltativi</span></span>
+            {/* La zona è l'etichetta dell'input: un clic (o Invio/Spazio) apre la
+                scelta dei file, e ci si può trascinare dentro. L'input vero è
+                nascosto alla vista ma resta nel modulo: senza JS i file
+                partono con lui. */}
+            <label class="ct__drop" for="ct-files" data-drop tabindex="0" role="button" aria-describedby="ct-files-l ct-files-h">
+              <span class="ct__drop-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 13V3M6 7l4-4 4 4M3 13v2.5A1.5 1.5 0 0 0 4.5 17h11a1.5 1.5 0 0 0 1.5-1.5V13"></path>
+                </svg>
+              </span>
+              <span class="ct__drop-text">
+                Trascina qui i file o <span class="ct__drop-link">sfoglia</span>
+              </span>
+              <span class="ct__drop-hint" id="ct-files-h">
+                PDF, immagini, documenti, fogli, presentazioni, archivi · fino a 4 MB in totale
+              </span>
+            </label>
+            <input class="sr-only" id="ct-files" name="allegati" type="file" multiple accept={ACCEPT} tabindex="-1" />
+            <ul class="ct__files" data-files hidden></ul>
+            <div class="ct__meter" data-files-meter hidden>
+              <span class="ct__meter-bar" aria-hidden="true"><span></span></span>
+              <span class="ct__meter-text" data-files-total></span>
+            </div>
+            <p class="ct__err" data-files-note role="status" hidden></p>
+          </div>
+
+          {/* Trappole per i bot (vedi api/contatti.ts). Il campo `sito` è fuori
+              schermo e fuori dal giro del Tab: una persona non lo vede, un bot
+              lo compila. */}
+          <div class="ct__hp" aria-hidden="true">
+            <label for="ct-sito">Lascia vuoto questo campo</label>
+            <input id="ct-sito" name="sito" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <input type="hidden" name="t" value="" />
+
+          <p class="ct__privacy">
+            Uso i tuoi dati solo per risponderti: niente newsletter, niente liste.
+          </p>
+
+          <div class="ct__esito" data-esito role="alert" hidden>
+            <span data-esito-testo></span>
+            Puoi scrivermi direttamente a <a href={`mailto:${SITE.author.email}`}>{SITE.author.email}</a>.
+          </div>
+
+          <div class="ct__send">
+            <Button type="submit" variant="filled" tone="dark">
+              <span class="ct__send-idle">Invia il messaggio</span>
+              <span class="ct__send-busy">Invio in corso…</span>
+              <svg class="ct__send-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M1 7h12M8 2l5 5-5 5"></path>
+              </svg>
+            </Button>
+          </div>
+        </form>
+
+        {/* La conferma, con JS. `aria-live` perché arriva senza cambio pagina. */}
+        <div class="ct__ok" data-ok tabindex="-1" aria-live="polite">
+          <span class="ct__ok-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 11.5l4 4 8-9"></path>
+            </svg>
+          </span>
+          <p class="ct__ok-title">Messaggio partito.</p>
+          <p class="ct__ok-text">
+            <span data-ok-nome>Grazie.</span> Ti rispondo appena posso, all’indirizzo che mi hai
+            lasciato.
+          </p>
+          <div class="ct__ok-actions">
+            <Button href="/portfolio" variant="outline">Torna ai lavori</Button>
+            <button class="ct__again" type="button" data-ok-again>Scrivi un altro messaggio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .ct {
+    position: relative;
+    /* Il cielo sta a z-index -1 DENTRO la sezione e non sotto il body. */
+    isolation: isolate;
+    min-height: 100svh;
+    background-color: var(--color-canvas);
+    padding-top: calc(var(--nav-h) + clamp(2rem, 6vh, 4.5rem));
+    padding-bottom: clamp(5rem, 12vh, 9rem);
+  }
+
+  /* ---- Il cielo -------------------------------------------------------------- */
+  .ct__sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .ct__pin {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    /* Il fondale di riserva, finché il canvas non disegna e senza JS: lo stesso
+       bagliore del pianeta, in basso. Il canvas è opaco e lo copre. */
+    background: radial-gradient(
+      120% 40% at 50% 100%,
+      color-mix(in oklab, var(--color-accent) 22%, transparent),
+      transparent 70%
+    );
+  }
+  .ct__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---- La griglia ------------------------------------------------------------ */
+  .ct__wrap {
+    display: grid;
+    gap: clamp(3rem, 8vw, 4rem);
+    max-width: 90rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+  @media (min-width: 64rem) {
+    .ct__wrap {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
+      align-items: start;
+    }
+    .ct__intro {
+      grid-column: 1 / span 5;
+      /* Resta in vista mentre si compila un modulo lungo. */
+      position: sticky;
+      top: calc(var(--nav-h) + 2.5rem);
+    }
+    .ct__panel {
+      grid-column: 7 / span 6;
+    }
+  }
+
+  /* ---- L'intro --------------------------------------------------------------- */
+  .ct__idx :global([data-section-index]) {
+    /* Come nelle altre hero: l'indice sta in flusso, non incollato. */
+    position: static;
+  }
+  .ct__title {
+    margin-top: 1.75rem;
+    font-size: var(--text-h1);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  .ct__coda {
+    display: block;
+    margin-top: 0.6em;
+    font-size: clamp(1.25rem, 1.6vw, 1.625rem);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--color-text-2);
+  }
+  .ct__lede {
+    margin-top: 1.5rem;
+    max-width: 40ch;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+
+  .ct__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 2rem;
+    padding: 0.4rem 0.9rem 0.4rem 0.75rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    background-color: color-mix(in oklab, var(--color-canvas) 70%, transparent);
+  }
+  .ct__ok-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-ok);
+    animation: ct-breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes ct-breathe {
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  .ct__canali {
+    margin-top: clamp(2.5rem, 5vh, 3.5rem);
+    border-top: 1px solid var(--color-hairline);
+  }
+  .ct__canale {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+    padding-block: 0.9rem;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .ct__canale dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+  .ct__canale dd {
+    font-size: var(--text-sm);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ct__canale a {
+    color: var(--color-text-1);
+    text-decoration: underline;
+    text-decoration-color: var(--color-hairline-strong);
+    text-underline-offset: 0.25em;
+    transition: text-decoration-color 200ms var(--ease-snappy), color 200ms var(--ease-snappy);
+  }
+  .ct__canale a:hover {
+    color: var(--color-accent-hi);
+    text-decoration-color: var(--color-accent);
+  }
+
+  /* ---- Il pannello ------------------------------------------------------------
+     ⚠ Niente backdrop-filter (vietato fuori dalla navbar): il pannello è quasi
+     opaco, e le stelle dietro si vedono appena. È quel «appena» che lo fa
+     sembrare sospeso nel cielo invece che appoggiato su un fondo nero. */
+  .ct__panel {
+    position: relative;
+    padding: clamp(1.5rem, 3.2vw, 2.75rem);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-panel);
+    background-color: color-mix(in oklab, var(--color-canvas) 88%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--color-accent) 6%, transparent),
+      0 2rem 6rem -2rem color-mix(in oklab, var(--color-accent-deep) 35%, transparent);
+  }
+
+  .ct__form-label,
+  .ct__field > label:not(.ct__drop),
+  .ct__label,
+  .ct__chips legend {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+  .ct__form-label {
+    color: var(--color-accent-hi);
+    margin-bottom: 1.75rem;
+  }
+  .ct__opt {
+    margin-left: 0.4em;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    color: var(--color-text-2);
+  }
+
+  .ct__form {
+    display: grid;
+    gap: 1.75rem;
+    transition: opacity 400ms var(--ease-out-expo), transform 400ms var(--ease-out-expo);
+  }
+  .ct__form.is-sent {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
+  .ct__row {
+    display: grid;
+    gap: 1.75rem;
+  }
+  @media (min-width: 40rem) {
+    .ct__row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  .ct__field {
+    position: relative;
+    min-width: 0;
+  }
+  .ct__field input:not([type='file']):not([type='checkbox']),
+  .ct__field textarea {
+    display: block;
+    width: 100%;
+    margin-top: 0.55rem;
+    padding: 0.6rem 0 0.7rem;
+    border: 0;
+    border-bottom: 1px solid var(--color-hairline-strong);
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-text-1);
+    font: inherit;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    transition: border-color 250ms var(--ease-snappy);
+  }
+  .ct__field textarea {
+    resize: vertical;
+    min-height: 8.5rem;
+    /* Cresce col testo dove il browser lo sa fare; altrove resta a 5 righe. */
+    field-sizing: content;
+    max-height: 22rem;
+  }
+  .ct__field ::placeholder {
+    color: color-mix(in oklab, var(--color-text-2) 72%, transparent);
+  }
+  .ct__field input:focus,
+  .ct__field textarea:focus {
+    outline: none;
+    border-bottom-color: var(--color-accent);
+    box-shadow: 0 1px 0 0 var(--color-accent);
+  }
+  .ct__field input:focus-visible,
+  .ct__field textarea:focus-visible {
+    outline: none;
+  }
+  .ct__field [aria-invalid='true'] {
+    border-bottom-color: var(--color-err);
+  }
+  .ct__err {
+    margin-top: 0.55rem;
+    font-size: var(--text-sm);
+    color: var(--color-err);
+  }
+
+  /* I bisogni: checkbox vere, vestite da pill. */
+  .ct__chips {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .ct__chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+  }
+  .ct__chip {
+    position: relative;
+    cursor: pointer;
+  }
+  .ct__chip input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .ct__chip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+    transition:
+      color 200ms var(--ease-snappy),
+      border-color 200ms var(--ease-snappy),
+      background-color 200ms var(--ease-snappy);
+  }
+  .ct__chip span::before {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background-color: var(--color-hairline-strong);
+    transition: background-color 200ms var(--ease-snappy), box-shadow 200ms var(--ease-snappy);
+  }
+  .ct__chip:hover span {
+    color: var(--color-text-1);
+    border-color: var(--color-text-2);
+  }
+  .ct__chip input:checked + span {
+    color: var(--color-text-1);
+    border-color: color-mix(in oklab, var(--color-accent) 70%, transparent);
+    background-color: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  }
+  .ct__chip input:checked + span::before {
+    background-color: var(--color-accent-hi);
+    box-shadow: 0 0 0.6rem var(--color-accent);
+  }
+  .ct__chip input:focus-visible + span {
+    outline: 2px solid var(--color-accent-hi);
+    outline-offset: 2px;
+  }
+
+  /* La zona degli allegati. */
+  .ct__drop {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.35rem 1rem;
+    margin-top: 0.85rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px dashed var(--color-hairline-strong);
+    border-radius: var(--radius-card);
+    cursor: pointer;
+    transition:
+      border-color 200ms var(--ease-snappy),
+      background-color 200ms var(--ease-snappy);
+  }
+  .ct__drop:hover,
+  .ct__drop.is-over {
+    border-color: var(--color-accent);
+    background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
+  }
+  .ct__drop:focus-visible {
+    outline: 2px solid var(--color-accent-hi);
+    outline-offset: 3px;
+  }
+  .ct__drop-icon {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 1px solid var(--color-hairline-strong);
+    color: var(--color-accent-hi);
+    transition: transform 300ms var(--ease-out-expo), border-color 200ms var(--ease-snappy);
+  }
+  .ct__drop.is-over .ct__drop-icon {
+    transform: translateY(-3px);
+    border-color: var(--color-accent);
+  }
+  .ct__drop-text {
+    font-size: var(--text-sm);
+    color: var(--color-text-1);
+  }
+  .ct__drop-link {
+    color: var(--color-accent-hi);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .ct__drop-hint {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--color-text-2);
+  }
+
+  .ct__files {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.75rem;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .ct__files :global(.ct__file) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.45rem 0.45rem 0.6rem;
+    border-radius: 0.6rem;
+    background-color: var(--color-surface-1);
+    animation: ct-file-in 380ms var(--ease-out-expo) both;
+  }
+  @keyframes ct-file-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.4rem);
+    }
+  }
+  .ct__files :global(.ct__file-ext) {
+    min-width: 2.75rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--color-accent-hi);
+    background-color: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  }
+  .ct__files :global(.ct__file-name) {
+    font-size: var(--text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ct__files :global(.ct__file-size) {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-2);
+  }
+  .ct__files :global(.ct__file-x) {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: var(--color-text-2);
+    transition: color 200ms var(--ease-snappy), background-color 200ms var(--ease-snappy);
+  }
+  .ct__files :global(.ct__file-x:hover) {
+    color: var(--color-text-1);
+    background-color: var(--color-surface-2);
+  }
+
+  .ct__meter {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.7rem;
+  }
+  .ct__meter-bar {
+    flex: 1;
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--color-hairline);
+    overflow: hidden;
+  }
+  .ct__meter-bar span {
+    display: block;
+    height: 100%;
+    background-color: var(--color-accent);
+    transform-origin: left;
+    transform: scaleX(var(--pieno, 0));
+    transition: transform 400ms var(--ease-out-expo);
+  }
+  .ct__meter-text {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-2);
+    white-space: nowrap;
+  }
+
+  .ct__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .ct__privacy {
+    font-size: 0.8125rem;
+    color: var(--color-text-2);
+  }
+
+  .ct__esito {
+    padding: 0.9rem 1rem;
+    border-left: 2px solid var(--color-err);
+    background-color: color-mix(in oklab, var(--color-err) 8%, transparent);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+  .ct__esito a,
+  .ct__nojs a {
+    color: var(--color-text-1);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .ct__send {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .ct__send-busy {
+    display: none;
+  }
+  .ct__form.is-sending .ct__send-idle {
+    display: none;
+  }
+  .ct__form.is-sending .ct__send-busy {
+    display: inline;
+  }
+  .ct__form.is-sending .ct__send-arrow {
+    animation: ct-nudge 900ms var(--ease-in-out-quart) infinite;
+  }
+  @keyframes ct-nudge {
+    50% {
+      transform: translateX(4px);
+    }
+  }
+
+  /* ---- La conferma ----------------------------------------------------------- */
+  .ct__ok,
+  .ct__nojs {
+    display: none;
+  }
+  .ct__nojs:target {
+    display: block;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .ct__ok.is-on {
+    display: grid;
+    justify-items: start;
+    /* In FONDO all'altezza del modulo che sostituisce (vedi contatti.ts), e
+       non al centro: chi invia sta guardando il bottone, cioè il fondo del
+       modulo. Centrata, su un modulo lungo finiva sotto la navbar. */
+    align-content: end;
+    gap: 1rem;
+    padding-block: clamp(1rem, 4vh, 3rem);
+    animation: ct-ok-in 700ms var(--ease-out-expo) both;
+  }
+  .ct__ok:focus {
+    outline: none;
+  }
+  @keyframes ct-ok-in {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+  }
+  .ct__ok-mark {
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    color: var(--color-accent-hi);
+    border: 1px solid color-mix(in oklab, var(--color-accent) 60%, transparent);
+    box-shadow: 0 0 2.5rem -0.5rem var(--color-accent);
+  }
+  .ct__ok-title {
+    font-size: var(--text-h2);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 500;
+  }
+  .ct__ok-text {
+    max-width: 38ch;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+  .ct__ok-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 0.75rem;
+  }
+  .ct__again {
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  .ct__again:hover {
+    color: var(--color-text-1);
+  }
+
+  /* ---- L'ingresso -------------------------------------------------------------
+     Sopra la piega, quindi animazioni CSS a tempo e non trigger di scroll
+     (la lezione di `settleSplits`). Il titolo NON anima opacity (LCP): si mette
+     a fuoco. `backwards` e non `both`: lo stato finale è quello di base. */
+  :global(html.js-anim) .ct__idx {
+    animation: ct-up 700ms var(--ease-out-expo) 120ms backwards;
+  }
+  :global(html.js-anim) .ct__title {
+    animation: ct-focus 1000ms var(--ease-out-expo) 200ms backwards;
+  }
+  :global(html.js-anim) .ct__lede,
+  :global(html.js-anim) .ct__badge,
+  :global(html.js-anim) .ct__canali {
+    animation: ct-up 800ms var(--ease-out-expo) var(--w) backwards;
+  }
+  :global(html.js-anim) .ct__lede {
+    --w: 450ms;
+  }
+  :global(html.js-anim) .ct__badge {
+    --w: 560ms;
+  }
+  :global(html.js-anim) .ct__canali {
+    --w: 680ms;
+  }
+  :global(html.js-anim) .ct__panel {
+    animation: ct-panel 1100ms var(--ease-out-expo) 380ms backwards;
+  }
+  @keyframes ct-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.9rem);
+    }
+  }
+  @keyframes ct-focus {
+    from {
+      transform: translateY(0.6rem) scale(0.985);
+      filter: blur(14px);
+    }
+  }
+  @keyframes ct-panel {
+    from {
+      opacity: 0;
+      transform: translateY(2.5rem) scale(0.985);
+    }
+  }
+</style>

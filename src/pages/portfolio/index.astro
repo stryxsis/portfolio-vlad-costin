@@ -27,6 +27,7 @@ import Handoff from '../../components/sections/Handoff.astro';
 import PortfolioHero from '../../components/sections/PortfolioHero.astro';
 import WorksStage from '../../components/sections/WorksStage.astro';
 import FuoriProgramma from '../../components/sections/FuoriProgramma.astro';
+import PortfolioCta from '../../components/sections/PortfolioCta.astro';
 import { allProjects } from '../../lib/collections';
 
 const projects = await allProjects();
@@ -64,4 +65,9 @@ const projects = await allProjects();
       </Handoff>
     </div>
   </Handoff>
+
+  {/* La chiusura: dopo i problemi risolti, il suo (vedi il componente). In
+      flusso normale, fuori dagli handoff: «Fuori programma» è più alto di uno
+      schermo e non può essere uno schermo incollato. */}
+  <PortfolioCta />
 </BaseLayout>
