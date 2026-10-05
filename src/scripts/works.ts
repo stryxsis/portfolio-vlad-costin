@@ -254,6 +254,27 @@ export function initWorks(): void {
   root.querySelector('[data-prev]')?.addEventListener('click', () => go((cur - 1 + n) % n));
   root.querySelector('[data-next]')?.addEventListener('click', () => go((cur + 1) % n));
 
+  /* ---- Le frecce della tastiera (2026-10-05, richiesta di Vlad) ------------
+     ← e → cambiano progetto, ma SOLO quando il palco è la cosa che si sta
+     guardando: altrove le frecce restano del browser. «Guardare» si misura
+     sul punto al centro dello schermo e non con un observer, perché il palco
+     è uno schermo incollato: resta «visibile» per le misure di geometria
+     anche mentre la hero gli sta ancora sopra o «Fuori programma» lo copre.
+     `elementFromPoint` vede invece cosa è DIPINTO lì, coperture comprese.
+     Costa una lettura a pressione di tasto, niente per fotogramma. */
+  const onStage = (): boolean =>
+    !!document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest('[data-works]');
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    // Chi sta scrivendo in un campo usa le frecce per il cursore.
+    const t = e.target as HTMLElement | null;
+    if (t?.closest('input, textarea, select, [contenteditable]')) return;
+    if (!onStage()) return;
+    e.preventDefault();
+    go(e.key === 'ArrowLeft' ? (cur - 1 + n) % n : (cur + 1) % n);
+  });
+
   layout();
   updateMeta(0);
   if (live) live.textContent = '';

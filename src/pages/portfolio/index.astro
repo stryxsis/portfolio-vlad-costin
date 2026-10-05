@@ -51,7 +51,12 @@ const projects = await allProjects();
         (`--ho-in-floor`); dentro uno schermo quel floor è azzerato e torna alto
         esattamente uno schermo (vedi `.ho__out` in Handoff.astro). */}
     <div slot="in">
-      <Handoff name="fuori" tone="canvas">
+      {/* `travel={60}` (2026-10-05): Vlad voleva «un pochettino di sforzo»
+          arrivato sul palco, prima che la pagina riprenda a muoversi. Il palco
+          resta fermo e intero per 60svh di scroll, poi «Fuori programma» sale.
+          È lo stesso dispositivo del mazzo di §03 in Home: la corsa dello
+          sticky è un elemento dichiarato, non un blocco dello scroll. */}
+      <Handoff name="fuori" tone="canvas" travel={60}>
         <WorksStage slot="out" projects={projects} />
         {/* Un errore vero e come l'ho raddrizzato (vedi il componente). È alta
             più di uno schermo, quindi soddisfa il vincolo da sola. */}
