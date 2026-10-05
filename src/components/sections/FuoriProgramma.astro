@@ -30,21 +30,27 @@ interface Props {
 }
 const { n = '02', id = 'fuori-programma' } = Astro.props;
 
+/* `stato` è l'etichetta mono accanto al titolo: dice a colpo d'occhio a che
+   punto della storia si è, così il testo può essere corto. Solo l'ultima è
+   d'accento — è l'unica buona notizia delle tre. */
 const PASSI = [
   {
     titolo: 'L’errore',
+    stato: 'Bug',
     testo:
-      'La pagina Chi sono si apre con un campo di 0 e 1 che si accendono. Sul mio computer era perfetto. Su un telefono economico, appena scorrevi, la pagina scattava.',
+      'Il campo di 0 e 1 della pagina Chi sono. Sul mio computer era perfetto; su un telefono economico, appena scorrevi, scattava.',
   },
   {
     titolo: 'Due correzioni a vuoto',
+    stato: '2 tentativi',
     testo:
-      'Ho tolto animazioni e diradato le cifre. Due volte. Ogni volta andava un po’ meglio, mai abbastanza: stavo tirando a indovinare dove fosse il problema.',
+      'Ho tolto animazioni e diradato le cifre. Due volte. Andava un po’ meglio, mai abbastanza: stavo tirando a indovinare.',
   },
   {
     titolo: 'La causa vera',
+    stato: 'Risolto',
     testo:
-      'Poi ho registrato cosa faceva il browser, fotogramma per fotogramma. Ogni cifra era diventata un livello a sé, da ricomporre a ogni movimento. Quasi tutti dipendevano da una sola parola nel CSS. Corretta quella, l’effetto è rimasto identico e la pagina ha smesso di scattare.',
+      'Ho registrato cosa faceva il browser, fotogramma per fotogramma: ogni cifra era un livello a sé da ricomporre. Quasi tutto dipendeva da una sola parola nel CSS. Corretta quella, l’effetto è rimasto identico e la pagina ha smesso di scattare.',
   },
 ];
 ---
@@ -75,7 +81,12 @@ const PASSI = [
               <span class="fp2__n" aria-hidden="true">
                 {String(i + 1).padStart(2, '0')}
               </span>
-              <h3 class="fp2__step-t">{p.titolo}</h3>
+              <div class="fp2__step-head">
+                <h3 class="fp2__step-t">{p.titolo}</h3>
+                <span class:list={['fp2__tag', i === PASSI.length - 1 && 'fp2__tag--ok']}>
+                  {p.stato}
+                </span>
+              </div>
               <p class="fp2__step-p">{p.testo}</p>
             </li>
           ))
@@ -173,42 +184,74 @@ const PASSI = [
   }
 
   /* ---- I tre passi ----------------------------------------------------------
-     Il dispositivo del sito per enumerare: numero mono e filetto ORIZZONTALE
-     sopra ogni voce. Mai filetti verticali fra le colonne — è il disegno di
-     una tabella (la lezione della fascia «Adesso» di /chi-sono). */
+     RIGHE, non colonne (2026-10-05). Tre colonne dentro un corpo largo otto
+     dodicesimi lasciavano al testo ~230px: righe da quattro parole, che Vlad
+     ha trovato «forzate». Qui ogni passo è una riga intera — numero, titolo
+     con l'etichetta di stato, e il testo accanto su una misura da lettura.
+     Filetti ORIZZONTALI fra le righe, mai verticali: quelli fanno tabella. */
   .fp2__steps {
     list-style: none;
     padding: 0;
     margin-top: clamp(3rem, 6vw, 4.5rem);
-    display: grid;
-    gap: 2.5rem;
-  }
-  @media (min-width: 56.25rem) {
-    .fp2__steps {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: clamp(1.5rem, 2.5vw, 2.5rem);
-    }
+    border-bottom: 1px solid var(--color-hairline);
   }
   .fp2__step {
-    padding-top: 1.25rem;
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.75rem 1rem;
+    padding-block: clamp(1.5rem, 2.5vw, 2rem);
     border-top: 1px solid var(--color-hairline);
   }
+  .fp2__step-p {
+    grid-column: 2;
+  }
+  @media (min-width: 56.25rem) {
+    .fp2__step {
+      grid-template-columns: 3rem minmax(0, 15rem) minmax(0, 1fr);
+      gap: 0 clamp(1.5rem, 3vw, 3rem);
+      align-items: baseline;
+    }
+    .fp2__step-p {
+      grid-column: 3;
+    }
+  }
   .fp2__n {
-    display: block;
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.1em;
     color: var(--color-accent);
   }
+  .fp2__step-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
   .fp2__step-t {
-    margin-top: 0.9rem;
     font-size: var(--text-h3);
     line-height: 1.15;
     letter-spacing: -0.015em;
     font-weight: 500;
   }
+  /* L'etichetta di stato: mono, in una pill a filetto — lo stesso registro
+     della pill «Aperto a nuovi progetti» di /chi-sono. */
+  .fp2__tag {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1;
+    color: var(--color-text-2);
+  }
+  .fp2__tag--ok {
+    border-color: color-mix(in oklab, var(--color-accent) 60%, transparent);
+    color: var(--color-accent);
+  }
   .fp2__step-p {
-    margin-top: 0.75rem;
+    max-width: 58ch;
     font-size: var(--text-base);
     line-height: 1.6;
     color: var(--color-text-2);
