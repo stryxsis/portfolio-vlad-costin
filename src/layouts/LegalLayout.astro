@@ -66,7 +66,9 @@ const { title, description, label, heading, updated, sintesi } = Astro.props;
 
 <style>
   .lg {
-    max-width: 46rem;
+    /* Da PC è un articolo largo (vedi «Da PC» in fondo): su telefono la
+       colonna resta una sola e questa misura non morde. */
+    max-width: 90rem;
     margin-inline: auto;
     padding: calc(var(--nav-h) + clamp(2.5rem, 8vh, 5rem)) var(--spacing-gutter)
       var(--spacing-section);
@@ -198,6 +200,60 @@ const { title, description, label, heading, updated, sintesi } = Astro.props;
       grid-template-columns: 11rem minmax(0, 1fr);
     }
   }
+  /* ---- Da PC: un articolo, non una colonna stretta (2026-10-05) -------------
+     Vlad: «allarga il contenitore, sembra troppo stretto». Allargare il SOLO
+     testo darebbe righe da 130 caratteri, illeggibili; la larghezza la
+     prende invece una seconda colonna. A sinistra i titoli delle sezioni,
+     incollati mentre si legge (fanno da indice); a destra il testo, con la
+     riga tenuta a ~80 caratteri. «In breve» segue lo stesso asse: etichetta
+     a sinistra, le tre righe affiancate a destra. */
+  @media (min-width: 64rem) {
+    .lg {
+      --lg-cols: minmax(15rem, 1fr) minmax(0, 52rem);
+      --lg-gap: clamp(3rem, 6vw, 6rem);
+    }
+    .lg__title {
+      font-size: clamp(3rem, 1.2rem + 3.6vw, 5.5rem);
+      max-width: 18ch;
+    }
+    .lg__brief {
+      display: grid;
+      grid-template-columns: var(--lg-cols);
+      column-gap: var(--lg-gap);
+      padding: clamp(1.75rem, 3vw, 2.5rem);
+    }
+    .lg__brief ol {
+      margin-top: 0;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2rem;
+    }
+    .lg__brief li {
+      grid-template-columns: none;
+      gap: 0.6rem;
+      align-content: start;
+    }
+    .lg__body :global(section) {
+      display: grid;
+      grid-template-columns: var(--lg-cols);
+      column-gap: var(--lg-gap);
+      align-items: start;
+    }
+    .lg__body :global(section > *) {
+      grid-column: 2;
+    }
+    .lg__body :global(section > h2) {
+      grid-column: 1;
+      grid-row: 1 / span 20;
+      position: sticky;
+      top: calc(var(--nav-h) + 2rem);
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .lg__body :global(section > h2 + *) {
+      margin-top: 0;
+    }
+  }
+
   .lg__body :global(dt) {
     font-size: var(--text-sm);
     font-weight: 500;
