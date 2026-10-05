@@ -1,87 +1,108 @@
 ---
 /**
- * Il footer è lo stesso su tutte le pagine, senza varianti: è il pavimento
- * della stanza.
+ * Il footer: lo stesso su tutte le pagine, senza varianti. È il pavimento della
+ * stanza.
  *
- * Il wordmark colossale è tagliato dal bordo inferiore (~35% del glifo fuori
- * dalla viewport) e colorato `surface-2`: è TEXTURE, non testo. Il contrasto
- * basso (1.24:1) è legittimo proprio perché l'informazione vive altrove —
- * per questo è `aria-hidden`.
+ * ═══ RIFATTO IL 2026-10-05 ════════════════════════════════════════════════
+ * Vlad: «rifallo meglio, carino, di design, conciso, con tutte le informazioni
+ * che servono». Più un vincolo esplicito: NIENTE partita IVA, nemmeno come
+ * segnaposto, finché non ce l'ha. Privacy e cookie policy sì (le pagine
+ * esistono da questa stessa data).
  *
- * ═══ RIFATTO IL 2026-08-07 ════════════════════════════════════════════════
- * Tre interventi, scelti da Vlad fra quelli proposti. Gli altri due sul tavolo
- * (CV da bottone a link, colonne ribilanciate) sono stati ESCLUSI da lui: il
- * bottone CV e la griglia 4/3/3 restano come sono, non riproporli come "fix".
+ * Tre fasce, dall'alto:
+ *   1. CHI SONO, IN UNA RIGA, più due segnali vivi: la disponibilità (la stessa
+ *      pill verde di /chi-sono e /contatti) e l'ora locale di Colorno — per chi
+ *      scrive da un altro fuso è un'informazione vera, e dice «c'è qualcuno».
+ *      Accanto, tre colonne: Pagine, Contatti, Curriculum.
+ *   2. LA BARRA LEGALE: ©, privacy, cookie, torna su.
+ *   3. LA FIRMA: il nome gigante tagliato dal bordo pagina (texture, non testo).
  *
- * 1. IL BAGLIORE CHE SI SPEGNE (`.foot__glow`). Il footer non ha più un taglio
- *    netto in cima: raccoglie la luce viola della CTA e la porta a morire nel
- *    nero assoluto sul bordo inferiore della pagina. Vedi la nota lunga nel CSS
- *    per la geometria — non è un gradiente scelto a occhio, è la CONTINUAZIONE
- *    di quello della CTA, con la stessa sorgente virtuale.
- * 2. TRE CANALI, non più la sola email. La CTA 300px più su ne offre tre; il
- *    footer è il posto dove si tornano a cercare, e ne aveva uno. Da qui anche
- *    il cambio di etichetta: "Dove sono" descriveva solo il luogo, "Dove
- *    trovarmi" copre il luogo E i modi.
- * 3. WORDMARK E BARRA SEPARATI. Erano sovrapposti (`margin-bottom: -0.28em`
- *    tirava la barra sopra i glifi) e il testo della barra misurava 3.65:1
- *    sopra il wordmark — sotto AA per del mono da 12px, e peggio del 4.19:1 che
- *    già misura sul nero (difetto noto in CLAUDE.md). Ora la barra viene PRIMA
- *    e il wordmark resta l'ultimo gesto, tagliato dal bordo e senza niente
- *    sopra. Vedi il CSS per il colore.
+ * ⚠ NIENTE CTA GRANDE QUI DENTRO, ed è una scelta: la Home, /portfolio e
+ * /contatti finiscono già con un invito a scrivere, subito sopra il footer.
+ * Ripeterlo un centimetro più sotto lo indebolirebbe in tutte e tre.
+ *
+ * Restano dal footer precedente, perché funzionavano: il bagliore che continua
+ * la luce della CTA della Home (solo lì, vedi il CSS), il bottone del CV (Vlad
+ * lo vuole bottone, non link), e il wordmark in `::before`.
  */
 import { NAV, SITE } from '../../lib/site';
 import CvButton from '../primitives/CvButton.astro';
 
 const year = new Date().getFullYear();
+/* La pagina corrente, come nella navbar: la voce si accende d'accento. */
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isCurrent = (href: string) =>
+  href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
+const LEGALI = [
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/cookie', label: 'Cookie' },
+];
 ---
 
 <footer class="foot">
-  {
-    /* Il bagliore. Decorativo puro, quindi `aria-hidden`, e un elemento vero e
-       non uno `::before` del footer: `.foot` porta già `overflow: clip` e
-       `content-visibility`, e appendergli anche un pseudo-elemento posizionato
-       renderebbe più difficile leggere chi sta sopra cosa. */
-  }
   <div class="foot__glow" aria-hidden="true"></div>
 
   <div class="foot__inner">
-    <div class="foot__cols">
-      {
-        /* ⚠ "Dove trovarmi" e non più "Dove sono": l'etichetta ora copre due
-           gruppi, il luogo e i modi per raggiungermi. Cambiarla è stato più
-           onesto che infilare tre canali sotto un titolo che parla di
-           geografia. Il filetto separa i due gruppi senza aggiungere una
-           seconda etichetta, che in una colonna alta 5 righe sarebbe stata più
-           rumore che struttura. */
-      }
-      <div class="foot__col">
-        <p class="foot__label">Dove trovarmi</p>
-        <p class="foot__place">{SITE.author.locationLabel}</p>
-
-        <span class="foot__rule" aria-hidden="true"></span>
-
-        <a href={`mailto:${SITE.author.email}`} class="foot__mail">{SITE.author.email}</a>
-        {
-          /* ⚠ `target="_blank"` su WhatsApp e LinkedIn (lasciano il sito), mai
-             su `mailto:` — lì aprirebbe una scheda vuota oltre al client di
-             posta. Stessa regola già applicata nella CTA. */
-        }
-        <a
-          href={SITE.author.whatsapp.url}
-          class="foot__link"
-          target="_blank"
-          rel="noopener noreferrer">WhatsApp</a
-        >
-        <a href={SITE.author.linkedin} class="foot__link" target="_blank" rel="noopener noreferrer"
-          >LinkedIn</a
-        >
+    <div class="foot__grid">
+      <div class="foot__id">
+        <p class="foot__name">{SITE.author.name}</p>
+        <p class="foot__who">
+          Sviluppatore web e studente di Ingegneria Informatica a Parma. Siti e applicazioni su misura,
+          dal primo schizzo alla messa online.
+        </p>
+        <div class="foot__live">
+          {
+            SITE.availability && (
+              <span class="foot__badge">
+                <span class="foot__dot" aria-hidden="true" />
+                {SITE.availability}
+              </span>
+            )
+          }
+          {/* L'ora la scrive orologio.ts; senza JS la riga resta il solo luogo,
+              che è comunque vero. */}
+          <p class="foot__clock">
+            {SITE.author.location.locality}
+            <span class="foot__clock-time" data-ora hidden>
+              <span aria-hidden="true"> · </span><span data-ora-val></span> ora locale
+            </span>
+          </p>
+        </div>
       </div>
 
-      <nav class="foot__col" aria-label="Navigazione secondaria">
+      <nav class="foot__col foot__col--pages" aria-label="Pagine del sito">
         <p class="foot__label">Pagine</p>
-        {/* "Home" non è più scritta a mano qui: dal 2026-09-25 sta in NAV. */}
-        {NAV.map((item) => <a href={item.href} class="foot__link">{item.label}</a>)}
+        <ul>
+          {NAV.map((item) => (
+            <li>
+              <a href={item.href} class="foot__link" aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </nav>
+
+      <div class="foot__col foot__col--contact">
+        <p class="foot__label">Contatti</p>
+        <ul>
+          <li>
+            <a href={`mailto:${SITE.author.email}`} class="foot__link foot__link--mail">{SITE.author.email}</a>
+          </li>
+          {/* `target="_blank"` solo sui canali che lasciano il sito, mai su
+              `mailto:` (aprirebbe una scheda vuota). */}
+          <li>
+            <a href={SITE.author.whatsapp.url} class="foot__link" target="_blank" rel="noopener noreferrer">
+              WhatsApp<span class="foot__ext" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a href={SITE.author.linkedin} class="foot__link" target="_blank" rel="noopener noreferrer">
+              LinkedIn<span class="foot__ext" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        </ul>
+      </div>
 
       <div class="foot__col foot__col--cv">
         <p class="foot__label">Curriculum</p>
@@ -89,28 +110,23 @@ const year = new Date().getFullYear();
       </div>
     </div>
 
-    {
-      /* ⚠ LA BARRA VIENE PRIMA DEL WORDMARK, ed è invertita rispetto a com'era.
-         Prima il wordmark stava qui e la barra gli finiva SOPRA — non per un
-         `position`, ma per il suo `margin-bottom: -0.28em`, che tirava su
-         l'elemento successivo. Misurato: `--color-text-3` sopra
-         `--color-surface-2` fa 3.65:1, sotto AA per del mono da 12px (e sul solo
-         nero fa 4.19:1, il difetto già annotato in CLAUDE.md).
-         Invertire l'ordine risolve due cose insieme: la barra torna leggibile
-         sul proprio fondo, e il wordmark diventa davvero l'ULTIMO gesto — senza
-         niente stampato addosso, tagliato solo dal bordo della pagina. */
-    }
+    {/* ⚠ Nessuna partita IVA né dati d'impresa: Vlad non li ha ancora
+        (2026-10-05). Quando arriveranno, vanno qui, nella barra. */}
     <div class="foot__base">
       <p>© {year} {SITE.author.name}</p>
-      <p>Costruito con Astro. Niente framework inutili.</p>
-      <p class="foot__note">[placeholder — verificare: nessun cookie, nessun tracker]</p>
-      <a href="#contenuto" class="foot__top">Torna su ↑</a>
+      <nav class="foot__legal" aria-label="Note legali">
+        {LEGALI.map((l) => <a href={l.href}>{l.label}</a>)}
+      </nav>
+      <a href="#contenuto" class="foot__top">
+        Torna su
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+          <path d="M5 9V1M1.5 4.5L5 1l3.5 3.5"></path>
+        </svg>
+      </a>
     </div>
 
-    <!-- Wordmark-texture: tagliato dal bordo, escluso dallo screen reader.
-         Il testo arriva da una custom property e viene reso da ::before (vedi
-         la nota nel CSS): il nome resta un dato di site.ts, non una stringa
-         scritta a mano nel foglio di stile. -->
+    {/* La firma: testo in `::before` (vedi il CSS), escluso dallo screen
+        reader. Il nome resta un dato di site.ts. */}
     <p
       class="foot__wordmark"
       aria-hidden="true"
@@ -122,78 +138,28 @@ const year = new Date().getFullYear();
 
 <style>
   .foot {
-    /* Il footer è sempre fuori dalla viewport iniziale: si può togliere dal
-       lavoro di rendering finché non serve. Mai su una sezione sticky. */
+    /* Sempre fuori dalla viewport iniziale: fuori dal rendering finché non
+       serve. Mai su una sezione sticky. */
     content-visibility: auto;
-    contain-intrinsic-size: auto 700px;
+    contain-intrinsic-size: auto 640px;
     position: relative;
     overflow: clip;
-    /* Il filetto è il DEFAULT, non l'eccezione: su una pagina che finisce con
-       del contenuto normale il footer ha bisogno di un confine dichiarato. È
-       solo in Home che sparisce — vedi il blocco condizionale sotto. */
     border-top: 1px solid var(--color-hairline);
-    padding-top: var(--spacing-section);
+    padding-top: clamp(4.5rem, 9vw, 8rem);
   }
 
-  /* ═══ IL BAGLIORE CHE SI SPEGNE ═══════════════════════════════════════════
-     Origine: uno snippet portato da Vlad,
-       `radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%)`
-     cioè un campo con la luce IN BASSO. Applicato alla lettera sarebbe stato un
-     difetto, non un effetto, per tre motivi concreti:
-       - il footer sta sotto la CTA, che ha GIÀ un campo viola con onde: due
-         campi impilati separati da un filetto, e la CTA che smette di essere
-         l'evento di chiusura della Home;
-       - `#63e` è un secondo viola diverso da `--color-accent` (il sito ne ha
-         UNO, vedi CLAUDE.md);
-       - mettere il punto più chiaro sul BORDO INFERIORE della pagina significa
-         finire con un accento invece che con un silenzio.
-     Quindi l'idea è stata ribaltata: la luce non riparte, CONTINUA e muore.
-
-     ⚠ LA GEOMETRIA NON È SCELTA A OCCHIO, è ricavata da quella della CTA. Il
-     core di `.cta__sky` è `radial-gradient(115% 85% at 95% 105%, ...)`: il suo
-     centro sta al 105% dell'altezza della CTA, cioè 5svh SOTTO il bordo inferiore
-     della sezione — che è a sua volta il bordo SUPERIORE del footer. La sorgente
-     virtuale di quella luce, insomma, non sta nella CTA: sta qui dentro. Questo
-     gradiente la mette dove è sempre stata (`at 92% 5svh`, praticamente lo stesso
-     punto) e ne mostra la caduta. È per questo che al confine i due combaciano
-     senza doverli accordare a mano ad ogni ritocco.
-
-     ⚠ E PERCHÉ LA CADUTA È PIÙ RIPIDA (60svh contro 85svh) E L'OPACITÀ PIÙ BASSA
-     (0.5 contro 0.72): il footer deve essere il decadimento, non un secondo
-     picco. Con i valori identici a quelli della CTA il punto più luminoso
-     dell'intera pagina sarebbe finito qui — cioè l'opposto di "si spegne" — e
-     avrebbe illuminato la colonna del CV, che sta esattamente sotto il centro
-     del gradiente. Così invece a metà footer siamo già quasi al nero e l'ultimo
-     terzo, dove sta il wordmark, è nero assoluto.
-
-     ⚠ `svh` per il raggio verticale e non `%`: una percentuale si risolve
-     sull'altezza del FOOTER, che su mobile raddoppia (le colonne si impilano) —
-     il bagliore sarebbe cresciuto con lei invece di restare la stessa quantità
-     di luce. Un decadimento è una distanza fisica, non una proporzione del
-     contenitore. Stesso ragionamento già applicato ai padding della vetrina §30.
-
-     Sulle pagine interne non c'è nessuna CTA sopra e la giustificazione
-     "continua da lì" non vale: là il gradiente si legge semplicemente come la
-     luce propria del footer, ancorata al suo bordo. Funziona perché è ancorato
-     al footer stesso, non a ciò che lo precede — ed è il motivo per cui il
-     footer resta UNO, senza varianti per pagina. */
+  /* ═══ IL BAGLIORE ════════════════════════════════════════════════════════
+     La CODA della luce della CTA della Home, che ha la sorgente 5svh sotto il
+     proprio bordo — cioè qui dentro (geometria e storia nella versione
+     precedente di questo file, in git). Spento di default: su ogni altra
+     pagina un gradiente tagliato dal bordo alto si leggerebbe come una riga
+     dritta che comincia dal nulla. Lo accende `body:has(.cta)`, che è vero
+     solo in Home. */
   .foot__glow {
     position: absolute;
     inset: 0;
-    /* Non `z-index: -1`: un negativo esce dal footer se questo non è un contesto
-       di impilamento, e `position: relative` senza z-index non lo è. Zero qui e
-       uno su `.foot__inner` è la stessa coppia già usata in CTASection. */
     z-index: 0;
     pointer-events: none;
-    /* ⚠ QUATTRO TAPPE E NON TRE, e la terza esiste solo per far sparire un
-       BORDO. Con `accent-deep 30% → transparent 62%` l'alfa scende in modo
-       troppo regolare e su un'ellisse così schiacciata il punto in cui arriva a
-       zero si legge come un ARCO disegnato — misurato a schermo: una nuvola con
-       un contorno, non una luce che si spegne. La tappa intermedia al 44%
-       (accent-deep al 40% di alfa) spezza quella rampa in due pendenze diverse:
-       ripida dove la luce è forte, lunghissima nella coda. Una coda lunga e
-       piatta non ha un punto in cui "finisce", ed è l'unico modo perché un
-       gradiente su fondo piatto non mostri il proprio raggio. */
     background: radial-gradient(
       90% 38svh at 92% 2svh,
       var(--color-accent) 0%,
@@ -201,36 +167,15 @@ const year = new Date().getFullYear();
       color-mix(in oklab, var(--color-accent-deep) 40%, transparent) 44%,
       transparent 78%
     );
-    /* ⚠ SPENTO DI DEFAULT, e non è prudenza: è la correzione di un difetto
-       misurato. Un gradiente ritagliato dal bordo superiore del footer mostra
-       quel bordo come una RIGA DRITTA ogni volta che sopra non c'è niente di
-       altrettanto luminoso — su /chi-sono si vedeva un rettangolo di luce che
-       cominciava dal nulla, largo mezza pagina. Il bagliore non è una
-       decorazione del footer: è la CODA di un'altra sezione, e senza quella
-       sezione non ha nessun senso da solo.
-       Ammorbidire il bordo con una dissolvenza in cima NON è la via d'uscita:
-       la stessa dissolvenza, in Home, aprirebbe una riga scura esattamente
-       sulla giuntura che il bagliore esiste per far sparire. Le due esigenze
-       sono opposte, quindi la risposta è distinguere i due casi, non cercare un
-       compromesso che non esiste. */
     opacity: 0;
   }
-
-  /* ⚠ IL FOOTER SI ACCORDA A CIÒ CHE HA SOPRA, e lo capisce da solo.
-     `CTASection` esiste su UNA pagina sola (la Home): se è nel documento, la
-     pagina finisce col campo viola e il footer ne raccoglie la coda — la luce
-     si accende e il filetto sparisce, perché una linea richiamerebbe l'occhio
-     proprio sulla giuntura da dimenticare. Se non c'è, il footer resta nero col
-     suo confine dichiarato.
-     `:has()` sul body e non un `bodyClass` passato dalla pagina: il footer
-     resta UNO, senza varianti e senza che chi scrive una pagina nuova debba
-     ricordarsi di dichiarare qualcosa. Il segnale è la presenza del contenuto
-     stesso, che è l'unica cosa che non può andare fuori sincrono.
-     ⚠ `border-top-color: transparent` e non `border: none`: toglie la linea
-     lasciando il suo pixel di altezza, così le due varianti non differiscono
-     di 1px in altezza del footer. */
+  /* ⚠ In Home il bordo si TOGLIE, non si rende trasparente. Trasparente
+     lasciava passare il nero della pagina in quel pixel, e il bagliore non può
+     coprirlo: `overflow: clip` taglia al bordo interno. Risultato: una riga
+     scura proprio sulla giuntura con la CTA, che c'era anche nel footer
+     precedente (misurata il 2026-10-05: #050505 fra due righe viola). */
   :global(body:has(.cta)) .foot {
-    border-top-color: transparent;
+    border-top-width: 0;
   }
   :global(body:has(.cta)) .foot__glow {
     opacity: 0.72;
@@ -244,44 +189,111 @@ const year = new Date().getFullYear();
     padding-inline: var(--spacing-gutter);
   }
 
-  .foot__cols {
+  /* ---- La griglia --------------------------------------------------------- */
+  /* Telefono: una colonna (l'email non sta in mezza riga). Da 560px: pagine e
+     contatti affiancati, identità e CV a tutta riga. */
+  .foot__grid {
     display: grid;
-    gap: 3rem;
+    gap: 3rem 2rem;
+  }
+  @media (min-width: 35rem) {
+    .foot__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .foot__id,
+    .foot__col--cv {
+      grid-column: 1 / -1;
+    }
   }
   @media (min-width: 56.25rem) {
-    .foot__cols {
-      grid-template-columns: repeat(12, 1fr);
+    .foot__grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0 clamp(1rem, 1.5vw, 2rem);
     }
-    .foot__col:nth-child(1) {
+    /* 4 + 2 + 3 + 3. Contatti e CV hanno tre colonne perché l'email e il
+       bottone del CV sono larghi ~230px: in due (~200px a 1440) l'email andava
+       a capo a metà e il bottone su due righe (visto a schermo). */
+    .foot__id {
       grid-column: 1 / span 4;
     }
-    .foot__col:nth-child(2) {
-      grid-column: 6 / span 3;
+    .foot__col--pages {
+      grid-column: 5 / span 2;
+      justify-self: center;
+    }
+    .foot__col--contact {
+      grid-column: 7 / span 3;
     }
     .foot__col--cv {
       grid-column: 10 / span 3;
+      justify-self: end;
+    }
+  }
+  /* Fra 900 e 1200 quattro blocchi in fila stanno stretti: l'identità sale a
+     tutta riga e le tre colonne le si mettono sotto. */
+  @media (min-width: 56.25rem) and (max-width: 74.99rem) {
+    .foot__grid {
+      row-gap: 3.5rem;
+    }
+    .foot__id {
+      grid-column: 1 / span 9;
+    }
+    .foot__col--pages {
+      grid-column: 1 / span 3;
+      justify-self: start;
+    }
+    .foot__col--contact {
+      grid-column: 5 / span 4;
+    }
+    .foot__col--cv {
+      grid-column: 9 / span 4;
+      justify-self: start;
     }
   }
 
-  .foot__col {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    gap: 0.5rem;
+  /* ---- Chi sono ----------------------------------------------------------- */
+  .foot__name {
+    font-size: var(--text-h3);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 500;
   }
-
-  /* ⚠ `--color-text-2` e NON `text-3`, conseguenza diretta del bagliore.
-     Calcolato sul fondo REALE che le etichette hanno ora sotto di sé (il
-     gradiente all'altezza della loro riga, non il canvas nudo): `text-3` ci
-     misura 3.38:1, contro il 4.19:1 che già faceva sul nero — cioè un difetto
-     noto peggiorato da una scelta mia, che è la cosa che non si fa. `text-2`
-     misura 6.38:1 nello stesso punto.
-     La gerarchia non si perde diventando uguale a `.foot__place`: queste sono
-     mono, micro e maiuscoletto, quella è sans in corpo base. A distinguerle
-     sono famiglia, corpo e cassa — il colore era il segnale più debole dei
-     quattro, ed era anche l'unico fuori norma. */
-  .foot__label {
-    margin-bottom: 0.75rem;
+  .foot__who {
+    margin-top: 0.85rem;
+    max-width: 36ch;
+    font-size: var(--text-base);
+    line-height: 1.55;
+    color: var(--color-text-2);
+  }
+  .foot__live {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1.75rem;
+  }
+  .foot__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0.85rem 0.35rem 0.7rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .foot__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-ok);
+    animation: foot-breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes foot-breathe {
+    50% {
+      opacity: 0.4;
+    }
+  }
+  .foot__clock {
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.1em;
@@ -289,32 +301,39 @@ const year = new Date().getFullYear();
     color: var(--color-text-2);
   }
 
-  .foot__place {
-    font-size: var(--text-base);
+  /* ---- Le colonne --------------------------------------------------------- */
+  .foot__col {
+    min-width: 0;
+  }
+  .foot__col ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+  /* ⚠ `--color-text-2` e mai `text-3`: mono da 12px, dove il pavimento è
+     4.5:1, e `text-3` sul nero fa 4.19:1 (difetto noto in CLAUDE.md). */
+  .foot__label {
+    margin-bottom: 1rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--color-text-2);
   }
-
-  /* Il filetto che separa il luogo dai canali. Corto e non a tutta colonna: a
-     tutta larghezza avrebbe letto come il bordo di un blocco (la colonna è
-     larga 4/12), mentre qui deve dire solo "questi due gruppi sono cose
-     diverse". Il `margin-block` fa il resto del lavoro — è la separazione, il
-     tratto è solo il segno che la dichiara. */
-  .foot__rule {
-    width: 3rem;
-    height: 1px;
-    margin-block: 0.75rem;
-    background-color: var(--color-hairline-strong);
-  }
-
-  .foot__mail,
   .foot__link {
     position: relative;
+    display: inline-block;
+    max-width: 100%;
     font-size: var(--text-base);
     color: var(--color-text-1);
     text-decoration: none;
-    width: fit-content;
+    overflow-wrap: anywhere;
+    transition: color 200ms var(--ease-snappy);
   }
-  .foot__mail::after,
+  .foot__link--mail {
+    font-size: var(--text-sm);
+  }
   .foot__link::after {
     content: '';
     position: absolute;
@@ -327,38 +346,78 @@ const year = new Date().getFullYear();
     transform-origin: left;
     transition: transform 320ms var(--ease-out-expo);
   }
-  .foot__mail:hover::after,
   .foot__link:hover::after {
     transform: scaleX(1);
   }
+  .foot__link[aria-current='page'] {
+    color: var(--color-accent-hi);
+  }
+  .foot__ext {
+    display: inline-block;
+    margin-left: 0.3em;
+    font-size: 0.8em;
+    color: var(--color-text-2);
+    transition: transform 250ms var(--ease-out-expo), color 200ms var(--ease-snappy);
+  }
+  .foot__link:hover .foot__ext {
+    color: var(--color-accent-hi);
+    transform: translate(2px, -2px);
+  }
 
-  /* Il gesto di chiusura: il wordmark sale a incastrarsi nell'ultima
-     schermata. Il taglio è ottenuto con margin-bottom negativo + overflow:clip
-     sul footer, non con position absolute.
+  /* ---- La barra ------------------------------------------------------------ */
+  .foot__base {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 2rem;
+    margin-top: clamp(3.5rem, 8vw, 6.5rem);
+    padding-block: 1.75rem;
+    border-top: 1px solid var(--color-hairline);
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+  .foot__legal {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .foot__legal a,
+  .foot__top {
+    color: var(--color-text-2);
+    text-decoration: none;
+    transition: color 200ms var(--ease-snappy);
+  }
+  .foot__legal a:hover {
+    color: var(--color-text-1);
+  }
+  .foot__top {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    color: var(--color-text-1);
+  }
+  .foot__top svg {
+    transition: transform 300ms var(--ease-out-expo);
+  }
+  .foot__top:hover {
+    color: var(--color-accent-hi);
+  }
+  .foot__top:hover svg {
+    transform: translateY(-2px);
+  }
 
-     PERCHÉ IL TESTO STA IN ::before E NON NEL MARKUP.
-     A 1.14:1 questo è un audit di contrasto fallito. WCAG 1.4.3 esenta
-     esplicitamente il testo puramente decorativo, quindi la regola non è
-     violata — ma axe non può saperlo da un <p> che contiene testo, e segnala.
-     Un falso positivo lasciato lì abbassa il punteggio per sempre e, peggio,
-     nasconde i fallimenti VERI nella stessa voce dell'audit. In contenuto
-     generato la natura decorativa è verificabile dallo strumento: non è un
-     nodo di testo, quindi non è testo. Aspetto identico, informazione zero,
-     nessun rumore negli audit futuri. */
+  /* ---- La firma -------------------------------------------------------------
+     Testo in `::before` e non nel markup: a 1.14:1 sarebbe un audit di
+     contrasto fallito, e un falso positivo lasciato lì nasconde quelli veri.
+     Il taglio col bordo pagina è il margine negativo + `overflow: clip`. */
   .foot__wordmark::before {
     content: var(--wordmark, '');
   }
-
-  /* ⚠ `margin-top` RIDOTTO da clamp(4rem,10vw,9rem): quel vuoto separava le
-     colonne dal wordmark, e ora fra i due c'è la barra — che quello spazio se
-     l'è preso lei (vedi `.foot__base`). Tenerlo qui avrebbe sommato due
-     distanze grandi e allungato il footer di ~150px senza aggiungere niente.
-     ⚠ Il `margin-bottom` negativo RESTA e continua a fare il taglio col bordo
-     pagina (`overflow: clip` sul footer), ma ora non tira più su nessun
-     elemento successivo: il wordmark è l'ultimo. È lo stesso valore di prima
-     con l'effetto collaterale in meno. */
   .foot__wordmark {
-    margin-top: clamp(2.5rem, 5vw, 4.5rem);
+    margin-top: clamp(1.5rem, 3vw, 3rem);
     margin-bottom: -0.28em;
     font-size: var(--text-colossal);
     line-height: 0.78;
@@ -367,44 +426,5 @@ const year = new Date().getFullYear();
     color: var(--color-surface-2);
     white-space: nowrap;
     user-select: none;
-  }
-
-  .foot__base {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 2rem;
-    /* Eredita la distanza che prima stava sul wordmark: la barra è ciò che ora
-       segue le colonne, quindi è lei a dover respirare. */
-    margin-top: clamp(4rem, 10vw, 9rem);
-    padding-block: 2rem;
-    border-top: 1px solid var(--color-hairline);
-    font-family: var(--font-mono);
-    font-size: var(--text-micro);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    /* ⚠ `--color-text-2` e NON `text-3`, ed è una correzione di conformità, non
-       di gusto: questo è mono da 11-12px, dove il pavimento WCAG è 4.5:1 e non
-       3:1. `--color-text-3` misura 4.19:1 sul canvas nero (difetto noto,
-       documentato in CLAUDE.md) e crollava a 3.65:1 dove passava sopra il
-       wordmark. `--color-text-2` fa 7.9:1: sopra la soglia con margine, e la
-       barra resta comunque il registro più quieto del footer perché è piccola,
-       mono e maiuscoletta — la gerarchia la fa la dimensione, non il fatto di
-       essere al limite della leggibilità. */
-    color: var(--color-text-2);
-  }
-
-  /* ⚠ Nessuna regola di colore su `.foot__note`: prima la riportava a `text-3`,
-     cioè sotto AA, e la classe esisteva solo per quello. Resta nel markup come
-     appiglio per identificarla (è un segnaposto da sostituire), ma non deve
-     ridichiarare un colore che la barra ha già scelto correttamente. */
-
-  .foot__top {
-    margin-left: auto;
-    color: var(--color-text-1);
-    text-decoration: none;
-  }
-  .foot__top:hover {
-    color: var(--color-accent);
   }
 </style>

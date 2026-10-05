@@ -1,0 +1,163 @@
+---
+/**
+ * Informativa privacy (art. 13 GDPR) — 2026-10-05.
+ *
+ * ⚠ SCRITTA DA ME SUI TRATTAMENTI CHE IL SITO FA DAVVERO, verificati nel
+ * codice: il modulo (api/contatti.ts → Resend), i contatti diretti, le
+ * statistiche di Vercel (senza cookie) e i log dell'hosting. Non è una
+ * consulenza legale: va fatta rileggere a chi se ne occupa, e aggiornata ogni
+ * volta che il sito comincia a trattare dati nuovi (un'altra integrazione, una
+ * newsletter, un video incorporato…).
+ *
+ * ⚠ Il titolare è una persona fisica, senza partita IVA (Vlad non ce l'ha
+ * ancora e ha chiesto di non mettere segnaposto). Quando arriverà, i dati
+ * d'impresa vanno nella sezione 01.
+ *
+ * ⚠ I 24 mesi di conservazione sono una proposta mia, ragionevole per un
+ * contatto commerciale che non si è concretizzato: Vlad deve confermarli,
+ * perché sono un impegno che prende lui.
+ */
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { SITE } from '../lib/site';
+
+const email = SITE.author.email;
+---
+
+<LegalLayout
+  title="Privacy"
+  description="Come Vlad Costin tratta i dati personali di chi visita il sito o lo contatta."
+  label="Privacy"
+  heading="Informativa sulla privacy"
+  updated={new Date('2026-10-05')}
+  sintesi={[
+    'Il sito non usa cookie e non ti profila.',
+    'Se mi scrivi, uso i tuoi dati solo per risponderti e, se lo vorrai, per lavorare insieme.',
+    'Non li vendo né li cedo a nessuno, e puoi chiedermi di cancellarli quando vuoi.',
+  ]}
+>
+  <section>
+    <h2><span class="n">01</span>Chi tratta i tuoi dati</h2>
+    <p>
+      Il titolare del trattamento sono io, <strong>{SITE.author.name}</strong>, persona fisica,
+      {' '}{SITE.author.locationLabel}. Questo sito è il mio portfolio personale. Per qualunque
+      domanda sui tuoi dati puoi scrivermi a <a href={`mailto:${email}`}>{email}</a>.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>Quali dati raccolgo, e perché</h2>
+    <dl>
+      <div>
+        <dt>Il modulo di contatto</dt>
+        <dd>
+          Nome, email, il messaggio e, se li aggiungi, azienda, cosa ti serve e gli allegati. Li uso
+          per risponderti e per valutare un eventuale lavoro insieme. Nome, email e messaggio servono
+          per poterti rispondere; il resto è facoltativo. Base giuridica: misure precontrattuali
+          adottate su tua richiesta e il mio legittimo interesse a rispondere a chi mi scrive (art. 6,
+          par. 1, lett. b) e f) del GDPR).
+        </dd>
+      </div>
+      <div>
+        <dt>Email, WhatsApp e LinkedIn</dt>
+        <dd>
+          Se mi scrivi direttamente, tratto quello che mi mandi per lo stesso motivo e con la stessa
+          base giuridica. Su WhatsApp e LinkedIn valgono anche le informative di quei servizi, che
+          sono titolari autonomi dei dati che raccolgono.
+        </dd>
+      </div>
+      <div>
+        <dt>Statistiche di visita</dt>
+        <dd>
+          Uso Vercel Web Analytics e Speed Insights per sapere quante persone visitano il sito, quali
+          pagine guardano e quanto velocemente si caricano. Funzionano senza cookie e senza
+          identificarti: raccolgono dati aggregati come la pagina visitata, il sito di provenienza, il
+          tipo di dispositivo e di browser, il paese e i tempi di caricamento. Base giuridica: il mio
+          legittimo interesse a capire come viene usato il sito e a tenerlo veloce.
+        </dd>
+      </div>
+      <div>
+        <dt>Dati tecnici</dt>
+        <dd>
+          Come ogni sito, il servizio di hosting registra automaticamente alcuni dati tecnici delle
+          richieste, come l’indirizzo IP e l’ora, per farlo funzionare e proteggerlo da abusi. Base
+          giuridica: legittimo interesse alla sicurezza del sito.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      Non uso i tuoi dati per pubblicità, newsletter o profilazione, e non prendo decisioni
+      automatizzate che ti riguardano.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span>Chi altro li vede</h2>
+    <p>
+      Nessuno li riceve per scopi propri. Per far funzionare il sito mi appoggio a fornitori che
+      trattano i dati per mio conto, solo per il servizio che mi danno:
+    </p>
+    <dl>
+      <div>
+        <dt>Vercel</dt>
+        <dd>Ospita il sito, fa funzionare il modulo e fornisce le statistiche di visita.</dd>
+      </div>
+      <div>
+        <dt>Resend</dt>
+        <dd>Consegna alla mia casella il messaggio che invii dal modulo, con gli allegati.</dd>
+      </div>
+      <div>
+        <dt>La mia casella email</dt>
+        <dd>Il servizio di posta su cui ricevo e conservo i messaggi.</dd>
+      </div>
+    </dl>
+    <p>
+      Alcuni di questi fornitori hanno sede negli Stati Uniti. Il trasferimento avviene con le
+      garanzie previste dal GDPR (artt. 44 e seguenti), come il Data Privacy Framework UE-USA o le
+      clausole contrattuali standard approvate dalla Commissione europea.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span>Per quanto tempo</h2>
+    <p>
+      Tengo i messaggi per il tempo necessario a risponderti e a seguire l’eventuale collaborazione.
+      Se non ne nasce un lavoro, li cancello entro 24 mesi dall’ultimo contatto. Se lavoriamo
+      insieme, li conservo per la durata del rapporto e per i tempi richiesti dalla legge. I dati
+      tecnici dell’hosting restano per il periodo breve previsto dal fornitore; le statistiche sono
+      solo aggregate.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>I tuoi diritti</h2>
+    <p>
+      Puoi chiedermi in qualunque momento di vedere i dati che ho su di te, di correggerli, di
+      cancellarli, di limitarne l’uso, di riceverli in un formato leggibile o di opporti al loro
+      trattamento (artt. 15–21 del GDPR). Basta scrivere a <a href={`mailto:${email}`}>{email}</a>:
+      rispondo entro un mese, come prevede la legge.
+    </p>
+    <p>
+      Se pensi che i tuoi dati siano trattati in modo scorretto, puoi anche presentare reclamo al
+      Garante per la protezione dei dati personali (<a
+        href="https://www.garanteprivacy.it"
+        target="_blank"
+        rel="noopener noreferrer">garanteprivacy.it</a
+      >).
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">06</span>Cookie</h2>
+    <p>
+      Il sito non usa cookie. Salva nel tuo browser solo tre piccole preferenze tecniche, descritte
+      nella <a href="/cookie">cookie policy</a>.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">07</span>Modifiche</h2>
+    <p>
+      Se cambio il modo in cui tratto i dati, aggiorno questa pagina e la data in cima.
+    </p>
+  </section>
+</LegalLayout>

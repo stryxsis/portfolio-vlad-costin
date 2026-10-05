@@ -1,0 +1,211 @@
+---
+/**
+ * Le pagine legali (/privacy, /cookie) — 2026-10-05.
+ *
+ * Un documento da leggere, quindi niente effetti: una colonna sola alla misura
+ * del testo, l'indice `00 · …` come ogni apertura del sito, e in testa un
+ * riquadro «In breve» con le tre cose che servono davvero a chi non leggerà
+ * il resto. Le sezioni sono numerate col dispositivo mono del sito, e le
+ * enumerazioni dentro il testo sono `<dl>` a righe con filetto, mai elenchi
+ * puntati.
+ *
+ * ⚠ NIENTE DATI D'IMPRESA: Vlad non ha ancora la partita IVA (2026-10-05) e ha
+ * chiesto di non metterne nemmeno un segnaposto. Il titolare è una persona
+ * fisica.
+ */
+import BaseLayout from './BaseLayout.astro';
+import SectionIndex from '../components/primitives/SectionIndex.astro';
+import { fullDate, isoDate } from '../lib/format';
+
+interface Props {
+  title: string;
+  description: string;
+  /** L'etichetta dell'indice, es. «Privacy». */
+  label: string;
+  heading: string;
+  updated: Date;
+  /** Le tre righe di «In breve». */
+  sintesi: string[];
+}
+const { title, description, label, heading, updated, sintesi } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="lg" data-section>
+    <header class="lg__head">
+      <div class="lg__idx">
+        <SectionIndex n="00" label={label} />
+      </div>
+      <h1 class="lg__title">{heading}</h1>
+      <p class="lg__date">
+        Ultimo aggiornamento: <time datetime={isoDate(updated)}>{fullDate(updated)}</time>
+      </p>
+    </header>
+
+    <aside class="lg__brief" aria-label="In breve">
+      <p class="lg__brief-label">In breve</p>
+      <ol>
+        {
+          sintesi.map((s, i) => (
+            <li>
+              <span class="lg__brief-n" aria-hidden="true">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span>{s}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </aside>
+
+    <div class="lg__body">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .lg {
+    max-width: 46rem;
+    margin-inline: auto;
+    padding: calc(var(--nav-h) + clamp(2.5rem, 8vh, 5rem)) var(--spacing-gutter)
+      var(--spacing-section);
+  }
+  .lg__idx :global([data-section-index]) {
+    position: static;
+  }
+  .lg__title {
+    margin-top: 1.5rem;
+    font-size: var(--text-h1);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  .lg__date {
+    margin-top: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* «In breve»: l'unico riquadro della pagina, perché è l'unica cosa che deve
+     staccarsi dal testo corrente. */
+  .lg__brief {
+    margin-top: clamp(2.5rem, 6vw, 3.5rem);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-1);
+  }
+  .lg__brief-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent-hi);
+  }
+  .lg__brief ol {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.85rem;
+  }
+  .lg__brief li {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    align-items: baseline;
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+  .lg__brief-n {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    color: var(--color-accent);
+  }
+
+  /* ---- Il testo (contenuto della pagina, quindi :global) ------------------- */
+  .lg__body {
+    margin-top: clamp(3rem, 7vw, 4.5rem);
+  }
+  .lg__body :global(section) {
+    padding-top: 2.25rem;
+    margin-top: 2.25rem;
+    border-top: 1px solid var(--color-hairline);
+  }
+  .lg__body :global(section:first-child) {
+    margin-top: 0;
+  }
+  .lg__body :global(h2) {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: var(--text-h3);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    font-weight: 500;
+  }
+  .lg__body :global(h2 .n) {
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+  .lg__body :global(p) {
+    margin-top: 1rem;
+    font-size: var(--text-base);
+    line-height: 1.65;
+    color: var(--color-text-2);
+  }
+  .lg__body :global(strong) {
+    color: var(--color-text-1);
+    font-weight: 500;
+  }
+  .lg__body :global(a) {
+    color: var(--color-text-1);
+    text-decoration: underline;
+    text-decoration-color: var(--color-hairline-strong);
+    text-underline-offset: 0.22em;
+    transition: text-decoration-color 200ms var(--ease-snappy);
+  }
+  .lg__body :global(a:hover) {
+    text-decoration-color: var(--color-accent);
+  }
+  .lg__body :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.4em;
+    border-radius: 0.3em;
+    background-color: var(--color-surface-2);
+    color: var(--color-text-1);
+  }
+  /* Le enumerazioni: righe etichetta/descrizione con filetto. */
+  .lg__body :global(dl) {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--color-hairline);
+  }
+  .lg__body :global(dl > div) {
+    display: grid;
+    gap: 0.35rem 1.5rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  @media (min-width: 40rem) {
+    .lg__body :global(dl > div) {
+      grid-template-columns: 11rem minmax(0, 1fr);
+    }
+  }
+  .lg__body :global(dt) {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-1);
+  }
+  .lg__body :global(dd) {
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--color-text-2);
+  }
+</style>

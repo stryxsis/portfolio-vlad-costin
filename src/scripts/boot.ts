@@ -20,6 +20,7 @@ import { initWorks } from './works';
 import { initCaseRail } from './caseRail';
 import { initSpazio } from './spazio';
 import { initContatti } from './contatti';
+import { initOrologio } from './orologio';
 
 declare global {
   interface Window {
@@ -89,6 +90,8 @@ function boot(): void {
      di lui è fallita (senza, funziona comunque come modulo HTML nudo). */
   try {
     initContatti();
+    // L'ora locale nel footer: stessa natura, informazione e non effetto.
+    initOrologio();
   } catch (err) {
     console.error('[boot] modulo contatti:', err);
   }

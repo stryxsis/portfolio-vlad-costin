@@ -1,0 +1,104 @@
+---
+/**
+ * Cookie policy — 2026-10-05.
+ *
+ * ⚠ IL SITO NON USA COOKIE, verificato nel codice: nessun `document.cookie`,
+ * nessun servizio esterno che ne imposti (font self-hostati, nessun contenuto
+ * incorporato, statistiche Vercel senza cookie). Usa invece TRE chiavi di
+ * memoria del browser, elencate qui sotto col loro nome vero, così chi vuole
+ * controllarle le trova negli strumenti del browser.
+ *
+ * ⚠ SE IL CODICE CAMBIA, QUESTA PAGINA VA CAMBIATA CON LUI: le chiavi vivono in
+ * loader.ts (`vc:seen`), campoBinario.ts (`vc:bf`) e banner.ts
+ * (`vc:banner-dismissed`). Una chiave nuova, un video di YouTube incorporato o
+ * uno strumento di statistiche diverso rendono falsa la prima riga.
+ *
+ * Non è una consulenza legale: va fatta rileggere a chi se ne occupa.
+ */
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { SITE } from '../lib/site';
+
+const email = SITE.author.email;
+---
+
+<LegalLayout
+  title="Cookie"
+  description="Il sito di Vlad Costin non usa cookie: ecco cosa salva nel browser, e perché."
+  label="Cookie"
+  heading="Cookie policy"
+  updated={new Date('2026-10-05')}
+  sintesi={[
+    'Questo sito non usa cookie, né miei né di terze parti.',
+    'Salva nel browser solo tre preferenze tecniche, che non escono mai dal tuo dispositivo.',
+    'Per questo non trovi nessun banner: non c’è niente da accettare.',
+  ]}
+>
+  <section>
+    <h2><span class="n">01</span>Cosa salva il sito nel tuo browser</h2>
+    <p>
+      Per evitare di ripeterti cose che hai già visto, il sito usa la memoria del browser
+      (<code>localStorage</code> e <code>sessionStorage</code>). Non sono cookie: restano sul tuo
+      dispositivo, non vengono mandate a nessun server e non servono a riconoscerti.
+    </p>
+    <dl>
+      <div>
+        <dt><code>vc:seen</code></dt>
+        <dd>
+          Ricorda che hai già visto l’animazione di apertura della Home, così non te la ripropone.
+          Resta finché non cancelli i dati del sito.
+        </dd>
+      </div>
+      <div>
+        <dt><code>vc:bf</code></dt>
+        <dd>
+          Ricorda se il tuo dispositivo regge lo sfondo animato della pagina Chi sono a piena densità,
+          così non deve rimisurarlo a ogni visita. Resta finché non cancelli i dati del sito.
+        </dd>
+      </div>
+      <div>
+        <dt><code>vc:banner-dismissed</code></dt>
+        <dd>
+          Ricorda che hai chiuso l’avviso in cima alla pagina. Si cancella da sola quando chiudi la
+          scheda.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      Sono strumenti tecnici al servizio di quello che stai facendo, e per questo non richiedono il
+      tuo consenso (art. 122 del Codice privacy e linee guida del Garante sui cookie del 2021).
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>Statistiche</h2>
+    <p>
+      Le statistiche di visita (Vercel Web Analytics e Speed Insights) funzionano senza cookie e
+      senza identificarti: contano le visite in forma aggregata. I dettagli sono nell’<a
+        href="/privacy">informativa sulla privacy</a
+      >.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span>Servizi esterni</h2>
+    <p>
+      I caratteri tipografici sono ospitati sul sito stesso e nessuna pagina incorpora contenuti di
+      terzi. I link a WhatsApp e LinkedIn non caricano niente finché non li apri; da lì valgono le
+      regole di quei servizi.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span>Come cancellarli</h2>
+    <p>
+      Puoi cancellare queste preferenze in qualunque momento dalle impostazioni del browser, alla voce
+      sui dati dei siti. Il sito continuerà a funzionare: semplicemente, rivedrai l’animazione di
+      apertura e l’avviso.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>Domande</h2>
+    <p>Per qualunque dubbio scrivimi a <a href={`mailto:${email}`}>{email}</a>.</p>
+  </section>
+</LegalLayout>

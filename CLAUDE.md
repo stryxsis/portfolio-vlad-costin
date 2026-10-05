@@ -1195,6 +1195,13 @@ Vlad: «fammi l'effetto handoff in qualsiasi punto in cui pensi abbia senso […
 - `--color-err` (`#f87171`) è un token nuovo: una convenzione come `--color-ok`, non un secondo accento. `--color-ok` ha ora due utenti con lo stesso significato.
 - ⚠ **I testi sono scritti da me**, e nessuno promette tempi di risposta: Vlad non ne ha dati.
 
+### 2026-10-05: footer rifatto, privacy e cookie policy
+
+- ⚠⚠ **NESSUNA PARTITA IVA, NÉ SEGNAPOSTO**: Vlad non ce l'ha ancora e ha chiesto di non mettere né i dati d'impresa né un posto vuoto per loro. Quando arriveranno: barra del footer e sezione 01 di /privacy.
+- **Footer** (`Footer.astro`, riscritto): identità in una riga + pill «Aperto a nuovi progetti» + **ora locale di Colorno** (`orologio.ts`, un aggiornamento al minuto, `Europe/Rome`, nascosta senza JS); colonne Pagine (con la pagina corrente d'accento) / Contatti / Curriculum (il bottone resta bottone); barra © · Privacy · Cookie · Torna su; la firma gigante. Griglia 4+2+3+3: in 2+2 l'email e il bottone del CV andavano a capo (visto a 1440). ⚠ **Niente CTA grande nel footer**: Home, /portfolio e /contatti finiscono già con una. Il bagliore che continua la CTA della Home è rimasto.
+- ⚠ **La riga scura sulla giuntura CTA → footer in Home c'era anche prima**: il bordo era `transparent`, e il bagliore non poteva coprire quel pixel perché `overflow: clip` taglia al bordo interno. Ora in Home il bordo si toglie (`border-top-width: 0`). Misurato: niente più `#050505` fra le due righe viola.
+- **/privacy e /cookie** (`LegalLayout.astro`): testi miei, scritti sui trattamenti VERI verificati nel codice — modulo (Vercel + Resend), contatti diretti, Vercel Analytics/Speed Insights senza cookie, log dell'hosting. ⚠ **Il sito NON usa cookie**; la cookie policy elenca le tre chiavi di memoria del browser col loro nome (`vc:seen`, `vc:bf`, `vc:banner-dismissed`): **una chiave nuova, un video incorporato o un'altra analitica rendono falsa quella pagina**, va aggiornata col codice. ⚠ I **24 mesi** di conservazione sono una mia proposta: Vlad deve confermarli. ⚠ Non è consulenza legale: va fatta rileggere. Il modulo di /contatti linka l'informativa.
+
 ### Convenzioni consolidate durante le rifiniture, da riusare (non nel piano originale)
 
 - **Sezioni "in"/"out" di un handoff M12 dichiarano SEMPRE il proprio `min-height: 100svh`** (grid + `align-content:center` per centrare il contenuto), invece di affidarsi a padding generoso per raggiungere l'altezza minima richiesta da `Handoff.astro`. Pattern in `Statement.astro`, `FeaturedProjects.astro`, `JourneyTeaser.astro`, `WhatIDo.astro`. Vale su tutti i breakpoint, mobile incluso — non è un bug, è "un'idea per viewport" applicato alla lettera.

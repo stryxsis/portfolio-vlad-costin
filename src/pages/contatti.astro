@@ -207,6 +207,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
 
           <p class="ct__privacy">
             Uso i tuoi dati solo per risponderti: niente newsletter, niente liste.
+            <a href="/privacy">Informativa privacy</a>
           </p>
 
           <div class="ct__esito" data-esito role="alert" hidden>
@@ -719,6 +720,13 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
   .ct__privacy {
     font-size: 0.8125rem;
     color: var(--color-text-2);
+  }
+  .ct__privacy a {
+    margin-left: 0.35em;
+    color: var(--color-text-1);
+    text-decoration: underline;
+    text-decoration-color: var(--color-hairline-strong);
+    text-underline-offset: 0.2em;
   }
 
   .ct__esito {
