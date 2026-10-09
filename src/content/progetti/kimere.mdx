@@ -1,39 +1,44 @@
 ---
-# ⚠ TESTO SCRITTO DA CLAUDE (2026-09-26) su fatti letti nei file del progetto
-# (appunti della prima call, analisi strategica, audit e documenti del sito).
-# Da rivedere con Vlad: i punti incerti sono segnati con DA VERIFICARE.
-# ⚠ Nessuno screenshot del sito, per scelta di Vlad: il restyling sta per
-# sostituire la versione online. La copertina è il logo; le catture si fanno
-# quando il sito nuovo è pubblicato.
+# Testo riscritto il 2026-10-09 dall'intervista con Vlad: i fatti sono suoi,
+# la forma è mia. Numeri e dettagli tecnici verificati nel repository del
+# sito (commit, audit del 2026-09-19) e sul sito online lo stesso giorno.
+# Schermate prese dal sito online il 2026-10-09, versione italiana.
+# La citazione di Chiara Pedretti Boraschi è vera, inviata da lei (testo
+# intero in src/data/testimonials.ts): due estratti, processo e risultato.
+#
+# ⚠ Come sono misurate le parole: testo dentro <main>, esclusi script, stili
+# e SVG, cioè lo stesso metodo dell'audit di settembre. Home, Percorso
+# studenti, Partner B2B, Chi siamo e Lingue: 6.355 parole prima, 3.651 dopo.
+# Servizi NON è stata rifatta e non entra nel conto.
 title: 'Kimere'
-subtitle: 'Il sito di una consulenza per chi vuole studiare all’estero, in inglese e in italiano'
-description: 'Il sito di Kimere, consulenza per studiare all’estero: due lingue, un percorso per gli studenti e uno per le università, e un restyling in corso.'
+subtitle: 'Il sito di una consulenza per chi vuole studiare all’estero. Dopo un mese l’ho rifatto da capo, di mia iniziativa: stessi servizi, molte meno parole.'
+description: 'Il sito di Kimere, consulenza per studiare all’estero. L’ho costruito da solo e poi rifatto di mia iniziativa, con il 43% di parole in meno.'
 
 client: 'Kimere International Academy & Consulting'
-role: 'Sviluppo web'
+role: 'Progettazione e sviluppo'
 year: 2026
 pubDate: 2026-09-19
+updatedDate: 2026-10-09
 
 stack:
   - Astro
   - TypeScript
   - Tailwind CSS
-  - Zod
   - Vercel
 
 metrics:
-  - label: 'Lingue del sito'
+  - label: 'Parole in meno nelle pagine rifatte'
+    value: '−43%'
+  - label: 'Peso del video della hero, su telefono'
+    value: '−86%'
+  - label: 'Lingue'
     value: '2'
-  - label: 'Pagine generate'
-    value: '30'
-  - label: 'Coppie di colori verificate WCAG'
-    value: '63'
 
-cover: ../../assets/progetti/kimere/kimere-copertina.jpg
-coverAlt: 'Il logo di Kimere, una bussola con una freccia che sale e un libro aperto, su un fondo blu notte'
+cover: ../../assets/progetti/kimere/kimere-home.jpg
+coverAlt: 'La home del sito di Kimere: il titolo «Il tuo futuro, oltre i confini» sopra la Terra vista dallo spazio'
 thumb: ../../assets/progetti/kimere/kimere-miniatura.jpg
 
-liveUrl: 'https://kimereconsulting.com/'
+liveUrl: 'https://www.kimereconsulting.com/it/'
 
 featured: true
 order: 3
@@ -42,77 +47,136 @@ draft: false
 ---
 
 import Chapter from '../../components/case-study/Chapter.astro';
+import CaseFigure from '../../components/case-study/CaseFigure.astro';
 import CaseQuote from '../../components/case-study/CaseQuote.astro';
+import porte from '../../assets/progetti/kimere/kimere-porte.jpg';
+import percorso from '../../assets/progetti/kimere/kimere-percorso.jpg';
+import atenei from '../../assets/progetti/kimere/kimere-atenei.jpg';
+import mobile from '../../assets/progetti/kimere/kimere-mobile.jpg';
 
-<Chapter id="contesto" title="Studiare all’estero è soprattutto burocrazia">
+<Chapter id="contesto" title="Un sito per chi vuole studiare all’estero">
 
-Kimere è una consulenza fondata da Chiara Pedretti per chi vuole studiare
-all’estero, con l’Italia come destinazione su cui offre il servizio più
-completo. Lavora con una rete di collaboratori in più paesi e con insegnanti
-che tengono corsi in sette lingue oltre all’italiano e si occupano di
-traduzioni e legalizzazione dei documenti.
+Kimere è una consulenza fondata da Chiara Pedretti Boraschi. Aiuta gli
+studenti a scegliere dove studiare e li segue nelle candidature, nelle borse
+di studio, nei documenti e nell’arrivo, con l’Italia come destinazione
+principale. Lavora anche con università e agenzie, e tiene corsi di lingua e
+traduzioni.
 
-Già dalla prima call il problema era chiaro: per uno studente straniero la
-parte difficile non è l’ammissione, sono le borse di studio, le tasse, l’ISEE
-e il riconoscimento dei titoli.
+Il lavoro mi è arrivato grazie a una ragazza di JEParma che ha messo una buona
+parola su di me. Chiara voleva un sito. L’ho progettato e costruito da solo.
 
-<CaseQuote cite="Dagli appunti della prima call">
-  Il principale problema per gli studi all’estero sono le borse di studio e
-  le tasse.
+</Chapter>
+
+<Chapter id="sfida" title="Tanti servizi, tre pubblici, due lingue">
+
+Kimere fa molte cose diverse, e ognuna ha le sue regole: borse di studio,
+tasse, ISEE, riconoscimento dei titoli, traduzioni, permessi di soggiorno.
+Parla poi a tre pubblici che cercano cose diverse: studenti stranieri,
+studenti italiani, università e agenzie. Il tutto in italiano e in inglese.
+
+La parte difficile era prendere tutto quel contenuto e metterlo in un ordine
+che si capisse: chi arriva deve trovare la sua strada senza confondersi, e
+uscire sapendo quello che gli serve.
+
+<CaseFigure
+  src={atenei}
+  alt="La pagina per università e agenzie: il titolo «Voi aprite le possibilità. Noi seguiamo il percorso.» su fondo blu notte, con il bottone «Conosciamoci»"
+  caption="La pagina per università e agenzie, uno dei tre pubblici."
+  size="wide"
+/>
+
+</Chapter>
+
+<Chapter id="processo" title="Funzionava, ma si leggeva male">
+
+### La prima versione, ad agosto
+
+La prima versione l’ho costruita ad agosto, ed è andata online a settembre.
+Funzionava, ma io non ne ero contento: avevo fatto errori di grafica e ci
+avevo messo troppo. Troppe parole, troppe sezioni, le stesse cose spiegate in
+più pagine. La home contava più di mille parole, la pagina dei servizi più di
+milleottocento. Leggerlo era faticoso.
+
+### Il restyling, di mia iniziativa
+
+Nessuno me l’aveva chiesto. Avevo capito dove avevo sbagliato, e l’ho rifatto:
+grafica nuova e testi riscritti da capo. Oggi la home fa una domanda sola,
+«chi sei?», e apre due porte: una per gli studenti, una per università e
+agenzie. Ogni pagina ha un compito e lo dice in poche righe.
+
+L’ho mostrato a Chiara a lavoro finito. Le è piaciuto.
+
+<CaseFigure
+  src={porte}
+  alt="La sezione «Storie diverse. La stessa voglia di andare.» con due ingressi: «Sono uno studente» e «Sono un’università o un’agenzia»"
+  caption="Due porte d’ingresso, subito sotto la hero."
+  size="wide"
+/>
+
+<CaseQuote cite="Chiara Pedretti Boraschi, fondatrice di Kimere">
+  Ha saputo trasformare un’idea complessa in una piattaforma fluida, veloce e
+  intuitiva.
 </CaseQuote>
 
-</Chapter>
+### I prezzi in chiaro
 
-<Chapter id="sfida" title="Tre pubblici che non si parlano">
+Sul sito i prezzi sono scritti: 200 $ la consulenza strategica per gli
+studenti, 180 $ la tariffa riservata agli atenei, gratuito il seminario per le
+università. È stata una scelta mia: chi prenota sa già quanto spende, prima
+della call.
 
-Kimere parla a tre pubblici diversi: studenti internazionali che vogliono
-venire in Italia, studenti italiani che non sanno ancora cosa scegliere, e
-università e agenzie con cui costruire collaborazioni. Hanno domande diverse,
-e a volte lingue diverse.
+<CaseFigure
+  src={percorso}
+  alt="La pagina del percorso studenti: a sinistra la card della consulenza strategica da 200 dollari, a destra i passi Scegliere con criterio, Candidature e borse, Traduzioni e corsi di lingua"
+  caption="Il prezzo della consulenza, accanto a quello che comprende."
+  size="wide"
+/>
 
-E prima di questo sito Kimere non ne aveva uno suo: ogni contatto passava dalle
-relazioni personali. L’obiettivo era dare a tutti e tre un posto dove capire
-cosa fa Kimere e prenotare una consulenza.
+### La Terra che non si caricava
 
-</Chapter>
+Il video della Terra nella hero l’ho generato con Gemini. Ho provato ad
+aumentarne la qualità con l’upscaling, senza riuscirci davvero.
 
-<Chapter id="processo" title="Un sito statico che si controlla da solo">
+Il problema vero però era un altro. Su telefono a volte il video non si
+caricava, e quando si caricava ci metteva tanto. Pesava 1,71 MB, con dentro una
+traccia audio che nessuno sentiva, e continuava a scaricarsi anche dopo che la
+pagina ci aveva rinunciato. Il risultato era un video che girava dietro a un
+velo opaco, senza che nessuno lo vedesse. L’ho ricodificato senza audio e ho
+fatto una versione verticale per i telefoni da 231 KB, l’86% in meno.
+Un’immagine ferma si vede subito, e se il video non arriva in due secondi e
+mezzo il download si interrompe.
 
-### Astro, in due lingue
+### Due lingue, controllate a ogni pubblicazione
 
-Il sito è in Astro, statico, con l’inglese come lingua principale e
-l’italiano accanto. I contenuti sono in raccolte validate da uno schema, così
-un campo mancante è un errore di build e non una pagina rotta. Ci sono pagine
-dedicate agli studenti, ai partner, ai corsi di lingua e traduzioni, ai
-tirocini e al perché studiare in Italia. Ogni invito all’azione porta al
-modulo di prenotazione del cliente.
+Prima di ogni pubblicazione un comando controlla che la versione italiana e
+quella inglese abbiano gli stessi contenuti, che ogni testo sia leggibile sul
+suo sfondo e che tutte le pagine attese vengano generate. Un sito in due lingue
+si rompe quasi sempre così: si aggiorna una versione e ci si dimentica
+l’altra.
 
-### I controlli prima di ogni pubblicazione
-
-Un unico comando verifica che le versioni italiana e inglese abbiano gli
-stessi contenuti, che 63 coppie di colori testo e sfondo rispettino il
-contrasto minimo WCAG, che il codice compili senza errori e che la build
-generi davvero le pagine attese. Un sito in due lingue si rompe quasi sempre
-così: si aggiorna una versione e ci si dimentica l’altra.
-
-### Il restyling, già in corso
-
-A settembre ho fatto un audit del sito online: la home contava circa mille
-parole, la pagina dei servizi più di milleottocento. Il restyling che sto
-costruendo ha un obiettivo solo, portare a una call qualificata di circa
-un’ora dicendo molto meno. Il prototipo separa i percorsi fin dall’inizio: gli
-studenti prenotano la consulenza, le università chiedono il seminario online
-gratuito.
+Ho lavorato con l’AI per testi, traduzioni e codice. Cosa dire, cosa togliere e
+in che ordine l’ho deciso io.
 
 </Chapter>
 
-<Chapter id="risultato" title="Online, e presto nuovo">
+<Chapter id="risultato" title="Lo stesso sito, molte meno parole">
 
-Il sito è online su kimereconsulting.com, in inglese e in italiano. Il
-restyling è in fase di prototipo e sostituirà la versione attuale quando sarà
-pronto: questo case study verrà aggiornato con le schermate del sito nuovo.
+Il sito nuovo è online da ottobre 2026 su kimereconsulting.com, in italiano e
+in inglese. Nelle cinque pagine che ho rifatto le parole sono scese del 43%,
+senza togliere un servizio: la pagina per gli studenti è passata da 1.338 a
+612 parole, quella su chi siamo da 1.322 a 522.
 
-{/* DA VERIFICARE: data di pubblicazione della prima versione, e se ci sono
-    già richieste arrivate dal sito. */}
+<CaseQuote cite="Chiara Pedretti Boraschi, fondatrice di Kimere">
+  È un professionista attento ai dettagli, puntuale nelle consegne e sempre
+  pronto a trovare la soluzione migliore di fronte a qualsiasi sfida di
+  sviluppo.
+</CaseQuote>
+
+<CaseFigure
+  src={mobile}
+  alt="Tre schermate del sito su telefono: la home con la Terra, i passi del percorso studenti e la pagina per università e agenzie"
+  caption="Da telefono: la home, il percorso studenti e la pagina per gli atenei."
+  size="wide"
+/>
 
 </Chapter>

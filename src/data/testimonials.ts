@@ -10,7 +10,8 @@
  * pagina.
  *
  * ✓ VERE finora: Francesco Fantesini e Stefano Marcacci (2026-10-03),
- *   Giorgio Canalini (2026-10-04). Le altre tre restano provvisorie.
+ *   Giorgio Canalini (2026-10-04), Chiara Pedretti Boraschi (2026-10-09).
+ *   Restano provvisorie Andrea D’Amico e Alex Iuliani.
  *
  * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
  * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
@@ -70,7 +71,8 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      'Avevamo due pubblici che non parlano la stessa lingua: studenti da tutto il mondo e università. Vlad li ha separati senza farci sembrare due aziende diverse, e ha trasformato una burocrazia complicata in pagine che si leggono.',
+      /* ⚠ VERA, inviata da Chiara il 2026-10-09. Testo intero, nessun ritocco. */
+      'Vlad ha svolto un lavoro eccezionale sulla parte di programmazione del sito Kimere. Non solo ha dimostrato una profonda competenza tecnica, ma ha saputo trasformare un’idea complessa in una piattaforma fluida, veloce e intuitiva. È un professionista attento ai dettagli, puntuale nelle consegne e sempre pronto a trovare la soluzione migliore di fronte a qualsiasi sfida di sviluppo. Lavorare con lui è una garanzia!',
     name: 'Chiara Pedretti Boraschi',
     role: 'Fondatrice · Kimere',
     avatar: chiaraPedrettiBoraschi,

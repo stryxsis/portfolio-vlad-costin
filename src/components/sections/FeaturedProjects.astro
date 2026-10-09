@@ -87,6 +87,8 @@ import reelReggianaDesktop from '../../assets/progetti/reggiana-packaging-deskto
 import reelReggianaMobile from '../../assets/progetti/reggiana-packaging-mobile.png';
 import reelAlsiDesktop from '../../assets/progetti/alsi-gluten-free-desktop.png';
 import reelAlsiMobile from '../../assets/progetti/alsi-gluten-free-mobile.png';
+import reelKimereDesktop from '../../assets/progetti/kimere-desktop.png';
+import reelKimereMobile from '../../assets/progetti/kimere-mobile.png';
 
 interface Props {
   /** Nome dello schermo nel Handoff che la contiene (vedi Handoff.astro). */
@@ -125,8 +127,8 @@ interface Showcase {
    online; i due segnaposto di prima (Filiera Nord, Studio Ferrari) sono usciti
    dall'array. Le didascalie invece sono PROVVISORIE, scritte da me sui
    contenuti dei siti: da far rivedere a lui.
-   Kimere non ha ancora un reel: il sito sta per cambiare, quindi la vetrina
-   monta il wireframe finché non si rifà la cattura. */
+   Reggiana, Network Day e Kimere sono riscritte dalle interviste con Vlad
+   (Kimere il 2026-10-09, con il reel catturato dal sito rifatto). */
 const SHOWCASE: Showcase[] = [
   {
     kind: 'site',
@@ -179,8 +181,16 @@ const SHOWCASE: Showcase[] = [
     year: 2026,
     title: 'Studiare all’estero, senza perdersi nelle pratiche',
     blurb:
-      'Un’agenzia giovane che accompagna gli studenti verso l’università, in Italia e fuori, e aiuta gli atenei a riceverli. Un sito per due porte d’ingresso — studenti da una parte, università e agenzie dall’altra — con borse di studio, documenti e corsi di lingua spiegati senza burocratese.',
-    url: 'https://kimereconsulting.com/',
+      /* Riscritta il 2026-10-09 dall'intervista con Vlad. */
+      'Una consulenza che accompagna gli studenti verso l’università, in Italia e fuori, e aiuta gli atenei a riceverli. L’ho costruito da solo, poi l’ho rifatto di mia iniziativa: due porte d’ingresso, i prezzi scritti in chiaro e il 43% di parole in meno.',
+    url: 'https://www.kimereconsulting.com/it/',
+    /* ⚠ Il reel da telefono si ferma prima della fascia «Enti con cui
+       collaboriamo»: sul sito di Kimere ha ancora i loghi segnaposto. La hero
+       è catturata col movimento ridotto, cioè sul poster fermo: il video gira
+       in loop e un fotogramma qualunque rendeva illeggibile il titolo. */
+    reel: { desktop: reelKimereDesktop, mobile: reelKimereMobile },
+    reelAlt:
+      'Il sito di Kimere: la hero «Il tuo futuro, oltre i confini» con la Terra, le due porte d’ingresso per studenti e università e i tre passi del percorso',
   },
 ];
 
