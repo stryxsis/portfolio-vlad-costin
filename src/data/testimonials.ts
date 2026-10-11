@@ -10,8 +10,8 @@
  * pagina.
  *
  * ✓ VERE finora: Francesco Fantesini e Stefano Marcacci (2026-10-03),
- *   Giorgio Canalini (2026-10-04), Chiara Pedretti Boraschi (2026-10-09).
- *   Restano provvisorie Andrea D’Amico e Alex Iuliani.
+ *   Giorgio Canalini (2026-10-04), Chiara Pedretti Boraschi e Alex Iuliani
+ *   (2026-10-09). Resta provvisoria solo quella di Andrea D’Amico.
  *
  * I nove segnaposto con i nomi dell'alfabeto NATO (`[Alfa Bravo]`…) sono stati
  * TOLTI lo stesso giorno, su richiesta di Vlad: restano solo persone reali.
@@ -82,7 +82,9 @@ export const TESTIMONIALS: Testimonial[] = [
   /* -- Seconda colonna ---------------------------------------------------- */
   {
     quote:
-      'Ci serviva un sito che parlasse ai ristoratori senza perdere il calore del laboratorio. Prima della grafica ha voluto capire chi sono i nostri clienti, e oggi è il primo link che mandiamo a un nuovo partner.',
+      /* ⚠ VERA, inviata da Alex il 2026-10-09. I tre capoversi sono uniti in
+         uno, come le altre citazioni; nessun altro ritocco. */
+      'Vlad si è occupato della realizzazione del sito web di una mia azienda, ALSI Gluten Free, svolgendo un lavoro perfetto per le mie esigenze e in linea con quanto concordato insieme. Dopo una prima fase di confronto per capire le necessità aziendali e gli obiettivi comunicativi, Vlad ha curato tutto il processo, creando la struttura, assicurandosi che il sito fosse funzionale e intuitivo, il tutto mantenendo coerenti brand identity e proponendo soluzioni alle quali non avevo pensato. In due righe: avevo bisogno di un sito, lui l’ha creato nel modo migliore possibile. Niente di meglio.',
     name: 'Alex Iuliani',
     role: 'Ex cofondatore · ALSI Gluten Free',
     avatar: alexIuliani,

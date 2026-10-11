@@ -1,35 +1,41 @@
 ---
-# ⚠ TESTO SCRITTO DA CLAUDE (2026-09-26) su fatti letti nei file del progetto
-# (identità di marca del cliente, prototipo, materiale del sito). Da rivedere
-# con Vlad: i punti incerti sono segnati con DA VERIFICARE nel corpo.
-# ⚠ Il sito online è WordPress + Elementor su Aruba; il progetto React nella
-# cartella del cliente è il prototipo. Non citare le recensioni né le
-# affermazioni sulla sostenibilità del sito: non vengono dal materiale del
-# cliente.
+# Testo riscritto il 2026-10-11 dall'intervista con Vlad: i fatti sono suoi,
+# la forma è mia. Schermate prese dal sito online lo stesso giorno.
+# La citazione di Alex Iuliani è vera, inviata da lui il 2026-10-09 (testo
+# intero in src/data/testimonials.ts): tre estratti, uno per capitolo.
+#
+# ⚠ Sul sito di ALSI restano segnaposto messi dal cliente, da NON mostrare né
+# citare: le recensioni con le stelline («Dicono di noi») e la foto ripetuta
+# sulle tre card dei prodotti. Le schermate li evitano. Non citare nemmeno le
+# frasi sulla sostenibilità: non vengono dal materiale del cliente.
+# ⚠ Vlad non segue più il sito e non ha più gli accessi.
 title: 'ALSI Gluten Free'
-subtitle: 'Il sito di un laboratorio artigianale senza glutine che lavora per ristoranti e negozi'
-description: 'Il sito di ALSI Gluten Free, laboratorio senza glutine di Parma: prodotti per la ristorazione, private label e un’identità da non nascondere.'
+subtitle: 'Il sito di un laboratorio senza glutine di Parma. Avevano già WordPress ed Elementor, ma da soli non ci erano riusciti.'
+description: 'Il sito di ALSI Gluten Free, laboratorio artigianale senza glutine di Parma. L’ho guidato come project manager in JEParma, su WordPress ed Elementor.'
 
 client: 'ALSI Gluten Free'
-role: 'Prototipo e sito web · Area IT JEParma'
+role: 'Project manager · Area IT JEParma'
 year: 2026
 pubDate: 2026-05-07
+updatedDate: 2026-10-11
 
 stack:
   - WordPress
-  - Elementor
-  - React
-  - Vite
-  - Tailwind CSS
+  - Elementor Pro
+  - Aruba
 
+# La foto: tavola-cibo2.jpg (3,8 MB) → tavola-cibo2.webp (154 KB), letti nei
+# file del cliente il 2026-10-11.
 metrics:
+  - label: 'Pagine'
+    value: '5'
+  - label: 'Prodotti in home, i più venduti'
+    value: '3'
   - label: 'Una foto, prima e dopo WebP'
-    value: '3,9 MB → 157 KB'
-  - label: 'Video della hero'
-    value: '1,6 MB'
+    value: '3,8 MB → 154 KB'
 
 cover: ../../assets/progetti/alsi-gluten-free/alsi-gluten-free-home.jpg
-coverAlt: 'La home del sito di ALSI Gluten Free: il payoff «Sì, è Gluten Free» sopra un video di un pasticcere al lavoro'
+coverAlt: 'La home del sito di ALSI Gluten Free: il titolo «Sì, è Gluten Free» sopra il video di un pasticcere al lavoro'
 thumb: ../../assets/progetti/alsi-gluten-free/alsi-gluten-free-miniatura.jpg
 
 liveUrl: 'https://www.alsiglutenfree.com/'
@@ -43,96 +49,122 @@ draft: false
 import Chapter from '../../components/case-study/Chapter.astro';
 import CaseFigure from '../../components/case-study/CaseFigure.astro';
 import CaseQuote from '../../components/case-study/CaseQuote.astro';
-import partner from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-partner-b2b.jpg';
-import prodotti from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-prodotti.jpg';
+import partner from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-partner.jpg';
+import veto from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-veto.jpg';
+import storia from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-storia.jpg';
+import faq from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-faq.jpg';
 import mobile from '../../assets/progetti/alsi-gluten-free/alsi-gluten-free-mobile.jpg';
 
-<Chapter id="contesto" title="Un laboratorio, non un reparto dietetico">
+<Chapter id="contesto" title="Un sito che da soli non erano riusciti a fare">
 
-ALSI Gluten Free è un laboratorio artigianale di Sorbolo Mezzani, in
-provincia di Parma, che produce solo senza glutine: anolini, pane, torte.
-Lavora soprattutto con altre aziende — ristoranti, hotel, negozi
-specializzati — e sviluppa anche prodotti a marchio del cliente.
+ALSI Gluten Free è un laboratorio artigianale di Sorbolo Mezzani, in provincia
+di Parma, che produce solo senza glutine: anolini, pane, torte. Lavora
+soprattutto con ristoranti, hotel e negozi, e sviluppa anche prodotti con il
+marchio del cliente.
 
-L’identità di marca era già pronta quando il progetto è arrivato: quattro
-colori, due caratteri e un payoff che dice tutto con tre parole.
+Alex, uno dei soci, aveva già comprato WordPress ed Elementor Pro e aveva
+provato a farsi il sito da solo. Non ci era riuscito, e si è rivolto a JEParma.
+Io ho seguito il progetto come project manager.
 
-<CaseQuote cite="Il payoff di ALSI">
-  Sì, è Gluten Free.
+<CaseFigure
+  src={partner}
+  alt="La sezione «Creazioni Dedicate ai Nostri Partner»: una card rossa che presenta l’offerta B2B per ristoranti, GDO e negozi specializzati, con le etichette Private Label e Ho.Re.Ca."
+  caption="L’offerta per i partner, cioè il cuore del lavoro di ALSI."
+  size="wide"
+/>
+
+</Chapter>
+
+<Chapter id="sfida" title="Un’azienda giovane, con poca storia da raccontare">
+
+Nel cibo la storia conta molto: chi compra vuole sapere da dove arriva quello
+che mette in tavola. ALSI era nata da poco, e la sua storia era breve. Il sito
+doveva dare peso all’azienda anche così.
+
+E doveva parlare a chi compra per un locale. Per un ristoratore l’argomento ha
+un nome, l’«effetto veto»: basta una persona celiaca per far scegliere a un
+tavolo da dieci un altro ristorante.
+
+<CaseFigure
+  src={veto}
+  alt="La sezione «Conosci il vero costo dell’Effetto Veto?» su fondo nero: un diagramma con dieci coperti e un cliente celiaco, e la frase «Gli interessa non perdere un tavolo da 10 persone solo perché una di loro è celiaca»"
+  caption="L’effetto veto, spiegato a chi gestisce un locale."
+  size="wide"
+/>
+
+<CaseQuote cite="Alex Iuliani, ex cofondatore di ALSI Gluten Free">
+  Dopo una prima fase di confronto per capire le necessità aziendali e gli
+  obiettivi comunicativi, Vlad ha curato tutto il processo.
 </CaseQuote>
 
 </Chapter>
 
-<Chapter id="sfida" title="Parlare a chi compra per un locale">
+<Chapter id="processo" title="Dare peso a una storia breve">
 
-Chi compra per un ristorante non cerca un’emozione, cerca il formato, la
-conservazione e la sicurezza di poterlo servire a un cliente celiaco. Il sito
-doveva dare queste informazioni senza diventare una scheda tecnica, e far
-sentire il senza glutine come una scelta di gusto e non come una rinuncia.
+### Spiegare cosa aspettarsi
 
-Il cuore dell’argomento per un ristoratore ha un nome, l’«effetto veto»: basta
-una persona celiaca per far scegliere a un tavolo da dieci un altro locale.
+Al primo incontro abbiamo parlato di cosa volevano nel sito, e io ho spiegato
+come funziona un sito e cosa potevano aspettarsi. Foto, video e materiali li
+avevano già, come la loro identità di marca: l’ho ripresa, mettendoci molto
+del mio.
 
-</Chapter>
+### Meno catalogo, più azienda
 
-<Chapter id="processo" title="Prima il prototipo, poi il sito">
-
-### Un prototipo per decidere
-
-Ho costruito prima un prototipo in React, con Vite e Tailwind, per mettere
-davanti al cliente la struttura e il tono del sito prima di costruirlo
-davvero: la hero con il video, la parte dedicata ai partner, i prodotti, la
-storia. Era il modo più veloce di discutere di una cosa che si può guardare
-invece che di una descrizione.
+In home non ho messo tutti i prodotti, ma solo i tre che vendono di più. Lo
+spazio guadagnato è andato all’azienda: la sua storia, i suoi valori, e una
+pagina di domande frequenti. Servivano a dare importanza all’azienda anche con
+una storia breve.
 
 <CaseFigure
-  src={partner}
-  alt="La sezione per i partner: il titolo «Artigiani del Senza Glutine» e una card rossa «Creazioni Dedicate ai Nostri Partner» con le etichette Private Label e Ho.Re.Ca."
-  caption="La parte per i partner viene prima del catalogo: è a loro che il sito parla."
+  src={storia}
+  alt="La pagina «Chi siamo»: il titolo «Tutto nasce da un’opportunità» accanto a due riquadri, «L’Incontro Perfetto» e una citazione dei soci su fondo rosso"
+  caption="La storia dei soci, nella pagina Chi siamo."
   size="wide"
 />
 
-### Poi WordPress
-
-Il sito online è in WordPress con Elementor.
-
-{/* DA VERIFICARE: perché WordPress (il cliente voleva aggiornarlo da solo?
-    l'hosting era già su Aruba?). Scriverlo qui è la parte più utile per chi
-    legge. */}
-
-### I prodotti, con i dati che servono
-
-Ogni prodotto in vetrina porta il formato per la ristorazione e la durata da
-surgelato: gli anolini in cartoni da tre chili e diciotto mesi di
-conservazione, il pane in cartoni da due chili e mezzo, le torte intere da un
-chilo.
+<CaseQuote cite="Alex Iuliani, ex cofondatore di ALSI Gluten Free">
+  Il tutto mantenendo coerenti brand identity e proponendo soluzioni alle
+  quali non avevo pensato.
+</CaseQuote>
 
 <CaseFigure
-  src={prodotti}
-  alt="La sezione dei prodotti: tre card con anolini tradizionali, pane casereccio e torte artigianali, ognuna con formato B2B e durata di conservazione"
-  caption="Formato e conservazione sono sulla card, non in una pagina a parte."
+  src={faq}
+  alt="La sezione delle domande frequenti, «Ancora qualche curiosità?», con tre schede (Prodotto, Processo, Collaborazione) e le domande in fisarmonica su fondo rosso scuro"
+  caption="Le domande frequenti, divise per argomento."
   size="wide"
 />
 
-### Il peso delle immagini
+### Elementor, la parte più difficile
 
-Le foto del laboratorio arrivavano pesanti, direttamente dalla macchina
-fotografica: le ho convertite in WebP, e la più grande è passata da 3,9 MB a
-157 KB. Il video della hero, ottimizzato, pesa 1,6 MB.
+Elementor non è lo strumento con cui lavoro: è lento e va contro la logica di
+un programmatore. E il lavoro era tantissimo.
+
+Per fortuna sono arrivati Eugenio e Riccardo a darmi una mano. Hanno imparato
+lo strumento in fretta, e insieme ne abbiamo tirato fuori qualcosa di bello.
+
+### Testi e immagini
+
+I testi li ho scritti con l’AI, partendo dai materiali del cliente, e li ha
+corretti Gaia, la copywriter del gruppo. Le foto arrivavano pesanti,
+direttamente dalla macchina fotografica: le ho convertite in WebP, e la più
+grande è passata da 3,8 MB a 154 KB.
 
 </Chapter>
 
-<Chapter id="risultato" title="Online">
+<Chapter id="risultato" title="Online, come concordato">
 
-Il sito è online su alsiglutenfree.com.
+Il sito è online su alsiglutenfree.com. Oggi lo gestiscono loro: non è più un
+progetto che seguo io.
 
-{/* DA VERIFICARE: cosa è cambiato per ALSI dopo il sito (richieste da
-    ristoranti, contatti per il private label). */}
+<CaseQuote cite="Alex Iuliani, ex cofondatore di ALSI Gluten Free">
+  In due righe: avevo bisogno di un sito, lui l’ha creato nel modo migliore
+  possibile. Niente di meglio.
+</CaseQuote>
 
 <CaseFigure
   src={mobile}
-  alt="Tre schermate del sito su telefono: la home con il payoff, la sezione per i partner e la card degli anolini tradizionali"
-  caption="Da telefono: la home, la parte per i partner e i prodotti."
+  alt="Tre schermate del sito su telefono: la home con «Sì, è Gluten Free», la pagina Chi siamo con «Cambiare il mondo del gluten free» e la pagina contatti con «Coltiviamo Relazioni»"
+  caption="Da telefono: la home, Chi siamo e i contatti."
   size="wide"
 />
 
