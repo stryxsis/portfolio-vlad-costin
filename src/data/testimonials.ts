@@ -62,7 +62,11 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      'In JEParma Vlad è quello a cui passi un progetto sapendo che arriverà in fondo. Il sito del Network Day l’ha costruito mentre seguiva anche i clienti, e per la prima volta i partecipanti sono arrivati all’evento sapendo già dove andare.',
+      /* ⚠ PROVVISORIA, scritta da me: va sostituita con le parole di Andrea.
+         Corretta il 2026-10-12 su richiesta di Vlad: col Network Day era
+         appena entrato in JEParma e non seguiva altri clienti, e non è vero
+         che i partecipanti siano arrivati «sapendo dove andare». */
+      'Il sito del Network Day è stato il primo progetto di Vlad in JEParma: era appena entrato. Quello che non conosceva l’ha imparato strada facendo, e il sito era online prima dell’evento. È quello a cui passi un progetto sapendo che arriverà in fondo.',
     name: 'Andrea D’Amico',
     // U+2060 attorno al trattino: su telefono l'anno andava a capo a metà.
     role: 'Ex presidente · JEParma 2025\u2060–\u20602026',
