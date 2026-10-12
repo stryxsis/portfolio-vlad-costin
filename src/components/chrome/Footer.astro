@@ -152,6 +152,13 @@ const LEGALI = [
     border-top: 1px solid var(--color-hairline);
     padding-top: clamp(4.5rem, 9vw, 8rem);
   }
+  /* Sotto i 900px il dock della navigazione sta fisso in basso: senza questa
+     riserva, a fine pagina la firma finirebbe sotto la pillola. */
+  @media (max-width: 56.1875rem) {
+    .foot {
+      padding-bottom: var(--dock-space);
+    }
+  }
 
   /* ═══ IL BAGLIORE ════════════════════════════════════════════════════════
      La CODA della luce della CTA della Home, che ha la sorgente 5svh sotto il

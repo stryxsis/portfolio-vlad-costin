@@ -208,12 +208,27 @@
    Tailwind genererebbe una utility morta per ognuna. */
 :root {
   --nav-h: 4.5rem;
+  /* Il dock in basso (Navbar.astro, sotto i 900px): distanza dal bordo e
+     ingombro totale, che il footer riserva in fondo pagina per non far finire
+     l'ultima riga sotto la pillola. 52px di pillola + la distanza. */
+  --dock-gap: 0.75rem;
+  --dock-space: calc(3.25rem + var(--dock-gap) * 2);
   --z-below: -1;
   --z-base: 0;
   --z-raised: 1;
   --z-sticky: 10;
   --z-nav: 100;
   --z-overlay: 1000;
+}
+
+/* Sotto i 900px la barra in alto non c'è più (2026-10-12): la navigazione è il
+   dock in basso. `--nav-h` resta la riserva in cima che ogni pagina somma al
+   proprio padding, ridotta a un respiro: tenerla a 4.5rem lascerebbe una fascia
+   vuota sopra ogni hero, al posto di una barra che non esiste. */
+@media (max-width: 56.1875rem) {
+  :root {
+    --nav-h: 1rem;
+  }
 }
 
 @layer base {
@@ -493,6 +508,11 @@ html.ld-on .hero * {
 
 .nav__bar {
   view-transition-name: nav-bar;
+}
+/* Il dock di telefono e tablet: stesso motivo, resta fermo nel cambio pagina.
+   Le due non sono mai visibili insieme, quindi due nomi non litigano. */
+.nav__dock {
+  view-transition-name: nav-dock;
 }
 
 ::view-transition-old(root) {
