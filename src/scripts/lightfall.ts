@@ -240,6 +240,16 @@ uniform vec2  uGuardCenter;
 uniform vec2  uGuardRadius;
 uniform float uFloorFade;
 
+/* L'INGRESSO (2026-10-12). uIntro = secondi dall'inizio; oltre ~1e3 è finito
+   e il ramo non costa niente. uTop è l'angolo della superficie che cade sul
+   bordo ALTO dello schermo (lo calcola il JS, dipende dalla forma della
+   finestra); uFrontSpeed quanto in fretta un filamento si disegna verso il
+   basso, in radianti al secondo. Vedi il blocco nel ciclo delle scie. */
+uniform float uIntro;
+uniform float uIntroSpan;
+uniform float uTop;
+uniform float uFrontSpeed;
+
 varying vec2 vUv;
 
 const float TAU = 6.28318530718;
@@ -341,7 +351,42 @@ void mainImage(out vec4 o, vec2 C) {
     float weight = mix(1.5, 1.0 + sin(T + 7.0 * h + 4.0), uTwinkle);
     vec2 inner = vec2(length(max(Pp, vec2(-1.0, 0.0))), length(Pp) - zr) - zr;
     vec2 sm = vec2(1.0) - smoothstep(-rr, rr, inner);
-    O.rgb += dot(sm, vec2(exp(tail * Pp.y), 3.0)) * col * weight;
+    float scia = dot(sm, vec2(exp(tail * Pp.y), 3.0));
+
+    /* ═══ L'INGRESSO: i filamenti cadono dall'alto, pochi e poi sempre più ═══
+       Chiesto da Vlad il 2026-10-12: «non che compaiano a caso, ma che
+       scendano da sopra, poche alla volta, poi sempre di più».
+       Ogni CORSIA (una colonna della superficie per una delle uStreakCount
+       scie) si accende a un istante suo, tb. Da lì un FRONTE parte dal bordo
+       alto e scende: sopra il fronte la corsia si vede, sotto ancora no. Sul
+       fronte viaggia una testa luminosa, disegnata con la stessa forma di una
+       scia — è lei a leggersi come «una linea che cade».
+       ⚠ Perché un fronte e non la caduta naturale delle scie: a velocità di
+       crociera una scia attraversa lo schermo in 15-30 secondi (misurato
+       sull'angolo: lo schermo copre ~0.54 rad e la testa ne fa 0.02-0.04 al
+       secondo). Aspettare che entrino da sole vorrebbe dire mezzo minuto di
+       hero mezza vuota.
+       ⚠ tb = span · √hash, NON span · hash: con la radice gli istanti si
+       addensano verso la fine — poche corsie all'inizio, poi sempre di più. */
+    if (uIntro < 1e3) {
+      float lh = fract(sin(dot(vec2(jf * 1.37, floor(C.x / Y.x + 0.5)), vec2(12.9898, 78.233))) * 43758.5453);
+      float el = uIntro - uIntroSpan * sqrt(lh);
+      float front = el < 0.0 ? -10.0 : uTop + el * uFrontSpeed * (0.75 + 0.5 * ic);
+      /* ⚠ L'angolo va SROTOLATO: è un atan(), e sugli schermi alti il bordo
+         basso supera π e ricomincia da −π (390×844: 1,76 in alto, −3,11 in
+         basso). Senza, quella fascia risultava «sopra» qualunque fronte e
+         compariva subito, mentre il fronte stesso non la raggiungeva mai.
+         Sopra il bordo alto non c'è schermo, quindi un angolo più piccolo di
+         uTop può solo essere uno che ha fatto il giro. */
+      float cy = C.y < uTop - 0.25 ? C.y + TAU : C.y;
+      scia *= smoothstep(front + 0.015, front - 0.015, cy);
+      vec2 Pf = vec2(Pp.x, cy - front);
+      vec2 innerF = vec2(length(max(Pf, vec2(-1.0, 0.0))), length(Pf) - zr) - zr;
+      vec2 smF = vec2(1.0) - smoothstep(-rr, rr, innerF);
+      scia += dot(smF, vec2(exp(0.45 * tail * Pf.y), 3.0));
+    }
+
+    O.rgb += scia * col * weight;
     C.x += Y.x / 8.0;
   }
 
@@ -380,6 +425,40 @@ void main() {
   gl_FragColor = color;
 }
 `;
+
+/* L'angolo della superficie del tunnel sotto un pixel: la stessa sceneC() dello
+   shader, rifatta in JS. Serve UNA volta per resize, per sapere quale angolo
+   cade sul bordo alto e quale su quello basso — dipende dalla forma della
+   finestra (1440×900: 2,21 in alto, 2,75 in basso). ⚠ Se cambia sceneC() o
+   lo zoom nello shader, va cambiata con lei. */
+function angoloSuperficie(fx: number, fy: number, rx: number, ry: number): number {
+  const px = (2 * fx - rx) / rx;
+  const py = (2 * fy - ry) / rx;
+  const n = Math.hypot(px, py, P.zoom);
+  const dx = px / n;
+  const dy = py / n;
+  const dz = P.zoom / n;
+  let z = 0;
+  let d = 1e3;
+  let oy = 0;
+  let oz = 0;
+  for (let k = 0; k < 39 && d > 1e-4; k++) {
+    const ox = z * dx;
+    oy = z * dy - 4 / 4.5;
+    oz = z * dz - 1 / 4.5;
+    d = 1 - Math.sqrt(Math.hypot(ox * ox, oy * oy, oz * oz));
+    z += d;
+  }
+  return Math.atan2(oz, oy);
+}
+
+/** L'ingresso, in secondi: in quanto tempo si accendono tutte le corsie, e in
+ *  quanto una corsia di velocità media si disegna dall'alto al basso. */
+const INGRESSO_SPAN = 2.4;
+const INGRESSO_DISCESA = 1.3;
+/* Fine dell'ingresso: l'ultima corsia si accende a SPAN e la più lenta (0,75
+   della media) scende in DISCESA/0,75. Oltre, lo shader salta il ramo. */
+const INGRESSO_FINE = INGRESSO_SPAN + INGRESSO_DISCESA / 0.75 + 0.2;
 
 function webglDisponibile(): boolean {
   try {
@@ -468,6 +547,11 @@ export function initLightfall(): void {
       uGuardCenter: { value: [0, P.guardiaCentroY] },
       uGuardRadius: { value: [P.guardiaRaggioX, P.guardiaRaggioY] },
       uFloorFade: { value: P.pavimento },
+      /* Con movimento ridotto niente ingresso: il fotogramma fermo è pieno. */
+      uIntro: { value: fermo ? 1e4 : 0 },
+      uIntroSpan: { value: INGRESSO_SPAN },
+      uTop: { value: 2.2 },
+      uFrontSpeed: { value: 0.42 },
     },
   });
   const mesh = new Mesh(gl, { geometry, program });
@@ -482,7 +566,15 @@ export function initLightfall(): void {
     const h = host.clientHeight;
     if (w === 0 || h === 0) return;
     renderer.setSize(w, h);
-    program.uniforms.iResolution!.value = [gl.drawingBufferWidth, gl.drawingBufferHeight, 1];
+    const bw = gl.drawingBufferWidth;
+    const bh = gl.drawingBufferHeight;
+    program.uniforms.iResolution!.value = [bw, bh, 1];
+    const alto = angoloSuperficie(bw / 2, bh, bw, bh);
+    let basso = angoloSuperficie(bw / 2, 0, bw, bh);
+    // Stesso srotolamento dello shader: su uno schermo alto il basso fa il giro.
+    if (basso < alto) basso += Math.PI * 2;
+    program.uniforms.uTop!.value = alto;
+    program.uniforms.uFrontSpeed!.value = (basso - alto) / INGRESSO_DISCESA;
     // Il primo fotogramma dopo un resize va ridisegnato subito anche da fermi,
     // o resterebbe lo stretch del buffer precedente.
     if (fermo) disegna(0);
@@ -522,6 +614,9 @@ export function initLightfall(): void {
     const dt = ultimo === 0 ? 16 : Math.min(ora - ultimo, 50);
     ultimo = ora;
     tempo += dt;
+    // Il tempo dell'ingresso è lo stesso orologio accumulato: se la scheda va
+    // in secondo piano a metà, riprende da dove era invece di saltare alla fine.
+    program.uniforms.uIntro!.value = tempo / 1000 < INGRESSO_FINE ? tempo / 1000 : 1e4;
     disegna(tempo);
     /* Si accende DOPO il primo fotogramma disegnato, non all'avvio: è il
        primo `render()` a compilare davvero lo shader, ed è quello il momento

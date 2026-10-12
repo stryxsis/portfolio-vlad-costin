@@ -1224,6 +1224,14 @@ Vlad: alla prima visita il titolo si vedeva «tutto sfocato per un buon secondo�
 - **Il canvas resta nascosto finché non ha disegnato** (`Lightfall.astro`): un canvas WebGL opaco mai disegnato è nero, e copriva il fondale statico per ~400ms.
 - Misurato a CPU 4× e rete lenta: titolo a larghezza 0 fino a ~1,9s, poi sfocato → nitido in ~1s, `opacity` sempre 1. Movimento ridotto: tutto visibile da subito.
 
+### 2026-10-12: le scie del Lightfall entrano cadendo dall'alto
+
+Vlad: le linee comparivano «tutte insieme, a caso»; le vuole che **scendano da sopra, poche alla volta, poi sempre di più**, finché la hero è piena. Nello shader (`lightfall.ts`, blocco «L'INGRESSO»):
+- Ogni **corsia** (colonna della superficie × una delle scie) si accende a `tb = INGRESSO_SPAN · √hash` — la radice addensa le accensioni verso la fine. Da lì un **fronte** scende dal bordo alto: sopra la corsia si vede, sotto no, e sul fronte viaggia una testa luminosa con la forma di una scia. Tutto acceso in ~4s (`INGRESSO_SPAN` 2,4s, `INGRESSO_DISCESA` 1,3s), poi il ramo si spegne (`uIntro = 1e4`).
+- ⚠ **Non si è usata la caduta naturale delle scie**: a velocità di crociera una scia attraversa lo schermo in 15-30s.
+- ⚠ `uTop`/`uFrontSpeed` li calcola il JS **rifacendo `sceneC()` in `angoloSuperficie()`**: se cambia il raymarch o lo zoom, va cambiata con lui. E l'angolo va **srotolato**: su schermi alti il bordo basso supera π (390×844: 1,76 in alto, −3,11 in basso), e senza la correzione su telefono il fronte andava all'indietro.
+- Movimento ridotto: niente ingresso, fotogramma pieno come prima.
+
 ### 2026-10-12: la navigazione da telefono è un dock in basso
 
 Vlad: su telefono e tablet (sotto i 900px) la navbar deve essere **la pillola dello stato compatto, ma in basso, con le icone al posto delle scritte**. Fatto in `Navbar.astro`: il menu a tendina (`<details>`) è stato **tolto**, e con lui la parte mobile di `nav.ts` (`lenis.stop()`, Escape).
