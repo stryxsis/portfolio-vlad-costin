@@ -1215,6 +1215,15 @@ Vlad: «fammi l'effetto handoff in qualsiasi punto in cui pensi abbia senso […
 - ⚠ **Variante `tall` di `Handoff`**: un'uscente PIÙ ALTA di uno schermo si incolla quando il suo FONDO tocca il fondo dello schermo (`top` negativo misurato da `stage.ts` in `--ho-out-top`, origine del rientro al centro della parte visibile). Si legge tutta, poi l'ultima schermata resta ferma e l'entrante le sale sopra. Senza la variabile il `top` non è valido, vale `auto` e lo sticky non fa niente: niente fallback di proposito.
 - **Le due chiusure ora salgono sopra la sezione prima, come la CTA della Home**: /portfolio «Fuori programma» → CTA (handoff `invito`, terzo livello di annidamento), /chi-sono inventario → scelta finale (`chiusura`). Entrambe le entranti riempiono `--ho-in-floor`. Verificato a 1440×900, 1440×720, 1280×800, 1920×1080, 1024×768 (rientro monotono fino a 0,96/0,45) e a 390 (in flusso). **Non messo**: /contatti (una sezione), case study (il «Prossimo lavoro» è una riga), pagine legali (documenti da leggere).
 
+### 2026-10-12: la hero di /portfolio aspetta il fondale
+
+Vlad: alla prima visita il titolo si vedeva «tutto sfocato per un buon secondo» mentre lo sfondo si caricava; lo vuole **invisibile finché lo sfondo non entra in gioco**, poi con la stessa entrata della Home. In `PortfolioHero.astro`:
+- **Tutti gli ingressi in pausa** (`animation-play-state: paused`) finché non c'è `html.lf-acceso`. La accende `lightfall.ts` **un rAF dopo il primo fotogramma disegnato** (è il primo `render()` a compilare lo shader, il momento lento), oppure subito dove WebGL non c'è e con movimento ridotto. ⚠ Ogni nuova strada d'uscita da `initLightfall()` deve chiamare `accendi()`, o la hero resta vuota fino al watchdog.
+- **Watchdog inline a 3s** nel markup della hero: se il bundle non arriva nessuno accenderebbe la classe.
+- **Titolo e coda: `scale(0)` di riposo + `forwards`** (era `both`), la stessa correzione dell'h1 di /chi-sono del 2026-08-24: con `both` il fotogramma sfocato si vede durante l'attesa. Mai `opacity` (regola LCP). ⚠ `ph-fuoco` ha ora un `to` esplicito: quello implicito prenderebbe il `scale(0)` di riposo.
+- **Il canvas resta nascosto finché non ha disegnato** (`Lightfall.astro`): un canvas WebGL opaco mai disegnato è nero, e copriva il fondale statico per ~400ms.
+- Misurato a CPU 4× e rete lenta: titolo a larghezza 0 fino a ~1,9s, poi sfocato → nitido in ~1s, `opacity` sempre 1. Movimento ridotto: tutto visibile da subito.
+
 ### 2026-10-12: la navigazione da telefono è un dock in basso
 
 Vlad: su telefono e tablet (sotto i 900px) la navbar deve essere **la pillola dello stato compatto, ma in basso, con le icone al posto delle scritte**. Fatto in `Navbar.astro`: il menu a tendina (`<details>`) è stato **tolto**, e con lui la parte mobile di `nav.ts` (`lenis.stop()`, Escape).

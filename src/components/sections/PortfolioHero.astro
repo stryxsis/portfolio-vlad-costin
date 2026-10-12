@@ -60,6 +60,17 @@ const { href = '#lavori' } = Astro.props;
 
 <section class="ph" data-section id="portfolio">
   <Lightfall />
+  {/* ⚠ IL WATCHDOG DELL'ATTESA (vedi «L'ATTESA DEL FONDALE» negli stili).
+      Le scritte restano nascoste finché `lightfall.ts` non accende
+      `html.lf-acceso`: se il bundle non arriva o lo shader si rompe, nessuno lo
+      accenderebbe mai e la hero resterebbe VUOTA per sempre. Inline e non nel
+      bundle proprio per questo: deve girare anche quando il bundle non gira.
+      Senza JS non serve — senza `js-anim` non c'è nessuna attesa. */}
+  <script is:inline>
+    setTimeout(function () {
+      document.documentElement.classList.add('lf-acceso');
+    }, 3000);
+  </script>
 
   <div class="ph__wrap">
     {
@@ -251,6 +262,14 @@ const { href = '#lavori' } = Astro.props;
       transform: translate3d(0, 0.18em, 0);
       filter: blur(20px);
     }
+    /* ⚠ `to` ESPLICITO, e non è ridondante: il riposo del titolo è
+       `scale(0)` (vedi l'attesa del fondale più sotto), e un keyframe `to`
+       implicito prende proprio il valore di riposo — il titolo si metterebbe
+       a fuoco rimpicciolendosi fino a sparire. */
+    to {
+      transform: none;
+      filter: none;
+    }
   }
   /* Generica per tutto ciò che NON è il candidato LCP: qui l'opacità è
      ammessa perché nessuno di questi è mai l'elemento più grande sopra la
@@ -266,14 +285,46 @@ const { href = '#lavori' } = Astro.props;
   :global(html.js-anim) .ph__idx {
     animation: ph-entra 600ms var(--ease-out-expo) 120ms both;
   }
+  /* ⚠ `forwards` E NON `both`, più `scale(0)` di riposo: è la stessa
+     correzione già fatta sull'h1 di /chi-sono (2026-08-24). Con `both` il
+     titolo mostra il fotogramma di partenza — sfocato ma PRESENTE — anche
+     durante il ritardo e durante l'attesa del fondale qui sotto: era il
+     «titolo tutto sfocato per un secondo» segnalato da Vlad il 2026-10-12.
+     Con `forwards` durante l'attesa vale lo stile di riposo, `scale(0)`, cioè
+     area dipinta zero: invisibile davvero, senza toccare `opacity` (regola
+     LCP). Allo scadere del ritardo l'animazione salta al suo `from` sfocato e
+     si mette a fuoco, come il titolo della Home quando si alza il velo. */
   :global(html.js-anim) .ph__title {
-    animation: ph-fuoco 950ms var(--ease-out-expo) 260ms both;
+    transform: scale(0);
+    animation: ph-fuoco 950ms var(--ease-out-expo) 260ms forwards;
   }
   /* La coda entra dopo la prima riga: sono due frasi, e arrivano in ordine.
      ⚠ Anche lei senza `opacity`: è dentro l'h1, quindi fa parte dello stesso
-     candidato LCP. */
+     candidato LCP. Ha il suo `scale(0)` di riposo perché parte DOPO il
+     titolo: senza, nell'intervallo fra i due ritardi la coda sarebbe già lì,
+     nitida, sotto un titolo ancora sfocato. */
   :global(html.js-anim) .ph__coda {
-    animation: ph-fuoco 900ms var(--ease-out-expo) 520ms both;
+    transform: scale(0);
+    animation: ph-fuoco 900ms var(--ease-out-expo) 520ms forwards;
+  }
+
+  /* ═══ L'ATTESA DEL FONDALE (2026-10-12) ═══════════════════════════════════
+     Vlad: «la prima volta deve scaricare lo sfondo e si vede la scritta tutta
+     sfocata per un buon secondo — vorrei che all'inizio non si vedesse proprio,
+     e che comparisse quando entra in gioco lo sfondo, come nella Home».
+     È il meccanismo del velo della Home (`html.ld-on`) senza il velo: TUTTI gli
+     ingressi della hero restano in pausa finché `lightfall.ts` non accende
+     `html.lf-acceso` — al primo fotogramma dello shader già a schermo, oppure
+     subito dove lo shader non c'è (niente WebGL: il fondale è quello statico).
+     Congelare è sicuro perché tutti i ritardi qui sono POSITIVI (una pausa su
+     un ritardo negativo mostrerebbe un fotogramma a metà, vedi la CTA).
+     Il watchdog inline nel markup accende la classe comunque a 3s. */
+  :global(html.js-anim:not(.lf-acceso)) .ph__idx,
+  :global(html.js-anim:not(.lf-acceso)) .ph__title,
+  :global(html.js-anim:not(.lf-acceso)) .ph__coda,
+  :global(html.js-anim:not(.lf-acceso)) .ph__lede,
+  :global(html.js-anim:not(.lf-acceso)) .ph__cta {
+    animation-play-state: paused;
   }
   :global(html.js-anim) .ph__lede {
     animation: ph-entra 700ms var(--ease-out-expo) 760ms both;

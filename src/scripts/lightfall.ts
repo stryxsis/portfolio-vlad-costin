@@ -390,13 +390,22 @@ function webglDisponibile(): boolean {
   }
 }
 
+/* Il segnale per la hero di /portfolio: «il fondale c'è, le scritte possono
+   entrare». Finché manca, PortfolioHero tiene in pausa i propri ingressi (vedi
+   «L'ATTESA DEL FONDALE» lì). Va acceso su OGNI strada d'uscita da qui sotto,
+   o la hero resta vuota fino al watchdog. */
+const accendi = (): void => document.documentElement.classList.add('lf-acceso');
+
 export function initLightfall(): void {
   const host = document.querySelector<HTMLElement>('[data-lightfall]');
   if (!host) return;
 
   /* Senza WebGL non si crea niente e resta il fondale statico dichiarato in CSS
      dal componente: la hero non dipende dallo shader per essere completa. */
-  if (!webglDisponibile()) return;
+  if (!webglDisponibile()) {
+    accendi();
+    return;
+  }
 
   /* ⚠ CON MOVIMENTO RIDOTTO IL FONDALE RESTA, FERMO — al contrario del globo
      della 404, che in quel ramo non viene creato affatto. La differenza è cosa
@@ -489,6 +498,7 @@ export function initLightfall(): void {
        apposta), ma un valore lontano dall'origine evita che le fasi delle scie
        cadano tutte sullo stesso allineamento iniziale. */
     disegna(7400);
+    accendi();
     return;
   }
 
@@ -506,12 +516,20 @@ export function initLightfall(): void {
   let tempo = 0;
   let ultimo = 0;
 
+  let primo = true;
   const ciclo = (ora: number): void => {
     rafId = requestAnimationFrame(ciclo);
     const dt = ultimo === 0 ? 16 : Math.min(ora - ultimo, 50);
     ultimo = ora;
     tempo += dt;
     disegna(tempo);
+    /* Si accende DOPO il primo fotogramma disegnato, non all'avvio: è il
+       primo `render()` a compilare davvero lo shader, ed è quello il momento
+       lento. Il rAF successivo è il primo in cui quel fotogramma è a schermo. */
+    if (primo) {
+      primo = false;
+      requestAnimationFrame(accendi);
+    }
   };
 
   const avvia = (): void => {

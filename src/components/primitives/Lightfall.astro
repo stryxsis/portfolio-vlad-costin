@@ -86,4 +86,12 @@
     left: 0;
     display: block;
   }
+  /* ⚠ Il canvas viene appeso PRIMA del primo `render()`, che è il momento
+     lento (compila lo shader): in quell'intervallo un canvas WebGL opaco mai
+     disegnato è NERO, e copriva il fondale statico con un buco scuro per
+     ~400ms (misurato a CPU 4×). Resta nascosto finché `lightfall.ts` non
+     accende `html.lf-acceso`, cioè a fotogramma già a schermo. */
+  :global(html:not(.lf-acceso)) .lf :global(.lf__canvas) {
+    visibility: hidden;
+  }
 </style>
