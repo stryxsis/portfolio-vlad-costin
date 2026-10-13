@@ -95,7 +95,11 @@ export function initStages(): void {
          misura qui e si riscrive a ogni cambio di misura. Il rientro rimpicciolisce
          verso il centro della parte VISIBILE: dal centro della sezione intera
          (che sta sopra lo schermo) sembrerebbe scivolare verso l'alto. */
-      if (screen.dataset.screenTall !== undefined) {
+      /* Su telefono lo schermo di un Handoff `mobile` è trattato SEMPRE come
+         alto: il titolo della sezione scorre via e si incolla il solo mazzo
+         (vedi Handoff.astro). Se la sezione sta in uno schermo, la misura dà 0
+         e tutto torna lo sticky di sempre. */
+      if (screen.dataset.screenTall !== undefined || soloMobile) {
         const misura = () => {
           const h = screen.offsetHeight;
           screen.style.setProperty('--ho-out-top', `${Math.min(0, window.innerHeight - h)}px`);
@@ -260,7 +264,12 @@ export function initStages(): void {
         defaults: { ease: 'none', duration: 1 },
         scrollTrigger: {
           trigger,
-          start: 'top top',
+          /* Il mazzo parte quando lo schermo SI INCOLLA. Da desktop lo schermo è
+             alto una viewport e questo è `top top`; su telefono è più alto (il
+             titolo scorre via prima, vedi Handoff `mobile`) e si incolla dopo
+             averne fatto scorrere l'eccedenza. La corsa resta `travel`: è quanto
+             lo schermo resta incollato prima che l'entrante lo raggiunga. */
+          start: () => `top+=${Math.max(0, (screen?.offsetHeight ?? 0) - window.innerHeight)} top`,
           end: () => `+=${travel?.offsetHeight ?? window.innerHeight * 2}`,
           scrub: true,
           invalidateOnRefresh: true,

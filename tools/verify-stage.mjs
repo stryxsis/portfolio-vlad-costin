@@ -345,9 +345,18 @@ check(
    (cioè hanno finito di salire da sotto). È l'invariante di M16, e non duplica
    nessun valore del CSS o della timeline: se domani si ritoccano LEAD, STEP o
    la durata, questo controllo resta valido. */
+/* ⚠ Su telefono lo schermo di §30 è più alto della viewport (Handoff `mobile`,
+   2026-10-13): titolo e bottone scorrono via e lo schermo si incolla DAL FONDO,
+   a `top` negativo, dopo averne fatto scorrere l'eccedenza. La corsa comincia
+   lì, e "incollato" significa fermo al proprio `top` di sticky, non a 0. Da
+   desktop l'eccedenza è 0 e il `top` è 0: nulla cambia. */
+const feat = await evalJson(`
+  const scr = document.querySelector('[data-screen="featured"]');
+  return { excess: Math.max(0, scr.offsetHeight - innerHeight), top: parseFloat(getComputedStyle(scr).top) || 0 };
+`);
 const seen = [];
 for (const frac of [0.05, 0.2, 0.4, 0.55, 0.75, 0.98]) {
-  await scrollTo(geo.featTop + geo.travelH * frac);
+  await scrollTo(geo.featTop + feat.excess + geo.travelH * frac);
   await sleep(700); // lo scrub ha un catch-up: non campionare a metà
   const s = await evalJson(`
     const cs = [...document.querySelectorAll('[data-stack-card]')];
@@ -423,7 +432,7 @@ check(
   arrived.join(' -> ')
 );
 check(
-  seen.every((s) => Math.abs(s.scrTop) <= STUCK_TOLERANCE),
+  seen.every((s) => Math.abs(s.scrTop - feat.top) <= STUCK_TOLERANCE),
   'lo schermo §30 resta incollato per tutta la corsa',
   seen.map((s) => s.scrTop).join(', ')
 );

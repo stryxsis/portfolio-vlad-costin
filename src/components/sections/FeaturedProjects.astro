@@ -1613,24 +1613,35 @@ const TURNS = [
      soglia è la stessa in stage.ts e in Handoff.astro.
      ⚠ `padding-bottom` riserva il dock della navigazione, che su telefono sta
      fisso in basso: senza, la parte bassa del mazzo finirebbe sotto la pillola. */
+  /* ⚠ SECONDA VERSIONE (stesso giorno, richiesta di Vlad): «abbiamo poco
+     spazio». Nella prima la sezione intera — indice, titolo, bottone E mazzo —
+     doveva stare in uno schermo, e al mazzo restava poco più di metà altezza.
+     Ora la sezione è PIÙ ALTA di uno schermo: indice, titolo e bottone scorrono
+     via normalmente, e il mazzo (alto quanto la viewport meno il dock) si
+     incolla appena il bottone è uscito in alto. Lo sticky dal fondo lo fa
+     Handoff `mobile`, la partenza del mazzo stage.ts. */
   @media (width < 56.25rem) and (min-height: 43.75rem) {
     :global(html.js-anim) .fp {
+      height: auto;
       padding-top: calc(var(--nav-h) + 1.5rem);
       padding-bottom: var(--dock-space);
     }
     /* Su telefono `.fp__wrap` non è una griglia (quella a 12 colonne parte dai
-       900px): indice, titolo e bottone stanno in fila, e la riga elastica deve
-       essere la QUARTA, quella del mazzo. Senza, lo stack misurava 0px. */
+       900px): indice, titolo, bottone e mazzo in fila. */
     :global(html.js-anim) .fp__wrap {
       display: grid;
+      height: auto;
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto auto auto minmax(0, 1fr);
+      grid-template-rows: auto;
     }
     :global(html.js-anim) .fp__cta-row {
       margin-top: 1rem;
     }
+    /* L'altezza del mazzo è la viewport meno il dock e un respiro in cima:
+       incollato, il mazzo occupa tutto lo schermo che il dock lascia libero. */
     :global(html.js-anim) .fp__stack {
       margin-top: 1.25rem;
+      height: calc(100svh - var(--dock-space) - 0.75rem);
     }
     :global(html.js-anim) .fp__card {
       grid-template-rows: auto minmax(0, 1fr);
@@ -1665,24 +1676,26 @@ const TURNS = [
       line-clamp: 3;
       overflow: hidden;
     }
+    /* La riga esplicita a tutta altezza serve a `.fp__fit` qui sotto: con la
+       riga implicita (`auto`) e la size containment del figlio, la riga
+       misurava 0 e con lei `cqh` — il telefono spariva. */
     :global(html.js-anim) .fp__shot {
       padding: 0.25rem 1.25rem 0;
-      align-content: start;
+      grid-template-rows: minmax(0, 1fr);
+      align-content: stretch;
     }
+    /* Il telefono si misura sull'ALTEZZA libera nella card (`cqh`), non sulla
+       larghezza: largo la metà di quell'altezza, cioè alto circa l'8% in più —
+       entra dall'alto e il fondo della card lo taglia appena, a ogni misura di
+       schermo. Con una larghezza fissa restava piccolo con un vuoto sotto sui
+       telefoni alti, e tagliato a metà su quelli bassi. */
     :global(html.js-anim) .fp__fit {
       height: 100%;
       align-content: start;
+      container-type: size;
     }
     :global(html.js-anim) .fp__phone {
-      width: min(58%, 14rem);
-    }
-  }
-  /* Telefoni bassi (sotto gli 800px d'altezza): la descrizione scende a due
-     righe, o il telefono nella card si riduce a una striscia. */
-  @media (width < 56.25rem) and (min-height: 43.75rem) and (max-height: 49.99rem) {
-    :global(html.js-anim) .fp__blurb {
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
+      width: min(80%, 50cqh);
     }
   }
 

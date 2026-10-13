@@ -96,14 +96,20 @@ const ICONS: Record<(typeof NAV)[number]['href'], typeof House> = {
     {
       NAV.map((item) => {
         const Icon = ICONS[item.href];
+        /* Contatti è l'azione che il sito vuole far fare, come «Scrivimi» sulla
+           barra desktop: lì è un bottone a pillola staccato dalle voci, qui lo
+           stesso. Porta anche la parola, perché un'icona fra le icone si
+           leggerebbe come una voce qualunque. */
+        const cta = item.href === '/contatti';
         return (
           <a
             href={item.href}
-            class="nav__dock-link"
-            aria-label={item.label}
+            class:list={['nav__dock-link', cta && 'nav__dock-cta']}
+            aria-label={cta ? undefined : item.label}
             aria-current={isCurrent(item.href) ? 'page' : undefined}
           >
-            <Icon size={20} stroke-width={1.75} />
+            <Icon size={cta ? 18 : 20} stroke-width={1.75} />
+            {cta && <span class="nav__dock-cta-label">Scrivimi</span>}
           </a>
         );
       })
@@ -358,5 +364,43 @@ const ICONS: Record<(typeof NAV)[number]['href'], typeof House> = {
   }
   .nav__dock-link:active {
     background-color: var(--color-surface-1);
+  }
+
+  /* -- Contatti: la stessa pillola di «Scrivimi» sulla barra desktop -------
+     Contorno `hairline-strong`, mono maiuscolo, e uno stacco dalle tre voci
+     (il margine) come sulla barra, dove il bottone sta a parte dai link.
+     L'icona d'accento è ciò che la marca anche a colpo d'occhio.
+     Sulla pagina contatti, o premuta, si riempie di bianco: è il riempimento
+     che su desktop sale in hover, e su touch l'hover non esiste. */
+  .nav__dock-cta {
+    width: auto;
+    gap: 0.5rem;
+    display: flex;
+    margin-left: 0.375rem;
+    padding-inline: 0.875rem 1rem;
+    border: 1px solid var(--color-hairline-strong);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-1);
+  }
+  .nav__dock-cta :global(svg) {
+    color: var(--color-accent-hi);
+    transition: color 240ms var(--ease-snappy);
+  }
+  .nav__dock-cta-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .nav__dock-cta[aria-current='page'],
+  .nav__dock-cta:active {
+    color: var(--color-canvas);
+    background-color: var(--color-text-1);
+    border-color: var(--color-text-1);
+  }
+  .nav__dock-cta[aria-current='page'] :global(svg),
+  .nav__dock-cta:active :global(svg) {
+    color: var(--color-accent-deep);
   }
 </style>

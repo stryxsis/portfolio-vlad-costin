@@ -32,11 +32,18 @@ export const SKILLS: SkillGroup[] = [
     items: ['Visual Studio Code', 'Visual Studio', 'Android Studio', 'Git'],
   },
   {
+    /* Riga propria e non dentro "Ambienti": quelli sono gli editor in cui si
+       scrive il codice, questi sono i sistemi su cui gira (aggiunta da Vlad il
+       2026-10-13). */
+    label: 'Sistemi e server',
+    items: ['Linux', 'Docker', 'Proxmox'],
+  },
+  {
     /* Riga dedicata e separata da "Ambienti": è la lista che Vlad vuole
        poter allungare più spesso di tutte le altre, quindi ha un posto suo
        invece di essere mescolata a editor/IDE che non cambiano quasi mai. */
     label: 'Strumenti AI',
-    items: ['Claude Code', 'Antigravity'],
+    items: ['Claude Code', 'Codex', 'Antigravity'],
   },
   {
     label: 'Corsi completati',
