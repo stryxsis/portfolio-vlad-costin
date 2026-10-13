@@ -75,6 +75,53 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
     </script>
 
     {/*
+      L'ALTEZZA STABILE (2026-10-13) — inline e sincrono, prima del primo paint.
+      Bug segnalato da Vlad su iPhone nel browser di Telegram: sotto §03 la
+      Home saltava di centinaia di pixel ogni volta che le barre del browser
+      comparivano o sparivano. Misurato via CDP: con la finestra 80px più
+      bassa la pagina cambiava altezza di ~700px (tutte le misure in `svh`),
+      e se l'altezza scendeva sotto i 700px il mazzo di §03 si spegneva del
+      tutto (−1750px). `svh` NON è stabile in una webview che si ridimensiona
+      davvero, e il browser di Telegram lo fa.
+
+      Sui dispositivi touch `--vh` si fissa in px all'apertura e si ricalcola
+      SOLO quando cambia la larghezza (rotazione, split view): un cambio di
+      sola altezza sono le barre del browser, o la tastiera. Da desktop resta
+      `1svh` (global.css) e non cambia niente.
+
+      `vp-corto`: telefono sotto i 700px d'altezza (in orizzontale, iPhone SE),
+      dove la card del mazzo non ci sta. Decisa sulla STESSA altezza stabile —
+      come media query `min-height` si accendeva e spegneva con le barre.
+      La leggono Handoff.astro, FeaturedProjects.astro e stage.ts, che si
+      rimonta all'evento `vp:cambio`.
+    */}
+    <script is:inline>
+      (function () {
+        var r = document.documentElement;
+        var touch = matchMedia('(pointer: coarse)').matches;
+        var larga = -1;
+        var corto = null;
+        function fissa() {
+          var w = innerWidth;
+          var h = innerHeight;
+          if (touch) {
+            if (w === larga) return;
+            r.style.setProperty('--vh', h / 100 + 'px');
+          }
+          larga = w;
+          var c = w < 900 && h < 700;
+          if (c === corto) return;
+          var prima = corto;
+          corto = c;
+          r.classList.toggle('vp-corto', c);
+          if (prima !== null) dispatchEvent(new Event('vp:cambio'));
+        }
+        fissa();
+        addEventListener('resize', fissa);
+      })();
+    </script>
+
+    {/*
       GATE DELLA DENSITÀ DEL CAMPO BINARIO (/chi-sono) — inline e sincrono come
       i due qui sopra, e per lo stesso motivo: se il verdetto c'è già, va
       applicato PRIMA del primo paint. Applicarlo dopo vorrebbe dire disegnare

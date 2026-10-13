@@ -237,7 +237,7 @@ import { SITE } from '../lib/site';
        quindi ciò che sfora la viewport resta coperto mentre è incollata.
        Misurato: sfora solo a 1280×800, di 4px, e sono padding — nessun testo
        perso. Se un giorno il contenuto cresce, è qui che va ricontrollato. */
-    min-height: 100svh;
+    min-height: calc(var(--vh) * 100);
     display: grid;
     /* Il fondale è un assoluto a `inset: 0`: senza questo, si aggancerebbe
        alla viewport. */
@@ -249,8 +249,8 @@ import { SITE } from '../lib/site';
     overflow: clip;
     /* Riserva lo spazio della navbar fissa, che sta FUORI dal flusso e quindi
        non lo farebbe da sola. */
-    padding-top: calc(var(--nav-h) + clamp(1.25rem, 3.5vh, 2.5rem));
-    padding-bottom: clamp(1.25rem, 3vh, 2.25rem);
+    padding-top: calc(var(--nav-h) + clamp(1.25rem, calc(var(--vh) * 3.5), 2.5rem));
+    padding-bottom: clamp(1.25rem, calc(var(--vh) * 3), 2.25rem);
   }
 
   /* ⚠ SECONDA METÀ DEL FIX DELL'AVVISO, identica a quella già in `404.astro` e
@@ -283,7 +283,7 @@ import { SITE } from '../lib/site';
        dentro; la fascia resta appoggiata al fondo dello schermo. È questa
        riga a fare della fascia un PAVIMENTO invece di un quarto paragrafo. */
     grid-template-rows: minmax(0, 1fr) auto;
-    gap: clamp(1.5rem, 3.5vh, 2.75rem);
+    gap: clamp(1.5rem, calc(var(--vh) * 3.5), 2.75rem);
   }
 
   .ab__top {
@@ -325,7 +325,7 @@ import { SITE } from '../lib/site';
   }
 
   .ab__lede {
-    margin-top: clamp(1.75rem, 3.5vh, 2.75rem);
+    margin-top: clamp(1.75rem, calc(var(--vh) * 3.5), 2.75rem);
     /* 52ch e non 44: vedi la nota sulla composizione in cima. */
     max-width: 52ch;
     font-size: var(--text-lede);

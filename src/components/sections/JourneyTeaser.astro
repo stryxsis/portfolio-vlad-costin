@@ -71,11 +71,11 @@ const teaserEntries = TIMELINE.filter((e) => e.teaser !== false);
     display: grid;
     grid-template-columns: minmax(0, 1fr); /* vedi la nota in CTASection */
     align-content: center;
-    min-height: 100svh;
+    min-height: calc(var(--vh) * 100);
     /* Padding contenuto: la sezione deve stare in uno schermo (vedi la nota in
        testa al file), quindi lo spazio verticale è la prima cosa da stringere.
        Misurato: con 8vh sforava di 32px. */
-    padding-block: clamp(2rem, 5vh, 4rem);
+    padding-block: clamp(2rem, calc(var(--vh) * 5), 4rem);
   }
 
   .jt__wrap {

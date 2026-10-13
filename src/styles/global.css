@@ -207,6 +207,15 @@
 /* Variabili NON tokenizzate: vanno in :root, non in @theme, altrimenti
    Tailwind genererebbe una utility morta per ognuna. */
 :root {
+  /* ⚠ L'UNITÀ D'ALTEZZA DEL SITO È `var(--vh)`, MAI `vh`/`svh` scritti a mano
+     (2026-10-13). Da desktop vale `1svh`, cioè niente di diverso. Sui
+     dispositivi touch lo script inline di BaseLayout la FISSA in px all'apertura
+     e la ricalcola solo quando cambia la LARGHEZZA (rotazione): le barre del
+     browser — Safari, e soprattutto il browser di Telegram, che ridimensiona
+     davvero la pagina — non spostano più niente. Con `svh` la Home cambiava
+     altezza di ~700px a ogni comparsa delle barre (misurato), e tutto ciò che
+     sta sotto §03 saltava. Si scrive `calc(var(--vh) * 100)`. */
+  --vh: 1svh;
   --nav-h: 4.5rem;
   /* Il dock in basso (Navbar.astro, sotto i 900px): distanza dal bordo e
      ingombro totale, che il footer riserva in fondo pagina per non far finire

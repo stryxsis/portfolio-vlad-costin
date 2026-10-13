@@ -139,7 +139,7 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
     /* Esattamente uno schermo: è anche lo schermo USCENTE del primo handoff
        M12 (hero -> §10), che deve restare ≤ viewport (verify-stage.mjs). */
     .hero {
-      height: 100svh;
+      height: calc(var(--vh) * 100);
       overflow: clip;
     }
   }
@@ -242,13 +242,13 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
   }
   @media (min-width: 56.25rem) {
     .hero__content {
-      gap: clamp(0.875rem, 2.2vh, 1.35rem);
+      gap: clamp(0.875rem, calc(var(--vh) * 2.2), 1.35rem);
       position: absolute;
       inset: 0;
       z-index: 2;
       justify-content: center;
       max-width: min(36rem, 48vw);
-      padding-block: calc(var(--nav-h) + clamp(2rem, 6vh, 3.5rem)) clamp(2rem, 6vh, 3.5rem);
+      padding-block: calc(var(--nav-h) + clamp(2rem, calc(var(--vh) * 6), 3.5rem)) clamp(2rem, calc(var(--vh) * 6), 3.5rem);
     }
   }
 
@@ -499,7 +499,7 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
       place-items: center;
       position: absolute;
       left: 50%;
-      bottom: clamp(1.25rem, 3.5vh, 2rem);
+      bottom: clamp(1.25rem, calc(var(--vh) * 3.5), 2rem);
       transform: translateX(-50%);
       z-index: 2;
       animation: hero-in-fade 600ms var(--ease-out-expo) 1050ms both;

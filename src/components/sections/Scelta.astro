@@ -200,10 +200,10 @@ const STRADE: Strada[] = [
     position: relative;
     /* Dal 2026-10-05 è l'entrante dell'handoff `chiusura`: riempie il suo
        occlusore (104svh) invece di lasciarne scoperto il fondo. */
-    min-height: var(--ho-in-floor, 100svh);
+    min-height: var(--ho-in-floor, calc(var(--vh) * 100));
     display: grid;
     align-content: center;
-    padding-block: clamp(4rem, 12vh, 7rem);
+    padding-block: clamp(4rem, calc(var(--vh) * 12), 7rem);
     /* ⚠ `clip` e NON `hidden`: il campo binario sborda di proposito
        (`.bf__grid` è a `inset: -1.5% 0`) e va ritagliato, ma `hidden`
        creerebbe un contenitore di scorrimento. Stessa nota già in CTASection,
@@ -297,7 +297,7 @@ const STRADE: Strada[] = [
   .sc__rule {
     display: block;
     height: 1px;
-    margin-block: clamp(2.25rem, 5vh, 3.25rem);
+    margin-block: clamp(2.25rem, calc(var(--vh) * 5), 3.25rem);
     background-color: var(--color-hairline-strong);
     /* Si tira da sinistra, come il pavimento della fascia "Adesso". */
     transform-origin: left;
@@ -313,7 +313,7 @@ const STRADE: Strada[] = [
     margin: 0;
     padding: 0;
     display: grid;
-    gap: clamp(2.5rem, 6vh, 3.5rem);
+    gap: clamp(2.5rem, calc(var(--vh) * 6), 3.5rem);
   }
 
   .sc__road {
@@ -354,7 +354,7 @@ const STRADE: Strada[] = [
   }
 
   .sc__act {
-    margin-top: clamp(1rem, 2.2vh, 1.4rem);
+    margin-top: clamp(1rem, calc(var(--vh) * 2.2), 1.4rem);
   }
 
   /* ═══ DA 900px IN SU: le due strade affiancate ═════════════════════════ */

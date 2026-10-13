@@ -300,10 +300,10 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
     position: relative;
     /* Il cielo sta a z-index -1 DENTRO la sezione e non sotto il body. */
     isolation: isolate;
-    min-height: 100svh;
+    min-height: calc(var(--vh) * 100);
     background-color: var(--color-canvas);
-    padding-top: calc(var(--nav-h) + clamp(2rem, 6vh, 4.5rem));
-    padding-bottom: clamp(5rem, 12vh, 9rem);
+    padding-top: calc(var(--nav-h) + clamp(2rem, calc(var(--vh) * 6), 4.5rem));
+    padding-bottom: clamp(5rem, calc(var(--vh) * 12), 9rem);
   }
 
   /* ---- Il cielo -------------------------------------------------------------- */
@@ -315,7 +315,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
   .ct__pin {
     position: sticky;
     top: 0;
-    height: 100svh;
+    height: calc(var(--vh) * 100);
     /* Il fondale di riserva, finché il canvas non disegna e senza JS: lo stesso
        bagliore del pianeta, in basso. Il canvas è opaco e lo copre. */
     background: radial-gradient(
@@ -410,7 +410,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
   }
 
   .ct__canali {
-    margin-top: clamp(2.5rem, 5vh, 3.5rem);
+    margin-top: clamp(2.5rem, calc(var(--vh) * 5), 3.5rem);
     border-top: 1px solid var(--color-hairline);
   }
   .ct__canale {
@@ -832,7 +832,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
        modulo. Centrata, su un modulo lungo finiva sotto la navbar. */
     align-content: end;
     gap: 1rem;
-    padding-block: clamp(1rem, 4vh, 3rem);
+    padding-block: clamp(1rem, calc(var(--vh) * 4), 3rem);
     animation: ct-ok-in 700ms var(--ease-out-expo) both;
   }
   .ct__ok:focus {

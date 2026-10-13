@@ -180,8 +180,8 @@ if (import.meta.env.DEV) {
     /* Il respiro viene da `min-height: 100svh` più un contenuto corto, NON dal
        padding: con `--spacing-statement` (fino a 320px per lato) la sezione
        arrivava a 1489px e lo statement finiva a cavallo di due schermate. */
-    padding-block: clamp(3rem, 8vh, 6rem);
-    min-height: 100svh;
+    padding-block: clamp(3rem, calc(var(--vh) * 8), 6rem);
+    min-height: calc(var(--vh) * 100);
     /* ⚠ `clip` e non `hidden`: la parola-fantasma sborda di proposito dal bordo
        destro e va ritagliata, ma `hidden` creerebbe un contenitore di
        scorrimento — e un contenitore di scorrimento su un antenato romperebbe

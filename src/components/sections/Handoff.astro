@@ -128,7 +128,7 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
     travel && (
       <div
         class="ho__travel"
-        style={`--travel: ${travel}svh`}
+        style={`--travel: calc(var(--vh) * ${travel})`}
         data-travel={name}
         aria-hidden="true"
       />
@@ -210,7 +210,7 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
        nera fra due campi luminosi. Le proprietà custom ereditano, quindi una
        sezione può riempire ESATTAMENTE il proprio occlusore leggendo il floor
        da qui invece di ricopiarne il numero — vedi `.cta` in CTASection. */
-    --ho-in-floor: 104svh;
+    --ho-in-floor: calc(var(--vh) * 104);
     min-height: var(--ho-in-floor);
   }
 
@@ -276,18 +276,21 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
      selettore discendente lo prenderebbe. Il vincolo resta quello di sempre:
      lo schermo uscente non deve superare la viewport — è compito della sezione
      che ci sta dentro (vedi `.fp` in FeaturedProjects). */
-  /* Sotto i 700px d'altezza no: stessa soglia di MOBILE_QUERY in stage.ts. */
-  @media (width < 56.25rem) and (min-height: 43.75rem) {
+  /* Sotto i 700px d'altezza no: `vp-corto` (script inline di BaseLayout), la
+     stessa condizione che legge stage.ts. ⚠ Era una media query `min-height`,
+     e si accendeva e spegneva con le barre del browser: l'altezza è quella
+     STABILE, non quella del momento. */
+  @media (width < 56.25rem) {
     /* ⚠ SU TELEFONO LO SCHERMO È SEMPRE «ALTO» (2026-10-13, seconda versione):
        titolo e bottone scorrono via in flusso, e lo schermo si incolla quando il
        suo FONDO tocca il fondo della viewport — cioè quando il mazzo la riempie.
        Il `top` negativo lo misura stage.ts come per `tall`, e anche qui SENZA
        fallback: finché il JS non ha misurato, niente sticky (vedi `tall`). */
-    :global(html.js-anim) .ho--mobile > .ho__out {
+    :global(html.js-anim:where(:not(.vp-corto))) .ho--mobile > .ho__out {
       position: sticky;
       top: var(--ho-out-top);
     }
-    :global(html.js-anim) .ho--mobile > .ho__travel {
+    :global(html.js-anim:where(:not(.vp-corto))) .ho--mobile > .ho__travel {
       display: block;
       height: var(--travel);
     }

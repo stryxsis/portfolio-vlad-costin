@@ -42,13 +42,16 @@ const STAGE_QUERY = '(min-width: 56.25rem) and (prefers-reduced-motion: no-prefe
  *  abbassata la soglia per tutti: sotto i 900px si monta SOLO ciò che sta in un
  *  Handoff marcato `data-ho-mobile` (rientro M12 e mazzo M16). Tutto il resto
  *  del sito su telefono resta in fila, come prima. */
-const MOBILE_QUERY =
-  '(width < 56.25rem) and (min-height: 43.75rem) and (prefers-reduced-motion: no-preference)';
-/* ⚠ `min-height: 43.75rem` (700px) è la stessa soglia del CSS in Handoff.astro e
-   FeaturedProjects.astro: sotto, la card del mazzo non ci sta (telefono in
-   orizzontale, iPhone SE) e le card restano in fila. Va cambiata in tutti e tre
-   i posti insieme, o il CSS le rende assolute e invisibili senza che il JS le
-   accenda mai. */
+const MOBILE_QUERY = '(width < 56.25rem) and (prefers-reduced-motion: no-preference)';
+/* ⚠ SOTTO I 700px D'ALTEZZA niente mazzo (telefono in orizzontale, iPhone SE):
+   lo dice la classe `vp-corto`, scritta dallo script inline di BaseLayout su
+   un'altezza STABILE. Era `min-height: 43.75rem` dentro questa query, e le barre
+   del browser la facevano scattare avanti e indietro mentre si scorreva: il
+   mazzo si smontava e rimontava, e la pagina cambiava altezza di ~1750px
+   (misurato, 2026-10-13). La stessa classe la leggono Handoff.astro e
+   FeaturedProjects.astro: se CSS e JS non coincidono le card restano assolute e
+   invisibili. Quando cambia (solo ruotando il telefono) arriva `vp:cambio`. */
+const vpCorto = (): boolean => document.documentElement.classList.contains('vp-corto');
 
 /** Lo schermo (o l'occlusore) appartiene DIRETTAMENTE a un Handoff `mobile`?
  *  `closest` non basterebbe: un Handoff annidato dentro quello `mobile` lo
@@ -56,14 +59,13 @@ const MOBILE_QUERY =
 const diHandoffMobile = (el: Element | null | undefined): boolean =>
   !!el?.parentElement?.hasAttribute('data-ho-mobile');
 
-/* ⚠ L'ALTEZZA DI RIFERIMENTO È `100svh`, NON `window.innerHeight` (2026-10-13).
+/* ⚠ L'ALTEZZA DI RIFERIMENTO È `var(--vh)`, NON `window.innerHeight` (2026-10-13).
    Su iPhone `innerHeight` cambia ogni volta che le barre del browser si aprono
-   o si chiudono (in Safari e ancora di più nel browser di Telegram): uno
-   schermo `tall` incollato con un `top` preso da lì saltava di ~80px a metà
-   scroll, e il mazzo di §03 su telefono, che è proprio uno schermo `tall`, è
-   dove si vedeva. `svh` è l'altezza con le barre aperte e non cambia con loro,
-   ed è la stessa unità in cui il CSS dimensiona il mazzo, quindi `top` e
-   altezza si muovono insieme. Da desktop `svh` e `innerHeight` coincidono.
+   o si chiudono, e nel browser di Telegram cambia anche `svh`, perché la
+   pagina viene ridimensionata davvero. `--vh` sui dispositivi touch è fissata
+   in px dallo script inline di BaseLayout e cambia solo con la larghezza (vedi
+   global.css); da desktop vale `1svh`. È la stessa unità in cui il CSS
+   dimensiona il mazzo, quindi `top` e altezza si muovono insieme.
    Un elemento sonda letto quando serve: niente listener in più. */
 let sonda: HTMLElement | null = null;
 const altezzaStabile = (): number => {
@@ -71,7 +73,7 @@ const altezzaStabile = (): number => {
     sonda = document.createElement('div');
     sonda.setAttribute('aria-hidden', 'true');
     sonda.style.cssText =
-      'position:absolute;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+      'position:absolute;top:0;left:0;width:0;height:calc(var(--vh) * 100);visibility:hidden;pointer-events:none';
     document.body.append(sonda);
   }
   return sonda.offsetHeight || window.innerHeight;
@@ -153,7 +155,7 @@ export function initStages(): void {
              uno più basso — la testata dei case study, ~650px — 'top bottom'
              sarebbe già superato a pagina ferma, e il titolo arriverebbe
              spento e rimpicciolito prima di qualunque scroll (2026-10-04). */
-          start: () => `top ${Math.min(screen.offsetHeight, window.innerHeight)}px`,
+          start: () => `top ${Math.min(screen.offsetHeight, altezzaStabile())}px`,
           end: 'top top', // ...e ha finito di coprire
           scrub: true,
           invalidateOnRefresh: true,
@@ -292,7 +294,7 @@ export function initStages(): void {
              averne fatto scorrere l'eccedenza. La corsa resta `travel`: è quanto
              lo schermo resta incollato prima che l'entrante lo raggiunga. */
           start: () => `top+=${Math.max(0, (screen?.offsetHeight ?? 0) - altezzaStabile())} top`,
-          end: () => `+=${travel?.offsetHeight ?? window.innerHeight * 2}`,
+          end: () => `+=${travel?.offsetHeight ?? altezzaStabile() * 2}`,
           scrub: true,
           invalidateOnRefresh: true,
           // `will-change` acceso solo per la durata della corsa: costante su tre
@@ -391,8 +393,8 @@ export function initStages(): void {
          alla coda esattamente uno schermo della corsa reale letta dal DOM. Se
          domani `travel` cambia, la proporzione si riadatta da sé — nessun valore
          duplicato fra questo file e index.astro. */
-      const runPx = travel?.offsetHeight ?? window.innerHeight * 2;
-      const holdPx = window.innerHeight;
+      const runPx = travel?.offsetHeight ?? altezzaStabile() * 2;
+      const holdPx = altezzaStabile();
       const animPx = Math.max(1, runPx - holdPx);
       /* Dove finisce il movimento delle card e comincia la coda ferma. */
       const settle = tl.duration();
@@ -596,5 +598,18 @@ export function initStages(): void {
   };
 
   mm.add(STAGE_QUERY, () => monta(false));
-  mm.add(MOBILE_QUERY, () => monta(true));
+
+  /* Il telefono ha un contesto suo, da rifare quando `vp-corto` cambia: una
+     media query non può leggere una classe. */
+  let mmMobile = gsap.matchMedia();
+  const montaMobile = () => {
+    mmMobile.add(MOBILE_QUERY, () => (vpCorto() ? undefined : monta(true)));
+  };
+  montaMobile();
+  window.addEventListener('vp:cambio', () => {
+    mmMobile.revert();
+    mmMobile = gsap.matchMedia();
+    montaMobile();
+    ScrollTrigger.refresh();
+  });
 }

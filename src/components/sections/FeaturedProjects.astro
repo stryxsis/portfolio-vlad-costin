@@ -507,8 +507,8 @@ const TURNS = [
     display: grid;
     grid-template-columns: minmax(0, 1fr); /* vedi la nota in CTASection */
     align-content: center;
-    min-height: 100svh;
-    padding-block: clamp(2rem, 5vh, 4rem);
+    min-height: calc(var(--vh) * 100);
+    padding-block: clamp(2rem, calc(var(--vh) * 5), 4rem);
   }
 
   .fp__wrap {
@@ -1195,11 +1195,11 @@ const TURNS = [
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
-    gap: clamp(0.7rem, 1.6vh, 1.35rem);
+    gap: clamp(0.7rem, calc(var(--vh) * 1.6), 1.35rem);
     width: 100%;
     max-width: 30rem;
     justify-self: center;
-    font-size: clamp(0.75rem, 1.35vh, 0.9375rem);
+    font-size: clamp(0.75rem, calc(var(--vh) * 1.35), 0.9375rem);
   }
 
   .fp__call-head {
@@ -1278,7 +1278,7 @@ const TURNS = [
   .fp__turns {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: clamp(0.6rem, 1.4vh, 1.1rem);
+    gap: clamp(0.6rem, calc(var(--vh) * 1.4), 1.1rem);
     /* Nessun pallino: il divieto degli elenchi puntati è visivo, la semantica
        ordinata resta (vedi la nota nel markup). */
     list-style: none;
@@ -1412,7 +1412,7 @@ const TURNS = [
     /* Il pavimento del corpo del trascritto sale: 1.35vh su un telefono dà 11px,
        e il pavimento di leggibilità del sito è più alto di così. */
     .fp__call {
-      font-size: clamp(0.8125rem, 1.35vh, 0.9375rem);
+      font-size: clamp(0.8125rem, calc(var(--vh) * 1.35), 0.9375rem);
     }
   }
 
@@ -1443,8 +1443,15 @@ const TURNS = [
      parcheggio iniziale delle card lo fa `gsap.set`, non il CSS. */
   /* ⚠ La condizione è la STESSA di stage.ts (STAGE_QUERY o MOBILE_QUERY): qui
      le card diventano assolute e partono a `opacity: 0`, e solo il JS le
-     accende. Se CSS e JS non coincidono, il mazzo resta un rettangolo vuoto. */
-  @media (min-width: 56.25rem), (min-height: 43.75rem) {
+     accende. Se CSS e JS non coincidono, il mazzo resta un rettangolo vuoto.
+     ⚠ Era `@media (min-width: 56.25rem), (min-height: 43.75rem)`: la metà
+     sull'altezza si accendeva e spegneva con le barre del browser del telefono
+     (misurato: −1750px di pagina a ogni passaggio sotto i 700px). Oggi la
+     decide `vp-corto` (script inline di BaseLayout, su un'altezza STABILE), che
+     da desktop non c'è mai. `:where()` per non alzare la specificità: le regole
+     che più sotto correggono queste devono continuare a vincere. `@media all`
+     resta solo come contenitore del blocco. */
+  @media all {
     /* Altezza FISSA, non `min-height`: è il vincolo dello sticky (vedi la nota
        in testa al file). `align-content: stretch` perché la riga dello stack
        deve prendersi tutto lo spazio residuo — con `center` (il default della
@@ -1455,13 +1462,13 @@ const TURNS = [
        (32px) i 45px di padding bastavano; col titolo grande la prima riga
        arrivava a sfiorare la pillola — misurato, si toccavano fra x 512 e 680.
        `--nav-h` + un respiro è la stessa clearance che usa `.idx`. */
-    :global(html.js-anim) .fp {
-      height: 100svh;
+    :global(html.js-anim:where(:not(.vp-corto))) .fp {
+      height: calc(var(--vh) * 100);
       align-content: stretch;
       padding-top: calc(var(--nav-h) + 1rem);
     }
 
-    :global(html.js-anim) .fp__wrap {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__wrap {
       height: 100%;
       grid-template-rows: auto minmax(0, 1fr);
     }
@@ -1469,7 +1476,7 @@ const TURNS = [
     /* `overflow: clip` è funzionale: le card che aspettano il proprio turno
        stanno parcheggiate SOTTO il bordo inferiore, e senza questo si
        vedrebbero sporgere nella sezione successiva. */
-    :global(html.js-anim) .fp__stack {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__stack {
       position: relative;
       overflow: clip;
       min-height: 0;
@@ -1483,7 +1490,7 @@ const TURNS = [
        stage.ts). Con una quarta card il 96% avrebbe fatto sfondare l'ultima dal
        contenitore, in silenzio. Ora il conto lo fa il CSS da `--fp-cards`, che
        Astro scrive sullo stack dalla lunghezza reale dell'array. */
-    :global(html.js-anim) .fp__card {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__card {
       position: absolute;
       inset-inline: 0;
       top: 0;
@@ -1508,32 +1515,32 @@ const TURNS = [
        la soglia di M14 (`top 80%`) scatterebbe quando entra la SEZIONE, cioè
        molto prima che questa card sia in cima al mazzo. La classe la mette
        stage.ts leggendo il progresso della timeline. */
-    :global(html.js-anim) .fp__turn,
-    :global(html.js-anim) .fp__slot,
-    :global(html.js-anim) .fp__call-foot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__turn,
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__slot,
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call-foot {
       opacity: 0;
     }
-    :global(html.js-anim) .fp__turn {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__turn {
       /* Solo `translate` come proprietà CSS indipendente? NO: `transform`.
          Stessa regola del divieto — e qui è anche l'unica che compone con la
          transizione di `opacity` senza un secondo layer. */
       transform: translate3d(0, 0.5rem, 0);
     }
-    :global(html.js-anim) .fp__slot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__slot {
       transform: scale(0.94);
     }
     /* Il ribaltamento degli stati statici: qui — e SOLO qui, dove qualcosa li
        riaccenderà — la chiamata riparte "in corso" e la forma d'onda spenta. */
-    :global(html.js-anim) .fp__call-s--done {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call-s--done {
       opacity: 0;
     }
-    :global(html.js-anim) .fp__call-s--live {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call-s--live {
       opacity: 1;
     }
-    :global(html.js-anim) .fp__call-dot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call-dot {
       background-color: var(--color-accent);
     }
-    :global(html.js-anim) .fp__bar {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__bar {
       background-color: var(--color-hairline);
     }
 
@@ -1544,12 +1551,12 @@ const TURNS = [
        risalendo la pagina il trascritto non si dis-dice. */
     /* Acceso, ma NON accento pieno: la forma d'onda è un elemento di contorno e
        a saturazione piena rubava l'occhio al trascritto, che è il contenuto. */
-    :global(html.js-anim) .fp__call.is-in .fp__bar {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__bar {
       background-color: color-mix(in oklab, var(--color-accent) 45%, var(--color-text-3));
       transition: background-color 260ms var(--ease-out-expo) calc(var(--w) * 15ms);
     }
 
-    :global(html.js-anim) .fp__call.is-in .fp__turn {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__turn {
       opacity: 1;
       transform: translate3d(0, 0, 0);
       transition:
@@ -1560,7 +1567,7 @@ const TURNS = [
     /* L'esito arriva DOPO l'ultima battuta (4 × 420 + 600 = 2280ms) con un
        soprassalto: `--ease-back` non esiste in palette, quindi l'overshoot è
        nella curva `--ease-morph` più una scala che parte sotto 1. */
-    :global(html.js-anim) .fp__call.is-in .fp__slot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__slot {
       opacity: 1;
       transform: scale(1);
       transition:
@@ -1568,21 +1575,21 @@ const TURNS = [
         transform 520ms var(--ease-morph) 2500ms;
     }
 
-    :global(html.js-anim) .fp__call.is-in .fp__call-foot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__call-foot {
       opacity: 1;
       transition: opacity 520ms var(--ease-out-expo) 2900ms;
     }
 
     /* La chiamata si chiude: il pallino si spegne e l'etichetta si scambia. */
-    :global(html.js-anim) .fp__call.is-in .fp__call-s--live {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__call-s--live {
       opacity: 0;
       transition: opacity 300ms var(--ease-out-expo) 2600ms;
     }
-    :global(html.js-anim) .fp__call.is-in .fp__call-s--done {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__call-s--done {
       opacity: 1;
       transition: opacity 300ms var(--ease-out-expo) 2600ms;
     }
-    :global(html.js-anim) .fp__call.is-in .fp__call-dot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-in .fp__call-dot {
       background-color: var(--color-hairline-strong);
       transition: background-color 300ms var(--ease-out-expo) 2600ms;
     }
@@ -1592,7 +1599,7 @@ const TURNS = [
        elemento con 2,5s di durata restava a metà per secondi dopo un salto —
        un'animazione di cui nessuno ha visto l'inizio non deve nemmeno impiegare
        tempo a finire. Stessa regola di M14. */
-    :global(html.js-anim) .fp__call.is-instant * {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__call.is-instant * {
       transition-duration: 0s !important;
       transition-delay: 0s !important;
     }
@@ -1610,7 +1617,7 @@ const TURNS = [
      screen reader resta intera.
      ⚠ SOTTO I 700px D'ALTEZZA il mazzo non c'è (telefono in orizzontale, iPhone
      SE): la card non ci starebbe, e le card tornano in fila come prima. La
-     soglia è la stessa in stage.ts e in Handoff.astro.
+     decide `vp-corto` (BaseLayout), la stessa classe di stage.ts e Handoff.astro.
      ⚠ `padding-bottom` riserva il dock della navigazione, che su telefono sta
      fisso in basso: senza, la parte bassa del mazzo finirebbe sotto la pillola. */
   /* ⚠ SECONDA VERSIONE (stesso giorno, richiesta di Vlad): «abbiamo poco
@@ -1620,56 +1627,56 @@ const TURNS = [
      via normalmente, e il mazzo (alto quanto la viewport meno il dock) si
      incolla appena il bottone è uscito in alto. Lo sticky dal fondo lo fa
      Handoff `mobile`, la partenza del mazzo stage.ts. */
-  @media (width < 56.25rem) and (min-height: 43.75rem) {
-    :global(html.js-anim) .fp {
+  @media (width < 56.25rem) {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp {
       height: auto;
       padding-top: calc(var(--nav-h) + 1.5rem);
       padding-bottom: var(--dock-space);
     }
     /* Su telefono `.fp__wrap` non è una griglia (quella a 12 colonne parte dai
        900px): indice, titolo, bottone e mazzo in fila. */
-    :global(html.js-anim) .fp__wrap {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__wrap {
       display: grid;
       height: auto;
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto;
     }
-    :global(html.js-anim) .fp__cta-row {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__cta-row {
       margin-top: 1rem;
     }
     /* L'altezza del mazzo è la viewport meno il dock e un respiro in cima:
        incollato, il mazzo occupa tutto lo schermo che il dock lascia libero. */
-    :global(html.js-anim) .fp__stack {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__stack {
       margin-top: 1.25rem;
-      height: calc(100svh - var(--dock-space) - 0.75rem);
+      height: calc(calc(var(--vh) * 100) - var(--dock-space) - 0.75rem);
     }
-    :global(html.js-anim) .fp__card {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__card {
       grid-template-rows: auto minmax(0, 1fr);
       align-content: stretch;
     }
-    :global(html.js-anim) .fp__copy {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__copy {
       gap: 0.75rem;
       padding: 1.125rem 1.25rem 0.875rem;
     }
     /* Il numero va nell'angolo in alto a destra (la card è già assoluta, quindi
        gli fa da riferimento): in riga propria costava ~40px, cioè un pezzo del
        telefono. */
-    :global(html.js-anim) .fp__n {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__n {
       position: absolute;
       top: 1rem;
       right: 1.25rem;
       font-size: 1.5rem;
     }
-    :global(html.js-anim) .fp__cat {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__cat {
       padding-right: 3rem;
     }
-    :global(html.js-anim) .fp__text {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__text {
       gap: 0.4rem;
     }
-    :global(html.js-anim) .fp__name {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__name {
       font-size: 1.3125rem;
     }
-    :global(html.js-anim) .fp__blurb {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__blurb {
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
@@ -1679,7 +1686,7 @@ const TURNS = [
     /* La riga esplicita a tutta altezza serve a `.fp__fit` qui sotto: con la
        riga implicita (`auto`) e la size containment del figlio, la riga
        misurava 0 e con lei `cqh` — il telefono spariva. */
-    :global(html.js-anim) .fp__shot {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__shot {
       padding: 0.25rem 1.25rem 0;
       grid-template-rows: minmax(0, 1fr);
       align-content: stretch;
@@ -1689,12 +1696,12 @@ const TURNS = [
        entra dall'alto e il fondo della card lo taglia appena, a ogni misura di
        schermo. Con una larghezza fissa restava piccolo con un vuoto sotto sui
        telefoni alti, e tagliato a metà su quelli bassi. */
-    :global(html.js-anim) .fp__fit {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__fit {
       height: 100%;
       align-content: start;
       container-type: size;
     }
-    :global(html.js-anim) .fp__phone {
+    :global(html.js-anim:where(:not(.vp-corto))) .fp__phone {
       width: min(80%, 50cqh);
     }
   }

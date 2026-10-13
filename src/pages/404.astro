@@ -99,7 +99,7 @@ import Starfield from '../components/primitives/Starfield.astro';
     position: relative;
     /* Uno schermo esatto: sotto continua il footer del sito, che su una 404 è
        la seconda via d'uscita dopo il bottone (e la navbar è la prima). */
-    min-height: 100svh;
+    min-height: calc(var(--vh) * 100);
     display: grid;
     /* ⚠ `start` e NON `center`, ed è un fix a un difetto misurato a 390×844:
        centrando, un contenuto appena più alto dello spazio disponibile viene
@@ -121,7 +121,7 @@ import Starfield from '../components/primitives/Starfield.astro';
        quella su cui li ho guardati.
        `--globo-sotto` è la frazione di sfera che resta sotto il taglio: più
        alta, più è "pianeta che sorge" e meno è "palla appoggiata". */
-    --globo-l: min(31rem, 88vw, 55svh);
+    --globo-l: min(31rem, 88vw, calc(var(--vh) * 55));
     --globo-sotto: 0.4;
     /* Quanto se ne vede: il resto del calcolo dipende da qui, non da un
        numero ricopiato. */
@@ -181,7 +181,7 @@ import Starfield from '../components/primitives/Starfield.astro';
     z-index: 3;
     display: grid;
     justify-items: center;
-    gap: clamp(1.25rem, 3vh, 2.25rem);
+    gap: clamp(1.25rem, calc(var(--vh) * 3), 2.25rem);
     /* ⚠ Il padding in alto SOMMA navbar E avviso, invece di indovinare un
        numero: la chrome è `position: fixed`, quindi non occupa spazio nel
        flusso e senza questo il contenuto le passerebbe sotto. Stessi token e
@@ -198,7 +198,7 @@ import Starfield from '../components/primitives/Starfield.astro';
        vuoto — è lo spazio in cui il globo sorge, dichiarato invece che
        sperato. Quando non ci sta, la sezione cresce oltre i 100svh e la
        pagina scorre di poco: preferibile a due elementi bianchi sovrapposti. */
-    padding-block: calc(var(--nav-h) + var(--chrome-shift, 0px) + clamp(1.5rem, 6vh, 4rem))
+    padding-block: calc(var(--nav-h) + var(--chrome-shift, 0px) + clamp(1.5rem, calc(var(--vh) * 6), 4rem))
       calc(var(--globo-visibile) + 1.5rem);
     transition: padding-block-start var(--chrome-t, 0ms) var(--chrome-e, linear);
     padding-inline: var(--spacing-gutter);
@@ -233,7 +233,7 @@ import Starfield from '../components/primitives/Starfield.astro';
        larga e bassa il numero prende 24vw (a 1440px sono 345px di corpo) e
        si mangia tutta l'altezza, spingendo il bottone dentro al globo.
        Stesso ragionamento del corpo delle citazioni in TestimonialsFocus. */
-    font-size: clamp(5rem, min(22vw, 22svh), 15rem);
+    font-size: clamp(5rem, min(22vw, calc(var(--vh) * 22)), 15rem);
     font-weight: 600;
     line-height: 0.82;
     letter-spacing: -0.05em;
@@ -250,7 +250,7 @@ import Starfield from '../components/primitives/Starfield.astro';
   }
 
   .e4__actions {
-    margin-top: clamp(0.5rem, 2vh, 1rem);
+    margin-top: clamp(0.5rem, calc(var(--vh) * 2), 1rem);
   }
 
   @media (min-width: 56.25rem) {

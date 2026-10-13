@@ -189,7 +189,7 @@ if (import.meta.env.DEV) {
     /* Non `100svh`: Vlad l'ha chiesta esplicitamente "non altissima". La
        fascia si dimensiona sul proprio contenuto più l'aria intorno, che è
        ciò che la fa leggere come una pausa e non come una tappa. */
-    padding-block: clamp(5rem, 14vh, 9rem);
+    padding-block: clamp(5rem, calc(var(--vh) * 14), 9rem);
   }
 
   /* ---- L'alone che scalda la fascia ---------------------------------------

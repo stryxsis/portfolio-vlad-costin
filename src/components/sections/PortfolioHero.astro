@@ -123,7 +123,7 @@ const { href = '#lavori' } = Astro.props;
        che sfora resta irraggiungibile mentre è incollata). Ma con un contenuto
        che non ci sta deve poter crescere invece di tagliarlo — verificato a
        1440×900 e a 1440×720. */
-    min-height: 100svh;
+    min-height: calc(var(--vh) * 100);
     display: grid;
     /* ⚠ `minmax(0, 1fr)` E NON LA COLONNA IMPLICITA `auto`: una traccia `auto`
        si dimensiona sul max-content del figlio, e il figlio qui è una traccia
@@ -157,8 +157,8 @@ const { href = '#lavori' } = Astro.props;
        sola. ⚠ NIENTE `--chrome-shift`: l'avviso "cantiere aperto" non deve
        spostare il sito (richiesta esplicita e ripetuta di Vlad, vedi la nota
        in chi-sono.astro). Si sovrappone, non spinge. */
-    padding-top: calc(var(--nav-h) + clamp(1.5rem, 4vh, 3rem));
-    padding-bottom: clamp(1rem, 3vh, 2rem);
+    padding-top: calc(var(--nav-h) + clamp(1.5rem, calc(var(--vh) * 4), 3rem));
+    padding-bottom: clamp(1rem, calc(var(--vh) * 3), 2rem);
   }
 
   /* ⚠ QUI L'INDICE NON DEVE ESSERE STICKY, ed è la stessa riga già presente in
@@ -177,7 +177,7 @@ const { href = '#lavori' } = Astro.props;
   }
 
   .ph__title {
-    margin-top: clamp(1.25rem, 3vh, 2rem);
+    margin-top: clamp(1.25rem, calc(var(--vh) * 3), 2rem);
     max-width: 20ch;
     /* ⚠ IL TETTO IN `svh` NON È DECORATIVO, ed è la stessa lezione già costata
        un giro sul numero della 404 e sul corpo delle citazioni di §04: questa
@@ -188,7 +188,7 @@ const { href = '#lavori' } = Astro.props;
        arrivava a 1108px su una viewport da 900, cioè 208px irraggiungibili per
        sempre mentre è incollata. Il termine `svh` fa cedere il corpo quando è
        l'altezza a mancare. */
-    font-size: min(clamp(2.25rem, 4.6vw, 4.25rem), 8.5svh);
+    font-size: min(clamp(2.25rem, 4.6vw, 4.25rem), calc(var(--vh) * 8.5));
     line-height: 0.94;
     letter-spacing: -0.035em;
     text-wrap: balance;
@@ -204,7 +204,7 @@ const { href = '#lavori' } = Astro.props;
   }
 
   .ph__lede {
-    margin-top: clamp(1.25rem, 3vh, 1.75rem);
+    margin-top: clamp(1.25rem, calc(var(--vh) * 3), 1.75rem);
     max-width: 52ch;
     font-size: var(--text-lede);
     line-height: 1.55;
@@ -213,7 +213,7 @@ const { href = '#lavori' } = Astro.props;
   }
 
   .ph__cta {
-    margin-top: clamp(1.75rem, 4vh, 2.5rem);
+    margin-top: clamp(1.75rem, calc(var(--vh) * 4), 2.5rem);
   }
 
   /* ═══ VIEWPORT BASSE ═══════════════════════════════════════════════════
@@ -227,23 +227,23 @@ const { href = '#lavori' } = Astro.props;
      margine è più largo, ma il tetto in `svh` sui corpi resta corretto.) */
   @media (max-height: 53.125rem) {
     .ph__wrap {
-      padding-top: calc(var(--nav-h) + clamp(0.75rem, 2.5vh, 1.5rem));
-      padding-bottom: clamp(0.5rem, 2vh, 1rem);
+      padding-top: calc(var(--nav-h) + clamp(0.75rem, calc(var(--vh) * 2.5), 1.5rem));
+      padding-bottom: clamp(0.5rem, calc(var(--vh) * 2), 1rem);
     }
     .ph__title {
-      margin-top: clamp(0.5rem, 2vh, 1rem);
-      font-size: min(clamp(1.875rem, 4.6vw, 4.25rem), 7svh);
+      margin-top: clamp(0.5rem, calc(var(--vh) * 2), 1rem);
+      font-size: min(clamp(1.875rem, 4.6vw, 4.25rem), calc(var(--vh) * 7));
     }
     .ph__lede {
-      margin-top: clamp(0.5rem, 2vh, 1rem);
+      margin-top: clamp(0.5rem, calc(var(--vh) * 2), 1rem);
       /* Stesso dispositivo del titolo: quando è l'ALTEZZA a mancare, è
          l'altezza a dover dettare il corpo. Con la sola scala in `vw` la lede
          resterebbe a 26px identica a 1440×900 e a 1440×720. */
-      font-size: min(var(--text-lede), 2.4svh);
+      font-size: min(var(--text-lede), calc(var(--vh) * 2.4));
       line-height: 1.45;
     }
     .ph__cta {
-      margin-top: clamp(0.75rem, 2.5vh, 1.25rem);
+      margin-top: clamp(0.75rem, calc(var(--vh) * 2.5), 1.25rem);
     }
   }
 

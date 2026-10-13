@@ -121,11 +121,11 @@ const STELLE = Array.from({ length: 70 }, () => ({
     position: relative;
     /* Riempie l'occlusore dell'handoff `invito` (104svh), o sotto il pianeta
        resterebbe una banda di nero scoperta. Vedi `--ho-in-floor`. */
-    min-height: var(--ho-in-floor, 100svh);
+    min-height: var(--ho-in-floor, calc(var(--vh) * 100));
     display: grid;
     /* Il testo sta nella parte alta: la fascia bassa è del pianeta. */
     align-content: center;
-    padding-block: var(--spacing-section) clamp(9rem, 26svh, 15rem);
+    padding-block: var(--spacing-section) clamp(9rem, calc(var(--vh) * 26), 15rem);
   }
 
   .pcta__wrap {
@@ -216,7 +216,7 @@ const STELLE = Array.from({ length: 70 }, () => ({
     --d: max(230vw, 1900px);
     position: absolute;
     left: 50%;
-    bottom: calc(var(--d) * -1 + clamp(6rem, 20svh, 12rem));
+    bottom: calc(var(--d) * -1 + clamp(6rem, calc(var(--vh) * 20), 12rem));
     width: var(--d);
     height: var(--d);
     margin-left: calc(var(--d) / -2);
@@ -245,7 +245,7 @@ const STELLE = Array.from({ length: 70 }, () => ({
     left: 0;
     right: 0;
     bottom: 0;
-    height: clamp(14rem, 48svh, 30rem);
+    height: clamp(14rem, calc(var(--vh) * 48), 30rem);
     background: radial-gradient(
       70% 70% at 50% 100%,
       color-mix(in oklab, var(--color-accent) 30%, transparent) 0%,
@@ -259,7 +259,7 @@ const STELLE = Array.from({ length: 70 }, () => ({
      Niente è invisibile per sempre: senza JS, con reduced-motion o in un salto
      (`is-instant`) tutto è già al suo posto. */
   :global(html.js-anim) .pcta__horizon {
-    transform: translateY(14svh);
+    transform: translateY(calc(var(--vh) * 14));
     opacity: 0.4;
     transition:
       transform 1.8s var(--ease-out-expo),

@@ -161,7 +161,7 @@ const CLAUSES = [
     position: relative;
     display: grid;
     align-content: center;
-    padding-block: clamp(3rem, 8vh, 6rem);
+    padding-block: clamp(3rem, calc(var(--vh) * 8), 6rem);
   }
 
   .wid__grid {
@@ -173,7 +173,7 @@ const CLAUSES = [
   }
 
   .wid__idx {
-    padding-top: clamp(1rem, 4vh, 1.5rem);
+    padding-top: clamp(1rem, calc(var(--vh) * 4), 1.5rem);
   }
   @media (min-width: 56.25rem) {
     .wid__grid {
@@ -182,7 +182,7 @@ const CLAUSES = [
     }
     .wid__idx {
       position: absolute;
-      top: clamp(3rem, 8vh, 6rem); /* Stesso valore del padding-top della sezione */
+      top: clamp(3rem, calc(var(--vh) * 8), 6rem); /* Stesso valore del padding-top della sezione */
       right: var(--spacing-gutter);
       padding-top: 0;
       z-index: 2;

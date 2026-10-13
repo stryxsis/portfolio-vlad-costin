@@ -151,7 +151,7 @@ const href = (p: Project) => `/portfolio/${p.id}`;
     overflow: clip;
     /* Riempie tutto l'occlusore del handoff (vedi Handoff.astro), non 100svh:
        il fondo è una foto, e 4svh scoperti in fondo sarebbero una banda nera. */
-    min-height: var(--ho-in-floor, 100svh);
+    min-height: var(--ho-in-floor, calc(var(--vh) * 100));
     background-color: var(--color-canvas);
   }
 
@@ -242,7 +242,7 @@ const href = (p: Project) => `/portfolio/${p.id}`;
     max-width: 90rem;
     min-height: inherit;
     margin-inline: auto;
-    padding: calc(var(--nav-h) + 2rem) var(--spacing-gutter) clamp(2rem, 5vh, 3.5rem);
+    padding: calc(var(--nav-h) + 2rem) var(--spacing-gutter) clamp(2rem, calc(var(--vh) * 5), 3.5rem);
   }
 
   @media (min-width: 56.25rem) {

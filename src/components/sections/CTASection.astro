@@ -207,11 +207,11 @@ const LINES: CtaLine[] = [
        numero esiste in un posto solo e la sezione riempie esattamente ciò che
        deve riempire. Il fallback serve solo se un domani questa sezione venisse
        usata fuori da un Handoff. */
-    min-height: var(--ho-in-floor, 100svh);
+    min-height: var(--ho-in-floor, calc(var(--vh) * 100));
     /* Come per lo statement: il respiro viene da `min-height` più un contenuto
        corto, non dal padding. Con `--spacing-statement` la sezione arrivava a
        1132px e il titolo restava tagliato dal bordo alto della viewport. */
-    padding-block: clamp(3rem, 8vh, 6rem);
+    padding-block: clamp(3rem, calc(var(--vh) * 8), 6rem);
   }
 
   /* Il contenuto sta SOPRA il cielo. Serve uno z-index esplicito e non basta

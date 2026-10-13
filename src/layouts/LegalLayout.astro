@@ -70,7 +70,7 @@ const { title, description, label, heading, updated, sintesi } = Astro.props;
        colonna resta una sola e questa misura non morde. */
     max-width: 90rem;
     margin-inline: auto;
-    padding: calc(var(--nav-h) + clamp(2.5rem, 8vh, 5rem)) var(--spacing-gutter)
+    padding: calc(var(--nav-h) + clamp(2.5rem, calc(var(--vh) * 8), 5rem)) var(--spacing-gutter)
       var(--spacing-section);
   }
   .lg__idx :global([data-section-index]) {

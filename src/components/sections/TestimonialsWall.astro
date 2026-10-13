@@ -166,8 +166,8 @@ const PHASE = ['0s', '-15s', '-28s'];
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
-    padding-block: clamp(3rem, 7vh, 5.5rem);
-    height: 100svh;
+    padding-block: clamp(3rem, calc(var(--vh) * 7), 5.5rem);
+    height: calc(var(--vh) * 100);
     /* Un solo valore per il gap fra le card E fra le colonne: la giuntura del
        loop dipende dal fatto che il gap verticale della traccia sia identico al
        suo `padding-bottom` (vedi la nota sul conto), e tenere anche
@@ -219,7 +219,7 @@ const PHASE = ['0s', '-15s', '-28s'];
     align-items: start;
     min-height: 0;
     overflow: clip;
-    margin-top: clamp(1.75rem, 4vh, 3rem);
+    margin-top: clamp(1.75rem, calc(var(--vh) * 4), 3rem);
     -webkit-mask-image: linear-gradient(
       to bottom,
       transparent 0%,

@@ -213,7 +213,7 @@ if (SITE.availability) {
 <style>
   .now {
     display: grid;
-    gap: clamp(0.9rem, 1.6vh, 1.35rem);
+    gap: clamp(0.9rem, calc(var(--vh) * 1.6), 1.35rem);
   }
 
   /* Il pavimento. `transform-origin: left` perché si tira da dove comincia il
@@ -226,7 +226,7 @@ if (SITE.availability) {
 
   .now__band {
     display: grid;
-    gap: clamp(0.9rem, 1.5vh, 1.25rem) clamp(1.5rem, 3vw, 3rem);
+    gap: clamp(0.9rem, calc(var(--vh) * 1.5), 1.25rem) clamp(1.5rem, 3vw, 3rem);
   }
 
   .now__head {
@@ -265,7 +265,7 @@ if (SITE.availability) {
 
   .now__list {
     display: grid;
-    gap: clamp(0.75rem, 1.4vh, 1rem) 0;
+    gap: clamp(0.75rem, calc(var(--vh) * 1.4), 1rem) 0;
   }
 
   .now__cell {
@@ -394,7 +394,7 @@ if (SITE.availability) {
          senza disegnare un confine. Più ampio in orizzontale che in
          verticale, perché in verticale un a-capo è già una separazione da
          solo — non gli serve anche lo spazio di un filetto. */
-      gap: clamp(1.5rem, 3vh, 2rem) clamp(2rem, 3.5vw, 3.25rem);
+      gap: clamp(1.5rem, calc(var(--vh) * 3), 2rem) clamp(2rem, 3.5vw, 3.25rem);
     }
 
     /* ⚠ `max-width`, NON una larghezza fissa o un `flex: 1`: un tetto lascia
@@ -427,7 +427,7 @@ if (SITE.availability) {
      illeggibili. */
   @media (max-width: 56.24rem) {
     .now__cell {
-      padding-block: clamp(0.7rem, 1.25vh, 0.95rem);
+      padding-block: clamp(0.7rem, calc(var(--vh) * 1.25), 0.95rem);
       border-top: 1px solid var(--color-hairline);
     }
     .now__list {
