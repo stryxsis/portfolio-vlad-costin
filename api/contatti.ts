@@ -157,15 +157,31 @@ export async function POST(req: Request): Promise<Response> {
   if (!inviato) return rispondi(req, 502, { ok: false, errore: 'L’invio non è riuscito.' });
 
   if (process.env.CONTACT_CONFIRM === '1') {
-    /* La conferma non porta gli allegati né il testo intero: dice solo che il
-       messaggio è arrivato. Se fallisce, il messaggio a Vlad è comunque partito:
-       non si dice all'utente che qualcosa è andato storto. */
+    /* La conferma a chi scrive (attivata da Vlad il 2026-10-13, dominio
+       verificato). Dice solo che il messaggio è arrivato e come aggiungere
+       qualcosa: rispondendo, la risposta va a Vlad (`reply_to`).
+       ⚠ NON ripete il testo del messaggio né gli allegati, ed è una difesa, non
+       una dimenticanza: il destinatario è un indirizzo SCRITTO DA CHI COMPILA,
+       quindi un modulo che rispedisce il testo ricevuto diventa un modo per
+       mandare email qualunque a chiunque, dal dominio del sito. Per lo stesso
+       motivo il nome nel saluto è accorciato.
+       Se fallisce, il messaggio a Vlad è comunque partito: non si dice
+       all'utente che qualcosa è andato storto. */
+    const sito = new URL(req.url).origin;
+    const saluto = nome.split(/\s+/)[0]?.slice(0, 40) || nome.slice(0, 40);
     await resend(chiave, {
       from: da,
       to: [email],
       reply_to: a,
       subject: 'Ho ricevuto il tuo messaggio',
-      text: `Ciao ${nome},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato e ti rispondo appena posso.\n\nVlad Costin`,
+      html: `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6;color:#111;max-width:520px">
+<p style="margin:0 0 16px">Ciao ${esc(saluto)},</p>
+<p style="margin:0 0 16px">grazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.</p>
+<p style="margin:0 0 24px">Se vuoi aggiungere qualcosa, basta rispondere a questa email.</p>
+<p style="margin:0">Vlad Costin<br><a href="${sito}" style="color:#5f3ce0">${esc(new URL(sito).host)}</a></p>
+<p style="margin:28px 0 0;padding-top:16px;border-top:1px solid #ddd;font-size:12px;color:#777">Ricevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.</p>
+</div>`,
+      text: `Ciao ${saluto},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.\n\nSe vuoi aggiungere qualcosa, basta rispondere a questa email.\n\nVlad Costin\n${sito}\n\n—\nRicevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.`,
     });
   }
 
