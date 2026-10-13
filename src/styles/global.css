@@ -212,7 +212,11 @@
      ingombro totale, che il footer riserva in fondo pagina per non far finire
      l'ultima riga sotto la pillola. 52px di pillola + la distanza. */
   --dock-gap: 0.75rem;
-  --dock-space: calc(3.25rem + var(--dock-gap) * 2);
+  /* `env(safe-area-inset-bottom)` vale 0 finché il meta viewport non dichiara
+     `viewport-fit=cover`: oggi non cambia niente, ed è lì perché il giorno in
+     cui la pagina andasse a bordo schermo il dock non finisca sulla barra
+     della home di iPhone. */
+  --dock-space: calc(3.25rem + var(--dock-gap) * 2 + env(safe-area-inset-bottom, 0px));
   --z-below: -1;
   --z-base: 0;
   --z-raised: 1;

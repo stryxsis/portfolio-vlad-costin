@@ -23,10 +23,18 @@
  * `transform` + `filter: blur()`). Lo stesso vale per tutto il titolo, non
  * solo per la battuta più grande.
  *
- * ⚠ IL MOBILE resta una fascia `aspect-ratio: 4/5` (non piena altezza): un
- * cover a tutta viewport su un rapporto verticale tipico ritaglierebbe la
- * larghezza sotto quella della testa stessa. L'immagine ha lo stesso rapporto
- * (~1.79:1) delle precedenti, quindi vale la stessa soglia.
+ * ⚠ IL MOBILE è una fascia QUADRATA (non piena altezza): un cover a tutta
+ * viewport su un rapporto verticale tipico ritaglierebbe la larghezza sotto
+ * quella della testa stessa. Era 4/5 fino al 2026-10-13: a barre del browser
+ * aperte (Telegram su iPhone, ~700px visibili) il titolo cadeva sotto il dock
+ * della navigazione. Il quadrato dipende solo dalla LARGHEZZA, quindi non si
+ * muove quando le barre si aprono o chiudono, e su una foto orizzontale
+ * (~1.79:1) non taglia la testa: mostra un po' più di spalle.
+ *
+ * ⚠ E SU TELEFONO NIENTE `vh` nelle spaziature: quando le barre del browser
+ * cambiano, `vh` si ricalcola e tutto il blocco di testo si sposta (misurato:
+ * il titolo da 606 a 620px fra 640 e 852 di altezza, a larghezza ferma). Le
+ * clamp in `vh` restano solo da 900px in su, dove la hero è alta uno schermo.
  *
  * Il fondo nero di questa foto combacia col layer `.ho__backdrop` che
  * Handoff.astro mette dietro OGNI schermo uscente (vedi lì): non serve più
@@ -142,7 +150,7 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
   .hero__media {
     position: relative;
     width: 100%;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1;
     overflow: clip;
   }
   @media (min-width: 56.25rem) {
@@ -191,7 +199,7 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
      fotogramma, non solo sotto la colonna di testo. */
   .hero__idx {
     padding-inline: var(--spacing-gutter);
-    padding-top: clamp(1rem, 4vh, 1.5rem);
+    padding-top: 1.5rem;
     animation: hero-in-fade 600ms var(--ease-out-expo) 120ms both;
   }
   @media (min-width: 56.25rem) {
@@ -226,14 +234,15 @@ const stackTags = (SKILLS[0]?.items ?? []).slice(0, 5).join(' · ');
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: clamp(0.875rem, 2.2vh, 1.35rem);
+    gap: 1rem;
     padding-inline: var(--spacing-gutter);
-    padding-block: clamp(2rem, 6vh, 3rem);
+    padding-block: 2.25rem 3rem;
     max-width: 40rem;
     text-align: left;
   }
   @media (min-width: 56.25rem) {
     .hero__content {
+      gap: clamp(0.875rem, 2.2vh, 1.35rem);
       position: absolute;
       inset: 0;
       z-index: 2;

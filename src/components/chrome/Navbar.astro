@@ -321,7 +321,7 @@ const ICONS: Record<(typeof NAV)[number]['href'], typeof House> = {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--dock-gap);
+    bottom: calc(var(--dock-gap) + env(safe-area-inset-bottom, 0px));
     width: fit-content;
     margin-inline: auto;
     display: flex;

@@ -56,6 +56,27 @@ const MOBILE_QUERY =
 const diHandoffMobile = (el: Element | null | undefined): boolean =>
   !!el?.parentElement?.hasAttribute('data-ho-mobile');
 
+/* ⚠ L'ALTEZZA DI RIFERIMENTO È `100svh`, NON `window.innerHeight` (2026-10-13).
+   Su iPhone `innerHeight` cambia ogni volta che le barre del browser si aprono
+   o si chiudono (in Safari e ancora di più nel browser di Telegram): uno
+   schermo `tall` incollato con un `top` preso da lì saltava di ~80px a metà
+   scroll, e il mazzo di §03 su telefono, che è proprio uno schermo `tall`, è
+   dove si vedeva. `svh` è l'altezza con le barre aperte e non cambia con loro,
+   ed è la stessa unità in cui il CSS dimensiona il mazzo, quindi `top` e
+   altezza si muovono insieme. Da desktop `svh` e `innerHeight` coincidono.
+   Un elemento sonda letto quando serve: niente listener in più. */
+let sonda: HTMLElement | null = null;
+const altezzaStabile = (): number => {
+  if (!sonda) {
+    sonda = document.createElement('div');
+    sonda.setAttribute('aria-hidden', 'true');
+    sonda.style.cssText =
+      'position:absolute;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+    document.body.append(sonda);
+  }
+  return sonda.offsetHeight || window.innerHeight;
+};
+
 export function initStages(): void {
   gsap.registerPlugin(ScrollTrigger);
 
@@ -102,8 +123,9 @@ export function initStages(): void {
       if (screen.dataset.screenTall !== undefined || soloMobile) {
         const misura = () => {
           const h = screen.offsetHeight;
-          screen.style.setProperty('--ho-out-top', `${Math.min(0, window.innerHeight - h)}px`);
-          screen.style.transformOrigin = `50% ${Math.max(h - window.innerHeight / 2, h / 2)}px`;
+          const vh = altezzaStabile();
+          screen.style.setProperty('--ho-out-top', `${Math.min(0, vh - h)}px`);
+          screen.style.transformOrigin = `50% ${Math.max(h - vh / 2, h / 2)}px`;
         };
         misura();
         const ro = new ResizeObserver(misura);
@@ -269,7 +291,7 @@ export function initStages(): void {
              titolo scorre via prima, vedi Handoff `mobile`) e si incolla dopo
              averne fatto scorrere l'eccedenza. La corsa resta `travel`: è quanto
              lo schermo resta incollato prima che l'entrante lo raggiunga. */
-          start: () => `top+=${Math.max(0, (screen?.offsetHeight ?? 0) - window.innerHeight)} top`,
+          start: () => `top+=${Math.max(0, (screen?.offsetHeight ?? 0) - altezzaStabile())} top`,
           end: () => `+=${travel?.offsetHeight ?? window.innerHeight * 2}`,
           scrub: true,
           invalidateOnRefresh: true,
