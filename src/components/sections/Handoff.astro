@@ -96,15 +96,21 @@ interface Props {
    * che dovrebbe misurarla non è partito.
    */
   tall?: boolean;
+  /**
+   * Lo sticky e il rientro anche SOTTO i 900px, dove il resto del sito va in
+   * fila (2026-10-13, per il mazzo di §03). La sezione nello slot `out` deve
+   * stare in uno schermo anche su telefono: è lei a doverlo garantire.
+   */
+  mobile?: boolean;
 }
-const { name, tone, travel, bareIn = false, blurOut = false, tall = false } = Astro.props;
+const { name, tone, travel, bareIn = false, blurOut = false, tall = false, mobile = false } = Astro.props;
 
 /* Le classi che in global.css riportano il focus ring a un colore leggibile
    sopra i fondi invertiti. */
 const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent' } as const;
 ---
 
-<div class="ho" data-handoff={name}>
+<div class:list={['ho', mobile && 'ho--mobile']} data-handoff={name} data-ho-mobile={mobile ? '' : undefined}>
   <div class="ho__backdrop" aria-hidden="true"></div>
 
   {/* `data-screen-blur` è un attributo e non una classe perché a leggerlo è
@@ -261,6 +267,24 @@ const TONE_CONTEXT = { canvas: undefined, paper: 'on-paper', accent: 'on-accent'
     /* Vedi il prop `tall`: nessun fallback di proposito. */
     :global(html.js-anim) .ho__out--tall {
       top: var(--ho-out-top);
+    }
+  }
+
+  /* ⚠ L'ECCEZIONE `mobile` (2026-10-13): lo stesso sticky anche sotto i 900px,
+     per QUESTO handoff soltanto. Il `>` non è pignoleria: un handoff annidato
+     dentro (Dicono dentro In evidenza) deve restare in flusso su telefono, e un
+     selettore discendente lo prenderebbe. Il vincolo resta quello di sempre:
+     lo schermo uscente non deve superare la viewport — è compito della sezione
+     che ci sta dentro (vedi `.fp` in FeaturedProjects). */
+  /* Sotto i 700px d'altezza no: stessa soglia di MOBILE_QUERY in stage.ts. */
+  @media (width < 56.25rem) and (min-height: 43.75rem) {
+    :global(html.js-anim) .ho--mobile > .ho__out {
+      position: sticky;
+      top: 0;
+    }
+    :global(html.js-anim) .ho--mobile > .ho__travel {
+      display: block;
+      height: var(--travel);
     }
   }
 

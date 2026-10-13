@@ -34,15 +34,35 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-/** Soglia di motion del sito: sotto, nessuna stage viene creata. */
+/** Soglia di motion del sito: sotto, nessuna stage viene creata — TRANNE quelle
+ *  di un Handoff con `mobile` (vedi MOBILE_QUERY). */
 const STAGE_QUERY = '(min-width: 56.25rem) and (prefers-reduced-motion: no-preference)';
+/** ⚠ L'ECCEZIONE alla soglia (2026-10-13): Vlad ha chiesto il mazzo di §03 anche
+ *  su telefono («mi piacerebbe, secondo me verrebbe bene lo stesso»). Non si è
+ *  abbassata la soglia per tutti: sotto i 900px si monta SOLO ciò che sta in un
+ *  Handoff marcato `data-ho-mobile` (rientro M12 e mazzo M16). Tutto il resto
+ *  del sito su telefono resta in fila, come prima. */
+const MOBILE_QUERY =
+  '(width < 56.25rem) and (min-height: 43.75rem) and (prefers-reduced-motion: no-preference)';
+/* ⚠ `min-height: 43.75rem` (700px) è la stessa soglia del CSS in Handoff.astro e
+   FeaturedProjects.astro: sotto, la card del mazzo non ci sta (telefono in
+   orizzontale, iPhone SE) e le card restano in fila. Va cambiata in tutti e tre
+   i posti insieme, o il CSS le rende assolute e invisibili senza che il JS le
+   accenda mai. */
+
+/** Lo schermo (o l'occlusore) appartiene DIRETTAMENTE a un Handoff `mobile`?
+ *  `closest` non basterebbe: un Handoff annidato dentro quello `mobile` lo
+ *  troverebbe risalendo, e verrebbe montato anche lui. */
+const diHandoffMobile = (el: Element | null | undefined): boolean =>
+  !!el?.parentElement?.hasAttribute('data-ho-mobile');
 
 export function initStages(): void {
   gsap.registerPlugin(ScrollTrigger);
 
   const mm = gsap.matchMedia();
 
-  mm.add(STAGE_QUERY, () => {
+  /** Monta le scene. `soloMobile`: solo quelle degli Handoff con `mobile`. */
+  const monta = (soloMobile: boolean) => {
     const cleanups: (() => void)[] = [];
 
     /* ---- M12 — il rientro della sezione uscente --------------------------
@@ -55,6 +75,7 @@ export function initStages(): void {
        quindi la sua posizione misurata cambia mentre si scorre, e sarebbe il
        riferimento sbagliato. */
     document.querySelectorAll<HTMLElement>('[data-occludes]').forEach((occluder) => {
+      if (soloMobile && !diHandoffMobile(occluder)) return;
       const name = occluder.dataset.occludes;
       const screen = document.querySelector<HTMLElement>(`[data-screen="${name}"]`);
       if (!screen) return;
@@ -170,6 +191,7 @@ export function initStages(): void {
        card sovrapposte a pila ferma. */
     document.querySelectorAll<HTMLElement>('[data-stack]').forEach((stageEl) => {
       const name = stageEl.dataset.stack;
+      if (soloMobile && !diHandoffMobile(document.querySelector(`[data-screen="${name}"]`))) return;
       const cards = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-stack-card]'));
       /* ⚠ ERA `if (cards.length < 2) return`, e NON era la degradazione gentile
          che il suo commento dichiarava ("con una card sola resta l'elenco
@@ -516,7 +538,8 @@ export function initStages(): void {
        Il valore è una PERCENTUALE della larghezza dell'elemento, non pixel: un
        fantasma tipografico scala col viewport, e la sua deriva deve scalare con
        lui o a 390px sarebbe uno strappo e a 2560 un fremito. */
-    document.querySelectorAll<HTMLElement>('[data-drift]').forEach((el) => {
+    // La deriva resta solo da 900px in su: nessuno l'ha chiesta su telefono.
+    if (!soloMobile) document.querySelectorAll<HTMLElement>('[data-drift]').forEach((el) => {
       const raw = Number(el.dataset.drift);
       const to = Number.isFinite(raw) && raw !== 0 ? raw : -2.5;
 
@@ -539,5 +562,8 @@ export function initStages(): void {
     });
 
     return () => cleanups.forEach((fn) => fn());
-  });
+  };
+
+  mm.add(STAGE_QUERY, () => monta(false));
+  mm.add(MOBILE_QUERY, () => monta(true));
 }

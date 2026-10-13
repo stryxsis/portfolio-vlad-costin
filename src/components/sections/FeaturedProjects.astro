@@ -1429,7 +1429,9 @@ const TURNS = [
   }
 
   /* =======================================================================
-     M16 — IL MAZZO. Solo ≥900px E con JS attivo.
+     M16 — IL MAZZO. Con JS attivo, a OGNI larghezza dal 2026-10-13 (prima solo
+     ≥900px: su telefono le card erano in fila). Le misure del telefono stanno
+     nel blocco subito dopo questo.
 
      Le card escono dal flusso e si sovrappongono nella stessa cella. Da qui in
      poi nessuna proprietà di posizione è animata in CSS: `transform` è
@@ -1439,7 +1441,10 @@ const TURNS = [
      una dimenticanza: GSAP le legge e le ricompila DENTRO la matrice che scrive
      su `transform`, applicandole due volte (divieto in CLAUDE.md). Il
      parcheggio iniziale delle card lo fa `gsap.set`, non il CSS. */
-  @media (min-width: 56.25rem) {
+  /* ⚠ La condizione è la STESSA di stage.ts (STAGE_QUERY o MOBILE_QUERY): qui
+     le card diventano assolute e partono a `opacity: 0`, e solo il JS le
+     accende. Se CSS e JS non coincidono, il mazzo resta un rettangolo vuoto. */
+  @media (min-width: 56.25rem), (min-height: 43.75rem) {
     /* Altezza FISSA, non `min-height`: è il vincolo dello sticky (vedi la nota
        in testa al file). `align-content: stretch` perché la riga dello stack
        deve prendersi tutto lo spazio residuo — con `center` (il default della
@@ -1590,6 +1595,94 @@ const TURNS = [
     :global(html.js-anim) .fp__call.is-instant * {
       transition-duration: 0s !important;
       transition-delay: 0s !important;
+    }
+  }
+
+  /* ═══ IL MAZZO SU TELEFONO (2026-10-13) ═════════════════════════════════
+     Vlad l'ha chiesto «uguale a PC». Il vincolo è lo stesso dello sticky: la
+     sezione deve stare in UNO schermo, e su telefono una card in fila era alta
+     820-860px — più dello schermo intero. Compattata così (scelta di Vlad fra tre
+     proposte): numero, categoria, titolo, descrizione a TRE righe, bottone, e
+     sotto il telefono col sito che scorre, che entra dall'alto e viene tagliato
+     dal fondo della card (il reel scorre lo stesso: la corsa la misura stage.ts
+     sullo schermo intero, non sulla parte visibile).
+     ⚠ La descrizione è tagliata a vista, non nel markup: per Google e per gli
+     screen reader resta intera.
+     ⚠ SOTTO I 700px D'ALTEZZA il mazzo non c'è (telefono in orizzontale, iPhone
+     SE): la card non ci starebbe, e le card tornano in fila come prima. La
+     soglia è la stessa in stage.ts e in Handoff.astro.
+     ⚠ `padding-bottom` riserva il dock della navigazione, che su telefono sta
+     fisso in basso: senza, la parte bassa del mazzo finirebbe sotto la pillola. */
+  @media (width < 56.25rem) and (min-height: 43.75rem) {
+    :global(html.js-anim) .fp {
+      padding-top: calc(var(--nav-h) + 1.5rem);
+      padding-bottom: var(--dock-space);
+    }
+    /* Su telefono `.fp__wrap` non è una griglia (quella a 12 colonne parte dai
+       900px): indice, titolo e bottone stanno in fila, e la riga elastica deve
+       essere la QUARTA, quella del mazzo. Senza, lo stack misurava 0px. */
+    :global(html.js-anim) .fp__wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+    }
+    :global(html.js-anim) .fp__cta-row {
+      margin-top: 1rem;
+    }
+    :global(html.js-anim) .fp__stack {
+      margin-top: 1.25rem;
+    }
+    :global(html.js-anim) .fp__card {
+      grid-template-rows: auto minmax(0, 1fr);
+      align-content: stretch;
+    }
+    :global(html.js-anim) .fp__copy {
+      gap: 0.75rem;
+      padding: 1.125rem 1.25rem 0.875rem;
+    }
+    /* Il numero va nell'angolo in alto a destra (la card è già assoluta, quindi
+       gli fa da riferimento): in riga propria costava ~40px, cioè un pezzo del
+       telefono. */
+    :global(html.js-anim) .fp__n {
+      position: absolute;
+      top: 1rem;
+      right: 1.25rem;
+      font-size: 1.5rem;
+    }
+    :global(html.js-anim) .fp__cat {
+      padding-right: 3rem;
+    }
+    :global(html.js-anim) .fp__text {
+      gap: 0.4rem;
+    }
+    :global(html.js-anim) .fp__name {
+      font-size: 1.3125rem;
+    }
+    :global(html.js-anim) .fp__blurb {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+    :global(html.js-anim) .fp__shot {
+      padding: 0.25rem 1.25rem 0;
+      align-content: start;
+    }
+    :global(html.js-anim) .fp__fit {
+      height: 100%;
+      align-content: start;
+    }
+    :global(html.js-anim) .fp__phone {
+      width: min(58%, 14rem);
+    }
+  }
+  /* Telefoni bassi (sotto gli 800px d'altezza): la descrizione scende a due
+     righe, o il telefono nella card si riduce a una striscia. */
+  @media (width < 56.25rem) and (min-height: 43.75rem) and (max-height: 49.99rem) {
+    :global(html.js-anim) .fp__blurb {
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
     }
   }
 

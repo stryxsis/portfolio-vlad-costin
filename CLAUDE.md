@@ -1238,6 +1238,16 @@ Quattro giri. (1) Le scritte aspettavano il primo fotogramma del fondale. (2) Un
 
 Il server `astro dev` sulla 4321 (avviato il giorno prima) rispondeva **500 «MissingSharp»** su `/_image`: `npm install @lucide/astro` aveva toccato `node_modules` mentre girava. Build e produzione erano a posto. Riavviato (con `rm -rf node_modules/.vite`). ⚠ **Dopo ogni `npm install` va riavviato il dev server**, o le immagini di astro:assets spariscono in silenzio.
 
+### 2026-10-13: il mazzo di §03 anche su telefono
+
+Vlad: su telefono le card di «In evidenza» erano in fila, «se non è per la SEO metti lo stesso effetto del PC». **Non era per la SEO** (le card sono nell'HTML in entrambi i casi): era la regola «sotto i 900px niente sticky». Fatto **solo per questo blocco**, il resto del telefono resta in fila.
+- **`Handoff` ha il prop `mobile`** (`data-ho-mobile`, classe `ho--mobile`): lo sticky e la corsa valgono anche sotto i 900px, con un selettore `> .ho__out` — un handoff annidato (Dicono) resta in flusso. Usato solo da `featured` in `index.astro`.
+- **`stage.ts`**: il montaggio delle scene è la funzione `monta(soloMobile)`. Sopra i 900px gira come prima; sotto (`MOBILE_QUERY`) monta SOLO il rientro M12 e il mazzo M16 degli Handoff `mobile` (`diHandoffMobile`, che guarda il genitore diretto — `closest` prenderebbe anche gli annidati). La deriva M6 resta solo su desktop.
+- **La card su telefono è compattata** (scelta di Vlad fra tre proposte): numero nell'angolo in alto a destra, categoria, titolo, descrizione **tagliata a 3 righe** (2 sotto gli 800px d'altezza) — solo a vista, nel markup resta intera — bottone, e il telefono col sito che scorre, che entra dall'alto ed è tagliato dal fondo della card. La sezione riserva in basso `--dock-space` per la pillola di navigazione.
+- ⚠ **SOTTO I 700px D'ALTEZZA niente mazzo** (telefono in orizzontale, iPhone SE): la card non ci starebbe. La soglia `min-height: 43.75rem` è scritta in **tre posti che devono coincidere** — `MOBILE_QUERY` in stage.ts, lo sticky in Handoff.astro, e il blocco del mazzo in FeaturedProjects (`@media (min-width: 56.25rem), (min-height: 43.75rem)`). Se il CSS del mazzo si attiva senza il JS, le card restano assolute a `opacity: 0`: un rettangolo vuoto.
+- Misure a mazzo attivo (altezza del telefono dentro la card): 360×740 → 139px, 360×800 → 174, 390×844 → 247, 430×932 → 331.
+- ⚠ **`verify:stage` a 390px non è pensato per il telefono**: segna rossi i controlli delle ALTRE sezioni (intro, closing, teaser), che lì sono in fila per scelta — 7 rossi oggi, 13 prima di questa modifica sulla versione pubblicata. Tutti i controlli del mazzo passano. A 1440 e `verify:anim`: tutto verde.
+
 ### 2026-10-12: la navigazione da telefono è un dock in basso
 
 Vlad: su telefono e tablet (sotto i 900px) la navbar deve essere **la pillola dello stato compatto, ma in basso, con le icone al posto delle scritte**. Fatto in `Navbar.astro`: il menu a tendina (`<details>`) è stato **tolto**, e con lui la parte mobile di `nav.ts` (`lenis.stop()`, Escape).
