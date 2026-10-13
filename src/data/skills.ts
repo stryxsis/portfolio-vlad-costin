@@ -24,7 +24,6 @@ export const SKILLS: SkillGroup[] = [
       'Bootstrap',
       'SCSS',
       'jQuery',
-      'GSAP',
     ],
   },
   {
