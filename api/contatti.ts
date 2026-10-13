@@ -168,8 +168,9 @@ export async function POST(req: Request): Promise<Response> {
   let conferma = false;
   if (process.env.CONTACT_CONFIRM === '1') {
     /* La conferma a chi scrive (attivata da Vlad il 2026-10-13, dominio
-       verificato). Dice solo che il messaggio è arrivato e come aggiungere
-       qualcosa: rispondendo, la risposta va a Vlad (`reply_to`).
+       verificato). Dice solo che il messaggio è arrivato. Non invita a
+       rispondere (tolto su richiesta di Vlad), anche se `reply_to` porterebbe
+       comunque una risposta a lui.
        ⚠ NON ripete il testo del messaggio né gli allegati, ed è una difesa, non
        una dimenticanza: il destinatario è un indirizzo SCRITTO DA CHI COMPILA,
        quindi un modulo che rispedisce il testo ricevuto diventa un modo per
@@ -197,12 +198,11 @@ export async function POST(req: Request): Promise<Response> {
       subject: 'Ho ricevuto il tuo messaggio',
       html: `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6;color:#111;max-width:520px">
 <p style="margin:0 0 16px">Ciao ${esc(saluto)},</p>
-<p style="margin:0 0 16px">grazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.</p>
-<p style="margin:0 0 24px">Se vuoi aggiungere qualcosa, basta rispondere a questa email.</p>
+<p style="margin:0 0 24px">grazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.</p>
 <p style="margin:0">${firmaHtml}</p>
 <p style="margin:28px 0 0;padding-top:16px;border-top:1px solid #ddd;font-size:12px;color:#777">Ricevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.</p>
 </div>`,
-      text: `Ciao ${saluto},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.\n\nSe vuoi aggiungere qualcosa, basta rispondere a questa email.\n\n${firmaTesto}\n\n—\nRicevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.`,
+      text: `Ciao ${saluto},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.\n\n${firmaTesto}\n\n—\nRicevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.`,
     });
   }
 
