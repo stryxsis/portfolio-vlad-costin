@@ -177,7 +177,18 @@ export async function POST(req: Request): Promise<Response> {
        motivo il nome nel saluto è accorciato.
        Se fallisce, il messaggio a Vlad è comunque partito: non si dice
        all'utente che qualcosa è andato storto. */
-    const sito = new URL(req.url).origin;
+    /* La firma è QUELLA DELLE EMAIL NORMALI di Vlad (2026-10-13, incollata da
+       lui): stessa forma e stessi link, così la conferma non sembra scritta da
+       un altro. Se la cambia lì, va cambiata qui. */
+    const firmaHtml = `<strong style="font-size:16px;">Vlad Costin</strong><br>
+<span style="font-size:13px;">Software Developer</span><br><br>
+<a href="https://vladcostin-developer.com" style="text-decoration:none;">Sito</a>
+&nbsp;·&nbsp;
+<a href="https://www.linkedin.com/in/vlad-costin/" style="text-decoration:none;">LinkedIn</a>
+&nbsp;·&nbsp;
+<a href="https://github.com/stryxsis" style="text-decoration:none;">GitHub</a>`;
+    const firmaTesto =
+      'Vlad Costin\nSoftware Developer\n\nSito: https://vladcostin-developer.com\nLinkedIn: https://www.linkedin.com/in/vlad-costin/\nGitHub: https://github.com/stryxsis';
     const saluto = nome.split(/\s+/)[0]?.slice(0, 40) || nome.slice(0, 40);
     conferma = await resend(chiave, {
       from: da,
@@ -188,10 +199,10 @@ export async function POST(req: Request): Promise<Response> {
 <p style="margin:0 0 16px">Ciao ${esc(saluto)},</p>
 <p style="margin:0 0 16px">grazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.</p>
 <p style="margin:0 0 24px">Se vuoi aggiungere qualcosa, basta rispondere a questa email.</p>
-<p style="margin:0">Vlad Costin<br><a href="${sito}" style="color:#5f3ce0">${esc(new URL(sito).host)}</a></p>
+<p style="margin:0">${firmaHtml}</p>
 <p style="margin:28px 0 0;padding-top:16px;border-top:1px solid #ddd;font-size:12px;color:#777">Ricevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.</p>
 </div>`,
-      text: `Ciao ${saluto},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.\n\nSe vuoi aggiungere qualcosa, basta rispondere a questa email.\n\nVlad Costin\n${sito}\n\n—\nRicevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.`,
+      text: `Ciao ${saluto},\n\ngrazie per avermi scritto: il tuo messaggio è arrivato. Lo leggo e ti rispondo appena posso, a questo indirizzo.\n\nSe vuoi aggiungere qualcosa, basta rispondere a questa email.\n\n${firmaTesto}\n\n—\nRicevi questa email perché hai usato il modulo di contatto del sito. Se non sei stato tu, puoi ignorarla.`,
     });
   }
 
