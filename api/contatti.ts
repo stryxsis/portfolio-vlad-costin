@@ -29,7 +29,14 @@
  *   - altrimenti (invio HTML nudo) → 303 verso /contatti#inviato o #errore, che
  *     la pagina mostra con `:target`, in CSS puro.
  */
-import { MAX_FILE, MAX_TOTALE, ammesso } from '../src/lib/allegati.ts';
+/* ⚠ `.js` E NON `.ts`, anche se il file su disco è `allegati.ts`. Vercel compila
+   ogni file in `.js` uno per uno SENZA riscrivere gli import: con `.ts` Node
+   cercava un file che nella funzione non esiste, e la funzione moriva al
+   caricamento (`FUNCTION_INVOCATION_FAILED` a ogni richiesta, anche GET) — il
+   modulo in produzione non ha mai funzionato fino al 2026-10-13. TypeScript
+   (risoluzione `bundler`) risolve `.js` sul sorgente `.ts`, quindi controlli e
+   tipi restano quelli. In locale non si vedeva: Node 24 esegue i `.ts` da sé. */
+import { MAX_FILE, MAX_TOTALE, ammesso } from '../src/lib/allegati.js';
 
 /* La stessa di `SITE.author.email`. Non importata da `site.ts` perché quel file
    legge `import.meta.env`, che fuori da Astro non esiste. */
