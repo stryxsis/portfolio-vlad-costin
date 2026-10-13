@@ -38,7 +38,9 @@ const FROM_DEFAULT = 'Sito Vlad Costin <onboarding@resend.dev>';
 
 const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 'Ancora non lo so'];
 
-type Esito = { ok: true } | { ok: false; errore: string; campo?: string };
+/* `conferma`: la ricevuta a chi scrive è partita davvero. La legge la notifica
+   del modulo per dirlo — solo se è vero. */
+type Esito = { ok: true; conferma?: boolean } | { ok: false; errore: string; campo?: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -156,6 +158,7 @@ export async function POST(req: Request): Promise<Response> {
   });
   if (!inviato) return rispondi(req, 502, { ok: false, errore: 'L’invio non è riuscito.' });
 
+  let conferma = false;
   if (process.env.CONTACT_CONFIRM === '1') {
     /* La conferma a chi scrive (attivata da Vlad il 2026-10-13, dominio
        verificato). Dice solo che il messaggio è arrivato e come aggiungere
@@ -169,7 +172,7 @@ export async function POST(req: Request): Promise<Response> {
        all'utente che qualcosa è andato storto. */
     const sito = new URL(req.url).origin;
     const saluto = nome.split(/\s+/)[0]?.slice(0, 40) || nome.slice(0, 40);
-    await resend(chiave, {
+    conferma = await resend(chiave, {
       from: da,
       to: [email],
       reply_to: a,
@@ -185,7 +188,7 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
-  return rispondi(req, 200, { ok: true });
+  return rispondi(req, 200, { ok: true, conferma });
 }
 
 /* Tutto il resto non è previsto. */

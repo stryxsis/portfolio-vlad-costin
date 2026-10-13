@@ -193,6 +193,98 @@ export function initContatti(): void {
     });
   }
 
+  /* ---- Le notifiche a comparsa ---------------------------------------------
+     Due schede già nel markup (vedi contatti.astro), una per esito. Si chiudono
+     da sole dopo `durata` — più a lungo l'errore, che chiede di fare qualcosa —
+     e il tempo si FERMA con il puntatore o il focus sopra: una notifica che
+     sparisce mentre la stai leggendo è peggio di nessuna (WCAG 2.2.1). Esc e la
+     X la chiudono subito. */
+  type Tipo = 'ok' | 'err';
+  const schede = {
+    ok: document.querySelector<HTMLElement>('[data-toast="ok"]'),
+    err: document.querySelector<HTMLElement>('[data-toast="err"]'),
+  };
+  const DURATA: Record<Tipo, number> = { ok: 6000, err: 10000 };
+  let aperta: HTMLElement | null = null;
+  let timer = 0;
+  let resta = 0;
+  let dal = 0;
+
+  const chiudi = () => {
+    const el = aperta;
+    if (!el) return;
+    aperta = null;
+    window.clearTimeout(timer);
+    el.classList.remove('is-on', 'is-paused');
+    // Il tempo dell'uscita (260ms) e poi via dal flusso: `hidden` la toglie
+    // anche agli screen reader, che altrimenti la rileggerebbero in giro.
+    window.setTimeout(() => {
+      if (aperta !== el) el.hidden = true;
+    }, 300);
+  };
+  const avvia = (ms: number) => {
+    resta = ms;
+    dal = performance.now();
+    window.clearTimeout(timer);
+    timer = window.setTimeout(chiudi, ms);
+  };
+  const pausa = () => {
+    if (!aperta || aperta.classList.contains('is-paused')) return;
+    window.clearTimeout(timer);
+    resta -= performance.now() - dal;
+    aperta.classList.add('is-paused');
+  };
+  const riprendi = () => {
+    if (!aperta?.classList.contains('is-paused')) return;
+    // Il focus è passato da un elemento all'altro DENTRO la scheda: resta ferma.
+    if (aperta.matches(':hover, :focus-within')) return;
+    aperta.classList.remove('is-paused');
+    avvia(Math.max(1500, resta));
+  };
+  const notifica = (tipo: Tipo, testo: Node[]) => {
+    const el = schede[tipo];
+    if (!el) return;
+    if (aperta && aperta !== el) {
+      aperta.classList.remove('is-on', 'is-paused');
+      aperta.hidden = true;
+    }
+    aperta = null;
+    el.classList.remove('is-on', 'is-paused');
+    el.hidden = false;
+    // Il testo si scrive DOPO aver tolto `hidden`: è il cambio di contenuto di
+    // una regione `status`/`alert` già visibile a far partire l'annuncio.
+    el.querySelector('[data-toast-text]')?.replaceChildren(...testo);
+    el.style.setProperty('--tst-t', `${DURATA[tipo]}ms`);
+    // Un fotogramma fra `hidden` e `is-on`, o la transizione d'ingresso non parte.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        el.classList.add('is-on');
+        aperta = el;
+        avvia(DURATA[tipo]);
+      })
+    );
+  };
+  for (const el of Object.values(schede)) {
+    if (!el) continue;
+    el.querySelector('[data-toast-x]')?.addEventListener('click', chiudi);
+    el.addEventListener('pointerenter', pausa);
+    el.addEventListener('pointerleave', riprendi);
+    el.addEventListener('focusin', pausa);
+    el.addEventListener('focusout', () => window.setTimeout(riprendi, 0));
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && aperta) chiudi();
+  });
+  const email = document.querySelector<HTMLAnchorElement>('[data-esito] a[href^="mailto:"]');
+  const riserva = (): Node[] => {
+    const a = document.createElement('a');
+    a.href = email?.href ?? '';
+    a.textContent = email?.textContent ?? '';
+    return email
+      ? [document.createTextNode(' Riprova tra poco, oppure scrivimi a '), a, document.createTextNode('.')]
+      : [document.createTextNode(' Riprova tra poco.')];
+  };
+
   const mostraEsito = (testo: string) => {
     if (!esito) return;
     esito.querySelector('[data-esito-testo]')!.textContent = testo;
@@ -222,12 +314,28 @@ export function initContatti(): void {
         body: dati,
         headers: { accept: 'application/json' },
       });
-      const j = (await r.json().catch(() => null)) as { ok?: boolean; errore?: string; campo?: string } | null;
+      const j = (await r.json().catch(() => null)) as {
+        ok?: boolean;
+        conferma?: boolean;
+        errore?: string;
+        campo?: string;
+      } | null;
       if (!r.ok || !j?.ok) {
         if (j?.campo && j.campo !== 'allegati') segna(j.campo, j.errore ?? '');
         mostraEsito(j?.errore ? `${j.errore} ` : 'Non sono riuscito a inviare il messaggio. ');
+        notifica('err', [
+          document.createTextNode(j?.errore ?? 'Il messaggio non è partito.'),
+          ...riserva(),
+        ]);
         return;
       }
+      notifica('ok', [
+        document.createTextNode(
+          j.conferma
+            ? 'È arrivato senza errori. Ti ho mandato una conferma via email.'
+            : 'È arrivato senza errori. Ti rispondo appena posso.'
+        ),
+      ]);
       // Partito: la scia dal bottone, poi il pannello di conferma.
       if (invia) {
         const b = invia.getBoundingClientRect();
@@ -250,6 +358,10 @@ export function initContatti(): void {
       }, 420);
     } catch {
       mostraEsito('Non sono riuscito a inviare il messaggio. ');
+      notifica('err', [
+        document.createTextNode('Il messaggio non è partito: sembra un problema di connessione.'),
+        ...riserva(),
+      ]);
     } finally {
       form.classList.remove('is-sending');
       if (invia) invia.disabled = false;
