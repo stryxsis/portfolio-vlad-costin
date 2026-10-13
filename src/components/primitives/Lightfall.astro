@@ -27,6 +27,18 @@
  * onde della CTA, dove uno stato base "spento" avrebbe lasciato un rettangolo
  * nero.
  *
+ * ⚠ LO SFONDO D'ATTESA È CALCOLATO CON LA FORMULA DELLO SHADER (2026-10-12).
+ * Prima era un gradiente CSS disegnato a mano «simile» alla luce dello shader, e
+ * quando lo shader partiva si vedeva lo scatto — un alone diverso in alto, poi
+ * «pam» quello vero (segnalato da Vlad). Ora lo script inline qui sotto rifà, in
+ * un canvas piccolo e prima del primo paint, la sola LUCE dello shader (sorgente,
+ * guardia del testo, spegnimento in basso, tone mapping), con gli stessi
+ * parametri letti da `lightfallParametri.ts`. Il primo fotogramma dello shader
+ * non ha ancora scie (vedi «L'ARRIVO» in lightfall.ts), quindi i due coincidono
+ * e il passaggio non si vede. ⚠ Se cambia la luce nello shader (`O`, `uGuard`,
+ * `uFloorFade`, il tone mapping), va cambiata anche `luce()` qui sotto.
+ * Il gradiente CSS di `.lf__fondo` resta, ma solo per chi non ha JS.
+ *
  * ⚠ NIENTE SCRIM SOPRA LO SHADER, a differenza della prima stesura e del cielo
  * della CTA. Il controllo di contrasto dietro al testo lo fa `uGuard` DENTRO lo
  * shader, attenuando la radianza prima del tone mapping: le scie sature passano,
@@ -35,12 +47,94 @@
  * è precisamente ciò che Vlad ha chiesto di evitare. Se un domani servisse più
  * margine, la leva è `guardiaForza` in lightfall.ts, non un elemento in più qui.
  */
+import { P, TOKEN_BAGLIORE, TOKEN_FONDO } from '../../scripts/lightfallParametri';
+
+/* Solo ciò che serve alla luce: le scie qui non ci sono. */
+const LUCE = {
+  bagliore: P.bagliore,
+  intensita: P.sorgenteIntensita,
+  ampiezza: P.sorgenteAmpiezza,
+  altezza: P.sorgenteAltezza,
+  forma: P.sorgenteForma,
+  guardiaForza: P.guardiaForza,
+  guardiaCentroY: P.guardiaCentroY,
+  guardiaRaggioX: P.guardiaRaggioX,
+  guardiaRaggioY: P.guardiaRaggioY,
+  pavimento: P.pavimento,
+  tokenBagliore: TOKEN_BAGLIORE,
+  tokenFondo: TOKEN_FONDO,
+};
 ---
 
 {/* Interamente decorativo: non porta informazione, e annunciarlo sarebbe
     rumore. Stessa dichiarazione del cielo della CTA e del campo binario. */}
 <div class="lf" data-lightfall aria-hidden="true">
   <span class="lf__fondo"></span>
+  <canvas class="lf__attesa"></canvas>
+  {/* Inline e SINCRONO, subito dopo il canvas: deve disegnare prima del primo
+      paint, o si vedrebbe per un istante il gradiente CSS. 160 px di larghezza
+      bastano e avanzano: è una luce senza bordi, e il browser la ingrandisce
+      liscia. Costa ~25k pixel calcolati una volta. */}
+  <script is:inline define:vars={{ L: LUCE }}>
+    (function () {
+      var host = document.currentScript.parentNode;
+      var cv = host.querySelector('.lf__attesa');
+      var ctx = cv && cv.getContext('2d');
+      if (!ctx) return;
+      var st = getComputedStyle(document.documentElement);
+      function rgb(nome) {
+        var c = st.getPropertyValue(nome).trim().replace('#', '');
+        if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+        return [0, 2, 4].map(function (i) {
+          return parseInt(c.slice(i, i + 2), 16) / 255;
+        });
+      }
+      var bg = rgb(L.tokenBagliore);
+      var fondo = rgb(L.tokenFondo);
+      function th(x) {
+        var e = Math.exp(-2 * x);
+        return (1 - e) / (1 + e);
+      }
+      function ss(a, b, x) {
+        var t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+        return t * t * (3 - 2 * t);
+      }
+      function disegna() {
+        var hw = host.clientWidth, hh = host.clientHeight;
+        if (!hw || !hh) return;
+        var W = 160, H = Math.max(2, Math.round((W * hh) / hw));
+        cv.width = W;
+        cv.height = H;
+        var asp = hh / hw;
+        var img = ctx.createImageData(W, H);
+        var off = [0.04, 0.08, 0.02];
+        for (var j = 0; j < H; j++) {
+          /* Le stesse coordinate dello shader: y verso l'ALTO, normalizzate
+             sulla larghezza (uv0 = (2C - r) / r.x). */
+          var uy = (1 - (j + 0.5) / H) * 2 * asp - asp;
+          for (var i = 0; i < W; i++) {
+            var ux = ((i + 0.5) / W) * 2 - 1;
+            var px = 2 * ux;
+            var py = L.forma * uy - L.forma * (asp + L.altezza);
+            var k = (90 * L.intensita) / (L.ampiezza * (px * px + py * py) + 6);
+            var gx = ux / L.guardiaRaggioX;
+            var gy = (uy - L.guardiaCentroY * asp) / (L.guardiaRaggioY * asp);
+            k *= 1 - L.guardiaForza * Math.exp(-(gx * gx + gy * gy));
+            k *= 1 - L.pavimento * ss(0.05, -0.85, uy / asp);
+            var o = (j * W + i) * 4;
+            for (var c = 0; c < 3; c++) {
+              var v = Math.sqrt(th(Math.max(bg[c] * k * L.bagliore - off[c], 0))) + fondo[c];
+              img.data[o + c] = Math.min(255, Math.round(v * 255));
+            }
+            img.data[o + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+      disegna();
+      if (window.ResizeObserver) new ResizeObserver(disegna).observe(host);
+    })();
+  </script>
 </div>
 
 <style>
@@ -75,6 +169,15 @@
         transparent 72%
       ),
       var(--color-canvas);
+  }
+
+  /* Lo sfondo d'attesa: sopra il gradiente CSS, sotto il canvas dello shader. */
+  .lf__attesa {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
   }
 
   /* Il canvas lo crea e lo dimensiona `lightfall.ts` (ogl scrive width/height

@@ -80,20 +80,9 @@
  * testo. Nessun bordo, perché è una gaussiana.
  */
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
+import { P, TOKEN_SCIE, TOKEN_BAGLIORE, TOKEN_FONDO } from './lightfallParametri';
 
-/* ---- Palette, dai token del sito ------------------------------------------
-   L'ordine è la gerarchia che Vlad ha chiesto: indaco profondo → accento →
-   lilla freddo. Sono tre luminanze della STESSA famiglia, non tre tinte: è la
-   regola dell'accento unico applicata a un fondale, e il bianco delle punte lo
-   produce il tone mapping (vedi il punto 5 in testa al file). */
-const TOKEN_SCIE = ['--color-accent-deep', '--color-accent', '--color-accent-hi'] as const;
-/** Il bagliore in alto: la sorgente del tunnel. Il tono più profondo della
- *  famiglia, perché è una luce grande e diffusa e non deve competere col testo. */
-const TOKEN_BAGLIORE = '--color-accent-deep';
-/** Il nero del sito. Aggiunto come PAVIMENTO al colore finale: senza, il canvas
- *  dipingerebbe `#000000` puro dove lo shader non arriva, cioè una macchia
- *  leggermente più scura del resto della pagina lungo i bordi della sezione. */
-const TOKEN_FONDO = '--color-canvas';
+
 
 type RGB = [number, number, number];
 
@@ -113,91 +102,7 @@ function tokenRGB(stile: CSSStyleDeclaration, nome: string, fallback: RGB): RGB 
   return hexToRGB(stile.getPropertyValue(nome), fallback);
 }
 
-/* ---- I parametri, tarati a schermo -----------------------------------------
-   Partono da quelli del riferimento e sono stati spostati guardando la hero a
-   1440×900 (vedi la sezione dedicata in CLAUDE.md per il perché di ciascuno). */
-const P = {
-  /** Il riferimento sta a 0.5. Più lento: qui sotto ci si legge un titolo, e la
-   *  richiesta era esplicita — «elegante e abbastanza lento», non hyperspeed.
-   *  ⚠ SCESO ANCORA il 2026-09-10 (era 0.34), su richiesta: «rallenta la loro
-   *  velocità, voglio qualcosa di più elegante e meno ipnotico». */
-  velocita: 0.2,
-  /** Scie per cella di superficie. Il riferimento ne fa 2.
-   *  ⚠ ERA 8, ed è la leva principale del «troppo carico» segnalato da Vlad il
-   *  2026-09-10. Il giro precedente aveva letto «tantissime scie, non pochi fasci
-   *  isolati» come "il più possibile" e aveva superato il punto in cui la densità
-   *  smette di essere profondità e diventa rumore: a 8 le scie di celle adiacenti
-   *  si toccano, il campo si chiude e il tunnel — che è la cosa da vedere — si
-   *  legge peggio, non meglio. A 5 restano centinaia di filamenti distinti.
-   *  ⚠ Costa poco: il prezzo di questo shader è il raymarch (117 iterazioni per
-   *  pixel), non questo ciclo. Abbassarlo NON è un'ottimizzazione, è estetica. */
-  numeroScie: 5,
-  larghezzaScia: 1,
-  lunghezzaScia: 1.4,
-  /** Il moltiplicatore prima del tone mapping: quanto in fretta si satura. Al
-   *  valore del riferimento (1.0) le scie diventavano fasci spessi e bianchi —
-   *  su un fondo nero, e non blu, satura molto prima. */
-  bagliore: 0.38,
-  /** Settori angolari: la densità del campo. ⚠ È LA SECONDA METÀ DEL
-   *  DIRADAMENTO, e agisce in modo diverso da `numeroScie`: quello dice quante
-   *  scie stanno in una cella, questo quante CELLE ci sono attorno al tunnel
-   *  (`angRings = round(TAU · densita)`, 9 settori a 1.5 e 7 a 1.1). Muovere solo
-   *  il primo dirada dentro i gruppi lasciandone il numero invariato; muovere
-   *  entrambi allarga anche lo spazio nero fra un filamento e l'altro, che è
-   *  quello che fa sembrare la scena più grande invece che più vuota. */
-  densita: 1.1,
-  /** La sfocatura: moltiplica l'ampiezza di antialiasing delle scie (`fw`, le
-   *  derivate della parametrizzazione — «quanto vale un pixel qui sulla
-   *  superficie»). A 1 le scie hanno il bordo netto di un pixel.
-   *  ⚠ TOLTA IL 2026-09-11, un giorno dopo averla introdotta: «togli il blur».
-   *  Tornata al neutro (1), non rimossa dal parametro — resta la leva pronta
-   *  se un giorno la richiesta cambia di nuovo, ed è una moltiplicazione sola
-   *  da ritoccare, non uno shader da riscrivere. Vedi CLAUDE.md per la ragione
-   *  per cui, quando c'era, non era un `filter: blur()` CSS. */
-  sfocatura: 1,
-  /** Oscillazione di luminosità per scia. Tenuta sotto il riferimento (1.0):
-   *  serve l'irregolarità organica, non un secondo battito che compete. */
-  scintillio: 0.55,
-  /** L'apertura prospettica del raymarch. ⚠ È IL PARAMETRO PIÙ SENSIBILE DI
-   *  TUTTI: sotto il 3 del riferimento il tunnel si allarga, le scie diventano
-   *  enormi e la hero passa da fondale a protagonista. La prima stesura stava a
-   *  2.35 ed era esattamente quel difetto. */
-  zoom: 3.8,
-  /** Quanto è forte la sorgente in alto. Sotto il riferimento (0.5) perché lì
-   *  il fondo è blu pieno e qui è il nero del sito.
-   *  ⚠ SCESA DUE VOLTE IN DUE GIORNI (0.46 → 0.32 → 0.24), entrambe su
-   *  richiesta di scurire lo sfondo. È la leva giusta per quella richiesta — è
-   *  LA sorgente, cioè il fondo vero e proprio, e abbassarla scurisce senza
-   *  toccare le scie (che restano leggibili quanto prima: non sono luce
-   *  diffusa, saturano da sole nel tone mapping). */
-  sorgenteIntensita: 0.24,
-  /** Quanto è LARGA. ⚠ Il riferimento inchioda 1e3 nel denominatore; a quel
-   *  valore il nucleo è una macchia piccola e incandescente. 220 lo apre nella
-   *  «grande luce diffusa nella zona alta» che era la richiesta, senza alzarne
-   *  l'intensità — cioè senza costare contrasto al titolo. */
-  sorgenteAmpiezza: 220,
-  /** Quanto la sorgente sta SOPRA il bordo alto, in unità di larghezza (0.10 ≈
-   *  144px a 1440). Vedi la nota su `uBgLift` nello shader: senza, l'indice di
-   *  sezione cade dentro il nucleo. */
-  sorgenteAltezza: 0.11,
-  /** La FORMA della sorgente: 1 = il fuso alto e stretto del riferimento,
-   *  valori sopra = fascia larga appoggiata al bordo. Vedi la nota su uBgAniso. */
-  sorgenteForma: 2.1,
-  /** L'attenuazione attorno al blocco di testo. Vedi la nota su `uGuard`.
-   *  ⚠ IL RAGGIO CONTA PIÙ DELLA FORZA: a raggio stretto (0.62 × 0.30, la prima
-   *  taratura) la stessa quantità di luce tolta si legge come una BANDA
-   *  orizzontale scura, cioè come il velo appoggiato sopra che si voleva
-   *  evitare. Largo e morbido, lo stesso calo si legge come la profondità della
-   *  scena. */
-  guardiaForza: 0.9,
-  guardiaCentroY: 0.19,
-  guardiaRaggioX: 1.2,
-  guardiaRaggioY: 0.74,
-  /** Lo spegnimento verso il fondo, dove comincia la fascia delle card: la luce
-   *  viene dall'alto, quindi il basso che si spegne è la cosa che la scena farebbe
-   *  da sé. Serve a far staccare le card, che hanno un fondo proprio. */
-  pavimento: 0.78,
-} as const;
+
 
 const vertex = /* glsl */ `
 attribute vec2 position;
@@ -243,7 +148,8 @@ uniform float uFloorFade;
    uT       il tempo della scena, già integrato dal JS: durante l'arrivo scorre
             più veloce, poi rallenta fino alla crociera.
    uStretch quanto si allungano le code durante la corsa veloce (1 = normali).
-   uGate    1 finché vale la regola delle nascite, 0 dopo.
+   uGate    1 = vale la regola delle nascite (sempre, tranne col fotogramma
+            fermo del movimento ridotto).
    uT0      il tempo della scena all'inizio dell'arrivo.
    uSpanT   in quanto tempo-scena nascono tutte le scie.
    uTop     l'angolo della superficie sul bordo ALTO dello schermo. */
@@ -367,7 +273,7 @@ void mainImage(out vec4 o, vec2 C) {
        quell'istante la sua testa era ancora SOPRA il bordo alto: allora entra
        da sola, scorrendo, con la sua coda dietro. Quelle che a Tb erano già in
        mezzo allo schermo non si vedono mai — e non ricompaiono: il blocco resta
-       acceso (uGate) finché anche la più lenta è uscita dal basso.
+       acceso per sempre (uGate), e loro escono dal basso da sole.
        Il «poche, poi sempre di più» è la radice: Tb = T0 + span·√hash addensa
        le nascite verso la fine. Il JS intanto fa correre la scena (uT) molto
        più veloce della crociera, perché a velocità normale una scia impiega
@@ -457,18 +363,22 @@ function angoloSuperficie(fx: number, fy: number, rx: number, ry: number): numbe
    Un moltiplicatore della velocità di crociera: pieno fino a `piena`, poi
    scende a 1 con una smoothstep (pendenza nulla ai due capi: niente scatti
    né all'inizio della frenata né all'arrivo in crociera).
-   ⚠ I NUMERI SONO LEGATI FRA LORO, e non vanno toccati uno alla volta:
-   - le nascite finiscono a `nascite` secondi;
-   - dopo, la scena deve avanzare di almeno ~0,9 di tempo-scena (`USCITA`),
-     cioè quanto serve alla scia PIÙ LENTA, nata già dentro lo schermo e quindi
-     invisibile, per uscire dal basso con tutta la coda. Solo allora la regola
-     delle nascite si spegne; spegnerla prima farebbe COMPARIRE di colpo le
-     scie invisibili a metà schermo — esattamente il «comparire a caso».
-   Con questi valori, dopo le nascite la scena avanza di ~1,1. */
-const WARP = { max: 34, nascite: 1.5, piena: 1.6, fine: 4.6 };
+   ⚠ ACCORCIATO il 2026-10-12 su richiesta di Vlad («dura un botto, quasi due
+   secondi buoni: falli durare un po' di meno, un po' più veloce»): prima le
+   nascite duravano 1,5s e la frenata finiva a 4,6s; ora 0,8s e 2,3s, con la
+   corsa più veloce (40× invece di 34×) così le scie arrivano comunque in fondo.
+   ⚠ La regola delle nascite NON si spegne mai (`uGate` resta a 1): dopo
+   l'arrivo non cambia niente — chi entra dall'alto nasce visibile — e così le
+   scie rimaste invisibili, nate a metà schermo, escono dal basso da sole senza
+   il rischio di ricomparire di colpo. La prima stesura la spegneva a una soglia
+   di tempo-scena, e la soglia era stretta su desktop e SBAGLIATA su telefono,
+   dove lo schermo copre 1,4 radianti invece di 0,54. */
+const WARP = { max: 40, nascite: 0.8, piena: 0.9, fine: 2.3 };
+/** Quando le scritte della hero possono entrare: la corsa è quasi in crociera.
+ *  Vlad: «che compaia appena l'animazione si è normalizzata». */
+const CALMO = WARP.fine - 0.3;
 /** Tempo-scena per secondo, a velocità di crociera (era `0.1 · iTime · uSpeed` nello shader). */
 const CROCIERA = 0.1 * P.velocita;
-const USCITA = 1.0;
 const T0 = 9;
 
 function moltiplicatore(t: number): number {
@@ -497,6 +407,10 @@ function webglDisponibile(): boolean {
    nascosto finché è un rettangolo nero mai disegnato). Va acceso su OGNI
    strada d'uscita da qui sotto, o resta il fondale statico. */
 const accendi = (): void => document.documentElement.classList.add('lf-acceso');
+/* «L'arrivo è finito»: le scritte della hero aspettano questa classe (vedi
+   «LE SCRITTE ASPETTANO LE SCIE» in PortfolioHero). Come `accendi`, va data su
+   ogni strada d'uscita, o le scritte restano nascoste fino al watchdog. */
+const calma = (): void => document.documentElement.classList.add('lf-calmo');
 
 export function initLightfall(): void {
   const host = document.querySelector<HTMLElement>('[data-lightfall]');
@@ -515,6 +429,7 @@ function avviaLightfall(host: HTMLElement): void {
      dal componente: la hero non dipende dallo shader per essere completa. */
   if (!webglDisponibile()) {
     accendi();
+    calma();
     return;
   }
 
@@ -619,6 +534,7 @@ function avviaLightfall(host: HTMLElement): void {
        cadano tutte sullo stesso allineamento iniziale. */
     disegna(T0 + 7.4 * CROCIERA);
     accendi();
+    calma();
     return;
   }
 
@@ -639,9 +555,17 @@ function avviaLightfall(host: HTMLElement): void {
   let scena = T0;
 
   let primo = true;
+  let calmo = false;
+  let inizio = 0;
   const ciclo = (ora: number): void => {
     rafId = requestAnimationFrame(ciclo);
-    const dt = ultimo === 0 ? 16 : Math.min(ora - ultimo, 50);
+    /* Il tetto a 50ms evita che, dopo una pausa (scheda in secondo piano), il
+       campo salti avanti. ⚠ MA DURANTE L'ARRIVO è a 250ms: su un dispositivo
+       che fa pochi fotogrammi al secondo, con 50ms l'arrivo da 2,3s durava il
+       triplo e le scritte (che aspettano la sua fine) arrivavano dal watchdog
+       a 6s — misurato in un Chrome senza GPU. */
+    const tetto = tempo < WARP.fine * 1000 ? 250 : 50;
+    const dt = ultimo === 0 ? 16 : Math.min(ora - ultimo, tetto);
     ultimo = ora;
     tempo += dt;
     /* L'arrivo usa lo stesso orologio accumulato: se la scheda va in secondo
@@ -649,8 +573,14 @@ function avviaLightfall(host: HTMLElement): void {
     const m = moltiplicatore(tempo / 1000);
     scena += (dt / 1000) * CROCIERA * m;
     program.uniforms.uStretch!.value = 1 + 0.035 * (m - 1);
-    if (scena > T0 + SPAN_T + USCITA) program.uniforms.uGate!.value = 0;
     disegna(scena);
+    if (inizio === 0) inizio = ora;
+    /* Le scritte entrano a fine frenata OPPURE dopo CALMO secondi veri,
+       quale arriva prima: un dispositivo lento non deve far aspettare il testo. */
+    if (!calmo && (tempo / 1000 >= CALMO || ora - inizio >= CALMO * 1000)) {
+      calmo = true;
+      calma();
+    }
     /* Si accende DOPO il primo fotogramma disegnato, non all'avvio: è il
        primo `render()` a compilare davvero lo shader, ed è quello il momento
        lento. Il rAF successivo è il primo in cui quel fotogramma è a schermo. */

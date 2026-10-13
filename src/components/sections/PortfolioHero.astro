@@ -60,6 +60,18 @@ const { href = '#lavori' } = Astro.props;
 
 <section class="ph" data-section id="portfolio">
   <Lightfall />
+  {/* ⚠ IL WATCHDOG DELLE SCRITTE (vedi «LE SCRITTE ASPETTANO LE SCIE» negli
+      stili). Le scritte restano nascoste finché `lightfall.ts` non dà
+      `html.lf-calmo`; se il bundle non arriva o lo shader si rompe nessuno la
+      darebbe mai, e la hero resterebbe senza testo. Inline proprio per questo:
+      gira anche quando il bundle no. 6s: l'arrivo normale si calma in ~3s
+      contando il cambio pagina. Senza JS non serve — niente `js-anim`, niente
+      attesa. */}
+  <script is:inline>
+    setTimeout(function () {
+      document.documentElement.classList.add('lf-calmo');
+    }, 6000);
+  </script>
 
   <div class="ph__wrap">
     {
@@ -297,16 +309,26 @@ const { href = '#lavori' } = Astro.props;
     animation: ph-fuoco 900ms var(--ease-out-expo) 520ms forwards;
   }
 
-  /* ⚠ LE SCRITTE NON ASPETTANO PIÙ IL FONDALE (2026-10-12, seconda
-     correzione dello stesso giorno). Per qualche ora sono rimaste in pausa
-     finché lo shader non disegnava il primo fotogramma: risolveva il «titolo
-     sfocato per un secondo», ma lasciava la hero VUOTA durante il cambio
-     pagina — e una pagina nuova che arriva vuota si legge come un
-     ricaricamento, che è esattamente ciò che Vlad ha segnalato subito dopo.
-     Il titolo sfocato visibile lo aveva causato `both`, già sostituito qui
-     sopra con `scale(0)` + `forwards`: risolto quello, l'attesa non serve.
-     Ora le scritte entrano col primo fotogramma, come su /chi-sono, e le scie
-     arrivano DIETRO di loro a cambio pagina finito (vedi lightfall.ts). */
+  /* ═══ LE SCRITTE ASPETTANO LE SCIE (2026-10-12, terza stesura) ═══════════
+     Vlad: «vorrei che la scritta comparisse appena l'animazione si è
+     normalizzata — ha finito la parte dove va straveloce e sta andando piano.
+     Così è più elegante». Tutti gli ingressi restano in pausa finché
+     `lightfall.ts` non dà `html.lf-calmo` (a fine frenata, vedi CALMO lì).
+     ⚠ La seconda stesura di oggi le faceva entrare subito, perché aspettando
+     il PRIMO FOTOGRAMMA la hero arrivava vuota e il cambio pagina sembrava un
+     ricaricamento. Ora la hero non arriva vuota: lo sfondo d'attesa è già
+     quello vero (vedi Lightfall.astro) e le scie partono a cambio pagina
+     finito, quindi c'è sempre qualcosa che si muove mentre il testo aspetta.
+     Congelare è sicuro: tutti i ritardi qui sono positivi. Titolo e coda,
+     durante la pausa, valgono il loro `scale(0)` di riposo: invisibili, senza
+     toccare `opacity` (regola LCP). */
+  :global(html.js-anim:not(.lf-calmo)) .ph__idx,
+  :global(html.js-anim:not(.lf-calmo)) .ph__title,
+  :global(html.js-anim:not(.lf-calmo)) .ph__coda,
+  :global(html.js-anim:not(.lf-calmo)) .ph__lede,
+  :global(html.js-anim:not(.lf-calmo)) .ph__cta {
+    animation-play-state: paused;
+  }
   :global(html.js-anim) .ph__lede {
     animation: ph-entra 700ms var(--ease-out-expo) 760ms both;
   }
