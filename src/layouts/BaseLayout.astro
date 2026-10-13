@@ -104,6 +104,86 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
       } catch (e) {}
     </script>
 
+    {/*
+      PREFETCH AL PASSAGGIO DEL MOUSE, nativo (2026-10-12). Prende il posto del
+      prefetch di Astro (vedi astro.config.mjs per il perché): `moderate` vuol
+      dire «dopo ~200ms di hover, o al tocco», cioè la stessa strategia di
+      prima. Solo prefetch, MAI prerender: una pagina pre-renderizzata
+      eseguirebbe in sottofondo i suoi script (WebGL compreso). Chi non
+      supporta le speculation rules (Firefox, Safari) semplicemente ignora il
+      blocco e naviga come sempre. Non tocca la SEO: i crawler non la leggono.
+    */}
+    <script type="speculationrules" is:inline>
+      {
+        "prefetch": [
+          {
+            "where": { "and": [{ "href_matches": "/*" }, { "not": { "href_matches": "/api/*" } }] },
+            "eagerness": "moderate"
+          }
+        ]
+      }
+    </script>
+
+    {/*
+      LA FINE DEL CAMBIO PAGINA (2026-10-12). Il lavoro pesante (oggi: lo
+      shader del fondale di /portfolio) deve partire DOPO la transizione fra
+      documenti, non durante. Misurato: compilare lo shader mentre la pagina
+      nuova si sta rivelando faceva SALTARE la transizione verso /portfolio —
+      sembrava un ricaricamento, mentre verso /chi-sono no. Bastava togliere
+      WebGL perché tornasse.
+
+      Inline e in <head> perché `pagereveal` scatta al primo fotogramma, e il
+      bundle (`defer`) può arrivare dopo: ascoltarlo da lì vorrebbe dire
+      perderlo. La promessa si risolve quando la transizione è FINITA; dove non
+      c'è transizione (prima visita, Firefox, movimento ridotto) al secondo
+      fotogramma. Chi la usa: `initLightfall()` in lightfall.ts.
+    */}
+    <script is:inline>
+      /* `__rivelata`: subito dopo il primo fotogramma della pagina, quando la
+         foto della pagina vecchia è già stata presa. La usa il caricamento del
+         bundle, più sotto. */
+      window.__rivelata = new Promise(function (fatto) {
+        var una = false;
+        function fine() {
+          if (!una) {
+            una = true;
+            fatto();
+          }
+        }
+        addEventListener(
+          'pagereveal',
+          function () {
+            setTimeout(fine, 0);
+          },
+          { once: true }
+        );
+        requestAnimationFrame(function () {
+          requestAnimationFrame(fine);
+        });
+      });
+      window.__dopoRivelazione = new Promise(function (fatto) {
+        var una = false;
+        function fine(p) {
+          if (!una) {
+            una = true;
+            fatto(p);
+          }
+        }
+        addEventListener(
+          'pagereveal',
+          function (e) {
+            fine(e.viewTransition ? e.viewTransition.finished.catch(function () {}) : null);
+          },
+          { once: true }
+        );
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            fine(null);
+          });
+        });
+      });
+    </script>
+
     {
       loader && (
         <script is:inline>
@@ -156,8 +236,25 @@ const { bodyClass, loader = false, ...seo } = Astro.props;
       solo punto in cui vive la logica del sito (scroll, reveal, navbar…),
       loro sono telemetria di piattaforma, un'altra categoria.
     */}
+    {/*
+      ⚠ DAL 2026-10-12 IL BUNDLE SI CARICA DOPO CHE LA PAGINA SI È RIVELATA,
+      non durante, ed è ciò che tiene in piedi il cambio pagina. Misurato via
+      CDP: la pagina vecchia e la nuova sono dello stesso sito, quindi Chrome
+      le fa girare nello STESSO processo, con un solo thread principale. Su una
+      pagina leggera (/portfolio 54 KB, /contatti 32 KB) l'HTML finisce subito
+      e i 240 KB di questo bundle si caricavano ed eseguivano proprio mentre il
+      browser doveva fotografare la pagina vecchia: la foto arrivava tardi, la
+      transizione veniva abortita («Document hidden») e il cambio sembrava un
+      ricaricamento. Su /chi-sono no, solo perché i suoi 225 KB di HTML
+      ritardavano il bundle quanto bastava. Prove ripetute: 2 su 6 riuscite
+      prima, 5 su 6 dopo (le pagine minime di confronto fanno 5 su 5).
+      `__rivelata` è la promessa dello script inline più sopra. Il bundle
+      arriva comunque nel primo fotogramma utile, e nulla di ciò che il primo
+      paint mostra dipende da lui: gli ingressi sopra la piega sono CSS.
+    */}
     <script>
-      import '../scripts/boot';
+      const w = window as { __rivelata?: Promise<void> };
+      (w.__rivelata ?? Promise.resolve()).then(() => import('../scripts/boot'));
     </script>
 
     {/*

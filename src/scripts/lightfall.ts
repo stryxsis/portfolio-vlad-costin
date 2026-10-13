@@ -213,7 +213,6 @@ const fragment = /* glsl */ `
 precision highp float;
 
 uniform vec3  iResolution;
-uniform float iTime;
 
 uniform vec3  uColor0;
 uniform vec3  uColor1;
@@ -221,7 +220,6 @@ uniform vec3  uColor2;
 uniform vec3  uBgColor;
 uniform vec3  uCanvas;
 
-uniform float uSpeed;
 uniform int   uStreakCount;
 uniform float uStreakWidth;
 uniform float uStreakLength;
@@ -240,15 +238,21 @@ uniform vec2  uGuardCenter;
 uniform vec2  uGuardRadius;
 uniform float uFloorFade;
 
-/* L'INGRESSO (2026-10-12). uIntro = secondi dall'inizio; oltre ~1e3 è finito
-   e il ramo non costa niente. uTop è l'angolo della superficie che cade sul
-   bordo ALTO dello schermo (lo calcola il JS, dipende dalla forma della
-   finestra); uFrontSpeed quanto in fretta un filamento si disegna verso il
-   basso, in radianti al secondo. Vedi il blocco nel ciclo delle scie. */
-uniform float uIntro;
-uniform float uIntroSpan;
+/* L'INGRESSO: «l'arrivo» (2026-10-12, seconda stesura). Vedi il blocco nel
+   ciclo delle scie e WARP più sotto, nel JS.
+   uT       il tempo della scena, già integrato dal JS: durante l'arrivo scorre
+            più veloce, poi rallenta fino alla crociera.
+   uStretch quanto si allungano le code durante la corsa veloce (1 = normali).
+   uGate    1 finché vale la regola delle nascite, 0 dopo.
+   uT0      il tempo della scena all'inizio dell'arrivo.
+   uSpanT   in quanto tempo-scena nascono tutte le scie.
+   uTop     l'angolo della superficie sul bordo ALTO dello schermo. */
+uniform float uT;
+uniform float uStretch;
+uniform float uGate;
+uniform float uT0;
+uniform float uSpanT;
 uniform float uTop;
-uniform float uFrontSpeed;
 
 varying vec2 vUv;
 
@@ -286,7 +290,7 @@ vec2 sceneC(vec2 frag, vec2 r) {
 void mainImage(out vec4 o, vec2 C) {
   vec2 r = iResolution.xy;
   vec2 uv0 = (C + C - r) / r.x;
-  float T = 0.1 * iTime * uSpeed + 9.0;
+  float T = uT;
   float angRings = max(1.0, floor(TAU * max(uDensity, 0.05) + 0.5));
   vec2 Y = vec2(5e-3, TAU / angRings);
 
@@ -338,7 +342,7 @@ void mainImage(out vec4 o, vec2 C) {
      cui le scie sfumano da sole. Alzare uSoftness estende quel comportamento —
      lontano piu' morbido di vicino — invece di contraddirlo. */
   vec2 rr = vec2(max(length(fw) * uSoftness, 1e-5));
-  float tail = 19.0 / max(uStreakLength, 0.05);
+  float tail = 19.0 / max(uStreakLength * uStretch, 0.05);
 
   for (int m = 0; m < 16; m++) {
     if (m >= uStreakCount) break;
@@ -353,37 +357,34 @@ void mainImage(out vec4 o, vec2 C) {
     vec2 sm = vec2(1.0) - smoothstep(-rr, rr, inner);
     float scia = dot(sm, vec2(exp(tail * Pp.y), 3.0));
 
-    /* ═══ L'INGRESSO: i filamenti cadono dall'alto, pochi e poi sempre più ═══
+    /* ═══ L'ARRIVO: le scie nascono sopra lo schermo ed entrano dall'alto ═══
        Chiesto da Vlad il 2026-10-12: «non che compaiano a caso, ma che
-       scendano da sopra, poche alla volta, poi sempre di più».
-       Ogni CORSIA (una colonna della superficie per una delle uStreakCount
-       scie) si accende a un istante suo, tb. Da lì un FRONTE parte dal bordo
-       alto e scende: sopra il fronte la corsia si vede, sotto ancora no. Sul
-       fronte viaggia una testa luminosa, disegnata con la stessa forma di una
-       scia — è lei a leggersi come «una linea che cade».
-       ⚠ Perché un fronte e non la caduta naturale delle scie: a velocità di
-       crociera una scia attraversa lo schermo in 15-30 secondi (misurato
-       sull'angolo: lo schermo copre ~0.54 rad e la testa ne fa 0.02-0.04 al
-       secondo). Aspettare che entrino da sole vorrebbe dire mezzo minuto di
-       hero mezza vuota.
-       ⚠ tb = span · √hash, NON span · hash: con la radice gli istanti si
-       addensano verso la fine — poche corsie all'inizio, poi sempre di più. */
-    if (uIntro < 1e3) {
-      float lh = fract(sin(dot(vec2(jf * 1.37, floor(C.x / Y.x + 0.5)), vec2(12.9898, 78.233))) * 43758.5453);
-      float el = uIntro - uIntroSpan * sqrt(lh);
-      float front = el < 0.0 ? -10.0 : uTop + el * uFrontSpeed * (0.75 + 0.5 * ic);
+       scendano da sopra, poche alla volta, poi sempre di più». La prima
+       stesura (un fronte con una testa finta che disegnava ogni corsia) l'ha
+       bocciata: si vedeva che era un effetto appoggiato sopra.
+       Qui non c'è niente di finto. Ogni ISTANZA di scia (corsia × ripetizione
+       k lungo la superficie) ha un istante di nascita Tb, e si vede solo se in
+       quell'istante la sua testa era ancora SOPRA il bordo alto: allora entra
+       da sola, scorrendo, con la sua coda dietro. Quelle che a Tb erano già in
+       mezzo allo schermo non si vedono mai — e non ricompaiono: il blocco resta
+       acceso (uGate) finché anche la più lenta è uscita dal basso.
+       Il «poche, poi sempre di più» è la radice: Tb = T0 + span·√hash addensa
+       le nascite verso la fine. Il JS intanto fa correre la scena (uT) molto
+       più veloce della crociera, perché a velocità normale una scia impiega
+       15-30 secondi ad attraversare lo schermo, e poi la fa rallentare. */
+    if (uGate > 0.5) {
       /* ⚠ L'angolo va SROTOLATO: è un atan(), e sugli schermi alti il bordo
          basso supera π e ricomincia da −π (390×844: 1,76 in alto, −3,11 in
-         basso). Senza, quella fascia risultava «sopra» qualunque fronte e
-         compariva subito, mentre il fronte stesso non la raggiungeva mai.
-         Sopra il bordo alto non c'è schermo, quindi un angolo più piccolo di
-         uTop può solo essere uno che ha fatto il giro. */
+         basso). Sopra il bordo alto non c'è schermo, quindi un angolo più
+         piccolo di uTop può solo essere uno che ha fatto il giro. Aggiungere
+         TAU non sposta Pp: TAU è un multiplo esatto del passo Y.y. */
       float cy = C.y < uTop - 0.25 ? C.y + TAU : C.y;
-      scia *= smoothstep(front + 0.015, front - 0.015, cy);
-      vec2 Pf = vec2(Pp.x, cy - front);
-      vec2 innerF = vec2(length(max(Pf, vec2(-1.0, 0.0))), length(Pf) - zr) - zr;
-      vec2 smF = vec2(1.0) - smoothstep(-rr, rr, innerF);
-      scia += dot(smF, vec2(exp(0.45 * tail * Pf.y), 3.0));
+      float sp = 1.0 + ic;
+      float kk = floor((cy - T * sp) / Y.y + 0.5);
+      float hk = fract(sin(dot(vec3(jf, floor(C.x / Y.x + 0.5), kk), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+      float tb = uT0 + uSpanT * sqrt(hk);
+      float testaAllaNascita = (cy - Pp.y) - (T - tb) * sp;
+      scia *= step(tb, T) * step(testaAllaNascita, uTop);
     }
 
     O.rgb += scia * col * weight;
@@ -452,13 +453,36 @@ function angoloSuperficie(fx: number, fy: number, rx: number, ry: number): numbe
   return Math.atan2(oz, oy);
 }
 
-/** L'ingresso, in secondi: in quanto tempo si accendono tutte le corsie, e in
- *  quanto una corsia di velocità media si disegna dall'alto al basso. */
-const INGRESSO_SPAN = 2.4;
-const INGRESSO_DISCESA = 1.3;
-/* Fine dell'ingresso: l'ultima corsia si accende a SPAN e la più lenta (0,75
-   della media) scende in DISCESA/0,75. Oltre, lo shader salta il ramo. */
-const INGRESSO_FINE = INGRESSO_SPAN + INGRESSO_DISCESA / 0.75 + 0.2;
+/* ═══ L'ARRIVO: quanto corre la scena, secondo per secondo ═══════════════════
+   Un moltiplicatore della velocità di crociera: pieno fino a `piena`, poi
+   scende a 1 con una smoothstep (pendenza nulla ai due capi: niente scatti
+   né all'inizio della frenata né all'arrivo in crociera).
+   ⚠ I NUMERI SONO LEGATI FRA LORO, e non vanno toccati uno alla volta:
+   - le nascite finiscono a `nascite` secondi;
+   - dopo, la scena deve avanzare di almeno ~0,9 di tempo-scena (`USCITA`),
+     cioè quanto serve alla scia PIÙ LENTA, nata già dentro lo schermo e quindi
+     invisibile, per uscire dal basso con tutta la coda. Solo allora la regola
+     delle nascite si spegne; spegnerla prima farebbe COMPARIRE di colpo le
+     scie invisibili a metà schermo — esattamente il «comparire a caso».
+   Con questi valori, dopo le nascite la scena avanza di ~1,1. */
+const WARP = { max: 34, nascite: 1.5, piena: 1.6, fine: 4.6 };
+/** Tempo-scena per secondo, a velocità di crociera (era `0.1 · iTime · uSpeed` nello shader). */
+const CROCIERA = 0.1 * P.velocita;
+const USCITA = 1.0;
+const T0 = 9;
+
+function moltiplicatore(t: number): number {
+  const u = Math.min(Math.max((t - WARP.piena) / (WARP.fine - WARP.piena), 0), 1);
+  const liscio = u * u * (3 - 2 * u);
+  return 1 + (WARP.max - 1) * (1 - liscio);
+}
+/** Il tempo-scena accumulato fino al secondo `t` dell'arrivo (somma a passi). */
+function tempoScena(t: number): number {
+  let acc = 0;
+  for (let x = 0; x < t; x += 0.01) acc += 0.01 * CROCIERA * moltiplicatore(x);
+  return acc;
+}
+const SPAN_T = tempoScena(WARP.nascite);
 
 function webglDisponibile(): boolean {
   try {
@@ -469,15 +493,23 @@ function webglDisponibile(): boolean {
   }
 }
 
-/* Il segnale per la hero di /portfolio: «il fondale c'è, le scritte possono
-   entrare». Finché manca, PortfolioHero tiene in pausa i propri ingressi (vedi
-   «L'ATTESA DEL FONDALE» lì). Va acceso su OGNI strada d'uscita da qui sotto,
-   o la hero resta vuota fino al watchdog. */
+/* «Il fondale ha disegnato»: rende visibile il canvas (Lightfall.astro lo tiene
+   nascosto finché è un rettangolo nero mai disegnato). Va acceso su OGNI
+   strada d'uscita da qui sotto, o resta il fondale statico. */
 const accendi = (): void => document.documentElement.classList.add('lf-acceso');
 
 export function initLightfall(): void {
   const host = document.querySelector<HTMLElement>('[data-lightfall]');
   if (!host) return;
+  /* ⚠ DOPO il cambio pagina, mai durante: compilare questo shader mentre la
+     pagina si rivela faceva saltare la transizione fra documenti (vedi la
+     nota su `__dopoRivelazione` in BaseLayout). Nell'attesa resta il fondale
+     statico, che è la stessa composizione. */
+  const attesa = (window as { __dopoRivelazione?: Promise<unknown> }).__dopoRivelazione;
+  (attesa ?? Promise.resolve()).then(() => avviaLightfall(host));
+}
+
+function avviaLightfall(host: HTMLElement): void {
 
   /* Senza WebGL non si crea niente e resta il fondale statico dichiarato in CSS
      dal componente: la hero non dipende dallo shader per essere completa. */
@@ -524,13 +556,11 @@ export function initLightfall(): void {
     fragment,
     uniforms: {
       iResolution: { value: [1, 1, 1] },
-      iTime: { value: 0 },
       uColor0: { value: scie[0] },
       uColor1: { value: scie[1] },
       uColor2: { value: scie[2] },
       uBgColor: { value: bagliore },
       uCanvas: { value: fondo },
-      uSpeed: { value: P.velocita },
       uStreakCount: { value: P.numeroScie },
       uStreakWidth: { value: P.larghezzaScia },
       uStreakLength: { value: P.lunghezzaScia },
@@ -548,16 +578,19 @@ export function initLightfall(): void {
       uGuardRadius: { value: [P.guardiaRaggioX, P.guardiaRaggioY] },
       uFloorFade: { value: P.pavimento },
       /* Con movimento ridotto niente ingresso: il fotogramma fermo è pieno. */
-      uIntro: { value: fermo ? 1e4 : 0 },
-      uIntroSpan: { value: INGRESSO_SPAN },
+      uT: { value: T0 },
+      uStretch: { value: 1 },
+      uGate: { value: fermo ? 0 : 1 },
+      uT0: { value: T0 },
+      uSpanT: { value: SPAN_T },
       uTop: { value: 2.2 },
-      uFrontSpeed: { value: 0.42 },
     },
   });
   const mesh = new Mesh(gl, { geometry, program });
 
-  const disegna = (tempoMs: number): void => {
-    program.uniforms.iTime!.value = tempoMs / 1000;
+  /** Disegna al tempo-scena `t` (vedi WARP). */
+  const disegna = (t: number): void => {
+    program.uniforms.uT!.value = t;
     renderer.render({ scene: mesh });
   };
 
@@ -569,15 +602,10 @@ export function initLightfall(): void {
     const bw = gl.drawingBufferWidth;
     const bh = gl.drawingBufferHeight;
     program.uniforms.iResolution!.value = [bw, bh, 1];
-    const alto = angoloSuperficie(bw / 2, bh, bw, bh);
-    let basso = angoloSuperficie(bw / 2, 0, bw, bh);
-    // Stesso srotolamento dello shader: su uno schermo alto il basso fa il giro.
-    if (basso < alto) basso += Math.PI * 2;
-    program.uniforms.uTop!.value = alto;
-    program.uniforms.uFrontSpeed!.value = (basso - alto) / INGRESSO_DISCESA;
+    program.uniforms.uTop!.value = angoloSuperficie(bw / 2, bh, bw, bh);
     // Il primo fotogramma dopo un resize va ridisegnato subito anche da fermi,
     // o resterebbe lo stretch del buffer precedente.
-    if (fermo) disegna(0);
+    if (fermo) disegna(T0 + 7.4 * CROCIERA);
   };
 
   const ro = new ResizeObserver(ridimensiona);
@@ -589,7 +617,7 @@ export function initLightfall(): void {
        comunque una composizione piena (l'offset `+9.0` dentro lo shader esiste
        apposta), ma un valore lontano dall'origine evita che le fasi delle scie
        cadano tutte sullo stesso allineamento iniziale. */
-    disegna(7400);
+    disegna(T0 + 7.4 * CROCIERA);
     accendi();
     return;
   }
@@ -607,6 +635,8 @@ export function initLightfall(): void {
      pausa lunga la differenza si vedrebbe come un salto del campo. */
   let tempo = 0;
   let ultimo = 0;
+  /* Il tempo-scena, integrato a ogni fotogramma col moltiplicatore dell'arrivo. */
+  let scena = T0;
 
   let primo = true;
   const ciclo = (ora: number): void => {
@@ -614,10 +644,13 @@ export function initLightfall(): void {
     const dt = ultimo === 0 ? 16 : Math.min(ora - ultimo, 50);
     ultimo = ora;
     tempo += dt;
-    // Il tempo dell'ingresso è lo stesso orologio accumulato: se la scheda va
-    // in secondo piano a metà, riprende da dove era invece di saltare alla fine.
-    program.uniforms.uIntro!.value = tempo / 1000 < INGRESSO_FINE ? tempo / 1000 : 1e4;
-    disegna(tempo);
+    /* L'arrivo usa lo stesso orologio accumulato: se la scheda va in secondo
+       piano a metà, riprende da dove era invece di saltare alla fine. */
+    const m = moltiplicatore(tempo / 1000);
+    scena += (dt / 1000) * CROCIERA * m;
+    program.uniforms.uStretch!.value = 1 + 0.035 * (m - 1);
+    if (scena > T0 + SPAN_T + USCITA) program.uniforms.uGate!.value = 0;
+    disegna(scena);
     /* Si accende DOPO il primo fotogramma disegnato, non all'avvio: è il
        primo `render()` a compilare davvero lo shader, ed è quello il momento
        lento. Il rAF successivo è il primo in cui quel fotogramma è a schermo. */

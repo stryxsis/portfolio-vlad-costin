@@ -25,8 +25,12 @@ export default defineConfig({
 
   compressHTML: true,
 
-  // Prefetch degli hover sui link interni: navigazione percepita istantanea senza ClientRouter.
-  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
+  // ⚠ Prefetch di Astro SPENTO dal 2026-10-12: il suo script (page.js) partiva
+  // a ogni caricamento e, sulle pagine leggere, pesava sul thread proprio
+  // mentre il browser fotografava la pagina vecchia per il cambio pagina,
+  // facendolo saltare. Il prefetch al passaggio del mouse lo fanno ora le
+  // speculation rules native, in BaseLayout: stesso effetto, zero JS.
+  prefetch: false,
 
   image: {
     // Nessun host remoto: tutte le immagini sono locali in src/assets e passano da astro:assets.

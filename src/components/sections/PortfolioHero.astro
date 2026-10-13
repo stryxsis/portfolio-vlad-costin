@@ -60,17 +60,6 @@ const { href = '#lavori' } = Astro.props;
 
 <section class="ph" data-section id="portfolio">
   <Lightfall />
-  {/* ⚠ IL WATCHDOG DELL'ATTESA (vedi «L'ATTESA DEL FONDALE» negli stili).
-      Le scritte restano nascoste finché `lightfall.ts` non accende
-      `html.lf-acceso`: se il bundle non arriva o lo shader si rompe, nessuno lo
-      accenderebbe mai e la hero resterebbe VUOTA per sempre. Inline e non nel
-      bundle proprio per questo: deve girare anche quando il bundle non gira.
-      Senza JS non serve — senza `js-anim` non c'è nessuna attesa. */}
-  <script is:inline>
-    setTimeout(function () {
-      document.documentElement.classList.add('lf-acceso');
-    }, 3000);
-  </script>
 
   <div class="ph__wrap">
     {
@@ -308,24 +297,16 @@ const { href = '#lavori' } = Astro.props;
     animation: ph-fuoco 900ms var(--ease-out-expo) 520ms forwards;
   }
 
-  /* ═══ L'ATTESA DEL FONDALE (2026-10-12) ═══════════════════════════════════
-     Vlad: «la prima volta deve scaricare lo sfondo e si vede la scritta tutta
-     sfocata per un buon secondo — vorrei che all'inizio non si vedesse proprio,
-     e che comparisse quando entra in gioco lo sfondo, come nella Home».
-     È il meccanismo del velo della Home (`html.ld-on`) senza il velo: TUTTI gli
-     ingressi della hero restano in pausa finché `lightfall.ts` non accende
-     `html.lf-acceso` — al primo fotogramma dello shader già a schermo, oppure
-     subito dove lo shader non c'è (niente WebGL: il fondale è quello statico).
-     Congelare è sicuro perché tutti i ritardi qui sono POSITIVI (una pausa su
-     un ritardo negativo mostrerebbe un fotogramma a metà, vedi la CTA).
-     Il watchdog inline nel markup accende la classe comunque a 3s. */
-  :global(html.js-anim:not(.lf-acceso)) .ph__idx,
-  :global(html.js-anim:not(.lf-acceso)) .ph__title,
-  :global(html.js-anim:not(.lf-acceso)) .ph__coda,
-  :global(html.js-anim:not(.lf-acceso)) .ph__lede,
-  :global(html.js-anim:not(.lf-acceso)) .ph__cta {
-    animation-play-state: paused;
-  }
+  /* ⚠ LE SCRITTE NON ASPETTANO PIÙ IL FONDALE (2026-10-12, seconda
+     correzione dello stesso giorno). Per qualche ora sono rimaste in pausa
+     finché lo shader non disegnava il primo fotogramma: risolveva il «titolo
+     sfocato per un secondo», ma lasciava la hero VUOTA durante il cambio
+     pagina — e una pagina nuova che arriva vuota si legge come un
+     ricaricamento, che è esattamente ciò che Vlad ha segnalato subito dopo.
+     Il titolo sfocato visibile lo aveva causato `both`, già sostituito qui
+     sopra con `scale(0)` + `forwards`: risolto quello, l'attesa non serve.
+     Ora le scritte entrano col primo fotogramma, come su /chi-sono, e le scie
+     arrivano DIETRO di loro a cambio pagina finito (vedi lightfall.ts). */
   :global(html.js-anim) .ph__lede {
     animation: ph-entra 700ms var(--ease-out-expo) 760ms both;
   }
