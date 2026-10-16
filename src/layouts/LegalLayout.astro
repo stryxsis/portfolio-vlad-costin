@@ -16,6 +16,7 @@
 import BaseLayout from './BaseLayout.astro';
 import SectionIndex from '../components/primitives/SectionIndex.astro';
 import { fullDate, isoDate } from '../lib/format';
+import { schemaLegale } from '../lib/schema';
 
 interface Props {
   title: string;
@@ -30,7 +31,7 @@ interface Props {
 const { title, description, label, heading, updated, sintesi } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} jsonLd={schemaLegale(Astro.url.pathname, heading)}>
   <article class="lg" data-section>
     <header class="lg__head">
       <div class="lg__idx">

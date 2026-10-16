@@ -29,6 +29,7 @@ import WorksStage from '../../components/sections/WorksStage.astro';
 import FuoriProgramma from '../../components/sections/FuoriProgramma.astro';
 import PortfolioCta from '../../components/sections/PortfolioCta.astro';
 import { allProjects } from '../../lib/collections';
+import { schemaPortfolio } from '../../lib/schema';
 
 const projects = await allProjects();
 ---
@@ -36,6 +37,7 @@ const projects = await allProjects();
 <BaseLayout
   title="Portfolio"
   description="I lavori di Vlad Costin: case study con contesto, sfida, processo e risultato."
+  jsonLd={schemaPortfolio(projects)}
 >
   <Handoff name="lavori" tone="canvas" blurOut>
     <PortfolioHero slot="out" href="#lavori" />

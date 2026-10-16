@@ -27,6 +27,7 @@ import SectionIndex from '../components/primitives/SectionIndex.astro';
 import Button from '../components/primitives/Button.astro';
 import { SITE } from '../lib/site';
 import { ACCEPT } from '../lib/allegati';
+import { schemaContatti } from '../lib/schema';
 import CircleCheck from '@lucide/astro/icons/circle-check';
 import CircleAlert from '@lucide/astro/icons/circle-alert';
 import X from '@lucide/astro/icons/x';
@@ -37,6 +38,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
 <BaseLayout
   title="Contatti"
   description="Scrivi a Vlad Costin: raccontami il tuo progetto, anche se è solo un'idea. Modulo con allegati, email, WhatsApp, LinkedIn e GitHub."
+  jsonLd={schemaContatti()}
 >
   <section class="ct" data-section id="contatti">
     {/* Il cielo: un contenitore alto quanto la sezione, e dentro un riquadro
@@ -124,11 +126,19 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
           </p>
         </div>
 
+        {/* WebMCP dichiarativo (2026-10-17): `toolname` e `tooldescription`
+            fanno di questo modulo uno «strumento» che un agente AI nel browser
+            sa riconoscere e compilare, con i campi come parametri (nome ed
+            etichetta di ognuno). NON c'è `toolautosubmit`: l'agente compila,
+            l'invio lo conferma la persona. Senza supporto WebMCP i due
+            attributi sono ignorati. */}
         <form
           class="ct__form"
           action="/api/contatti"
           method="post"
           enctype="multipart/form-data"
+          toolname="scrivi_a_vlad"
+          tooldescription="Invia un messaggio a Vlad Costin, sviluppatore web, per proporgli un progetto o chiedergli informazioni. Servono nome, email e il messaggio; azienda, tipo di lavoro e allegati sono facoltativi."
           data-contatti
         >
           <p class="ct__form-label">Raccontami</p>
@@ -136,22 +146,22 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
           <div class="ct__row">
             <div class="ct__field">
               <label for="ct-nome">Nome</label>
-              <input id="ct-nome" name="nome" type="text" autocomplete="name" required maxlength="120" placeholder="Mario Rossi" aria-describedby="ct-nome-err" />
+              <input id="ct-nome" name="nome" toolparamdescription="Nome e cognome di chi scrive." type="text" autocomplete="name" required maxlength="120" placeholder="Mario Rossi" aria-describedby="ct-nome-err" />
               <p class="ct__err" id="ct-nome-err" data-err-for="nome" hidden></p>
             </div>
             <div class="ct__field">
               <label for="ct-email">Email</label>
-              <input id="ct-email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="mario@azienda.it" aria-describedby="ct-email-err" />
+              <input id="ct-email" name="email" toolparamdescription="Indirizzo email a cui Vlad risponderà." type="email" autocomplete="email" required maxlength="200" placeholder="mario@azienda.it" aria-describedby="ct-email-err" />
               <p class="ct__err" id="ct-email-err" data-err-for="email" hidden></p>
             </div>
           </div>
 
           <div class="ct__field">
             <label for="ct-azienda">Azienda o progetto <span class="ct__opt">facoltativo</span></label>
-            <input id="ct-azienda" name="azienda" type="text" autocomplete="organization" maxlength="160" />
+            <input id="ct-azienda" name="azienda" toolparamdescription="Facoltativo: nome dell’azienda o del progetto." type="text" autocomplete="organization" maxlength="160" />
           </div>
 
-          <fieldset class="ct__chips">
+          <fieldset class="ct__chips" toolparamdescription="Facoltativo: di che tipo di lavoro si tratta. Si possono scegliere più voci.">
             <legend>Di cosa hai bisogno?</legend>
             <div class="ct__chips-list">
               {
@@ -170,6 +180,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
             <textarea
               id="ct-msg"
               name="messaggio"
+              toolparamdescription="Il messaggio per Vlad: cosa serve, anche in poche righe (almeno 10 caratteri)."
               rows="5"
               required
               minlength="10"
@@ -181,11 +192,17 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
 
           <div class="ct__field">
             <span class="ct__label" id="ct-files-l">Allegati <span class="ct__opt">facoltativi</span></span>
-            {/* La zona è l'etichetta dell'input: un clic (o Invio/Spazio) apre la
-                scelta dei file, e ci si può trascinare dentro. L'input vero è
-                nascosto alla vista ma resta nel modulo: senza JS i file
-                partono con lui. */}
-            <label class="ct__drop" for="ct-files" data-drop tabindex="0" role="button" aria-describedby="ct-files-l ct-files-h">
+            {/* La zona è l'etichetta dell'input: un clic apre la scelta dei
+                file, e ci si può trascinare dentro. L'input vero è nascosto
+                alla vista ma resta nel modulo: senza JS i file partono con lui.
+                ⚠ Da tastiera si arriva sull'INPUT, non sull'etichetta (2026-10-17):
+                l'etichetta era `role="button"` + `tabindex="0"`, e quel ruolo
+                su un `<label>` non è permesso (errore di Lighthouse in Agentic
+                Browsing). L'input nativo apre già la scelta con Invio/Spazio,
+                e il suo nome accessibile è il testo di questa etichetta. Il
+                bordo di focus lo disegna `.ct__drop` leggendo il fuoco
+                dell'input. */}
+            <label class="ct__drop" for="ct-files" data-drop>
               <span class="ct__drop-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M10 13V3M6 7l4-4 4 4M3 13v2.5A1.5 1.5 0 0 0 4.5 17h11a1.5 1.5 0 0 0 1.5-1.5V13"></path>
@@ -198,7 +215,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
                 PDF, immagini, documenti, fogli, presentazioni, archivi · fino a 4 MB in totale
               </span>
             </label>
-            <input class="sr-only" id="ct-files" name="allegati" type="file" multiple accept={ACCEPT} tabindex="-1" />
+            <input class="sr-only" id="ct-files" name="allegati" type="file" multiple accept={ACCEPT} aria-describedby="ct-files-l" />
             <ul class="ct__files" data-files hidden></ul>
             <div class="ct__meter" data-files-meter hidden>
               <span class="ct__meter-bar" aria-hidden="true"><span></span></span>
@@ -212,7 +229,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
               lo compila. */}
           <div class="ct__hp" aria-hidden="true">
             <label for="ct-sito">Lascia vuoto questo campo</label>
-            <input id="ct-sito" name="sito" type="text" tabindex="-1" autocomplete="off" />
+            <input id="ct-sito" name="sito" type="text" tabindex="-1" autocomplete="off" toolparamdescription="Campo di controllo anti-spam: va lasciato sempre vuoto." />
           </div>
           <input type="hidden" name="t" value="" />
 
@@ -268,8 +285,11 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
      Due notifiche già pronte invece di una costruita in JS: le icone sono
      componenti Lucide, cioè SVG generati in build, e il JS non ne disegna.
      `role="status"` per l'invio riuscito (si annuncia senza interrompere),
-     `role="alert"` per l'errore (interrompe: c'è qualcosa da fare). */}
-  <div class="tst" aria-label="Notifiche">
+     `role="alert"` per l'errore (interrompe: c'è qualcosa da fare).
+     ⚠ Il contenitore NON ha `aria-label`: su un `<div>` senza ruolo è un
+     attributo vietato (errore di Lighthouse, 2026-10-17). Ad annunciarsi sono
+     le due notifiche, non il contenitore. */}
+  <div class="tst">
     <div class="tst__item tst__item--ok" data-toast="ok" role="status" hidden>
       <span class="tst__icon" aria-hidden="true"><CircleCheck size={20} stroke-width={1.75} /></span>
       <div class="tst__body">
@@ -634,7 +654,7 @@ const BISOGNI = ['Un sito nuovo', 'Rifare un sito', 'Un’app o un gestionale', 
     border-color: var(--color-accent);
     background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
   }
-  .ct__drop:focus-visible {
+  .ct__field:has(> input[type='file']:focus-visible) .ct__drop {
     outline: 2px solid var(--color-accent-hi);
     outline-offset: 3px;
   }

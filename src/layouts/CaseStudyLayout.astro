@@ -6,7 +6,7 @@
  * obbligatori, la build FALLISCE con un messaggio che dice cosa fare. È
  * deliberato: preferisco una build rotta a un case study pubblicato a metà.
  */
-import { Picture } from 'astro:assets';
+import { Picture, getImage } from 'astro:assets';
 import BaseLayout from './BaseLayout.astro';
 import Handoff from '../components/sections/Handoff.astro';
 import Breadcrumbs from '../components/chrome/Breadcrumbs.astro';
@@ -15,6 +15,7 @@ import { NAV_CHAPTERS, REQUIRED_CHAPTERS, CHAPTERS } from '../lib/chapters';
 import { fullDate, isoDate } from '../lib/format';
 import { readingMinutes } from '../lib/reading';
 import type { Project } from '../lib/collections';
+import { schemaCaseStudy } from '../lib/schema';
 
 interface Props {
   project: Project;
@@ -23,6 +24,14 @@ interface Props {
 
 const { project, next } = Astro.props;
 const d = project.data;
+
+/* L'immagine per l'anteprima social e per il JSON-LD: la copertina portata a
+   1200px di larghezza. ⚠ Prima era la copertina intera (2880×1800) mentre i
+   meta dichiaravano 1200×630, cioè le misure dell'immagine di default: un
+   dato falso che le anteprime usano per impaginare la scheda. */
+const og = await getImage({ src: d.ogImage ?? d.cover, width: 1200, format: 'jpg', quality: 80 });
+const ogW = Number(og.attributes.width);
+const ogH = Number(og.attributes.height);
 
 /* ---- Guard di build ------------------------------------------------------
    Il corpo è già stato letto in memoria: cercare gli id dei capitoli è
@@ -54,8 +63,11 @@ const facts: Fact[] = [
   title={d.title}
   description={d.description}
   ogType="article"
-  ogImage={(d.ogImage ?? d.cover).src}
+  ogImage={og.src}
   ogImageAlt={d.coverAlt}
+  ogImageWidth={ogW}
+  ogImageHeight={ogH}
+  jsonLd={schemaCaseStudy(project, og.src)}
 >
   <article class="cs">
     {/* ⚠ HANDOFF M12 (dal 2026-10-04): il titolo resta incollato e la

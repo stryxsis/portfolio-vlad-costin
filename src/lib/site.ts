@@ -29,13 +29,10 @@ export const SITE = {
    * Terza persona ed entità nominate esplicitamente: è la forma che un motore
    * di risposta generativo può citare senza doverla riscrivere.
    *
-   * ⚠ DAL 2026-08-13 NESSUNO LA LEGGE, come già succede a `sameAs` qui sotto,
-   * e per la stessa ragione: i suoi consumatori (JSON-LD, llms.txt) non sono
-   * ancora stati costruiti. L'unico posto che la stampava era la hero di
-   * /chi-sono, passata a `bioIo` perché lì parla Vlad e non un catalogo.
-   * NON è codice morto da cancellare — è la stringa che quei consumatori
-   * useranno il giorno in cui esistono, ed è scritta nella forma che serve a
-   * loro. Chi la cancella dovrà riscriverla identica.
+   * La leggono, dal 2026-10-17, il JSON-LD (`Person.description`, in
+   * `src/lib/schema.ts`) e il riassunto di `/llms.txt`. Dal 2026-08-13 al
+   * 2026-10-17 non la leggeva nessuno: la hero di /chi-sono era passata a
+   * `bioIo`, e i suoi consumatori veri non esistevano ancora.
    */
   bio:
     'Vlad Costin è uno sviluppatore e studente di Ingegneria Informatica ' +
@@ -151,12 +148,8 @@ export const SITE = {
     locationLabel: 'Colorno (PR), Italia',
     languages: ['Italiano (madrelingua)', 'Romeno (madrelingua)', 'Inglese (intermedio)'],
     /**
-     * Profili pubblici, destinati a `Person.sameAs` nel JSON-LD.
-     * ⚠ OGGI NESSUNO LEGGE QUESTO CAMPO: `Seo.astro` emette il JSON-LD solo se
-     * riceve la prop `jsonLd`, e nessuna pagina la passa ancora. Compilarlo è
-     * preparazione, non un effetto — chi si aspetta di vedere il proprio URL
-     * nell'HTML servito cercandolo qui non lo troverà, e il posto dove
-     * intervenire è la pagina, non questa riga.
+     * Profili pubblici, destinati a `Person.sameAs` nel JSON-LD (dal
+     * 2026-10-17 in ogni pagina, vedi `src/lib/schema.ts`).
      */
     sameAs: [
       'https://www.linkedin.com/in/vlad-costin/',

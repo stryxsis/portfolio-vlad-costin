@@ -22,12 +22,14 @@ import SkillsGrid from '../components/sections/SkillsGrid.astro';
 import Scelta from '../components/sections/Scelta.astro';
 import { TIMELINE } from '../data/timeline';
 import { SITE } from '../lib/site';
+import { schemaChiSono } from '../lib/schema';
 ---
 
 <BaseLayout
   title="Chi sono"
   description="Vlad Costin: sviluppatore e studente di Ingegneria Informatica a Parma. Il percorso, gli strumenti, e cosa sta studiando adesso."
   ogType="profile"
+  jsonLd={schemaChiSono()}
 >
   {/* §00 — L'h1 è candidato LCP: nessun data-split, nessun fade. Si mette a
       fuoco con `transform` + `filter`, che non escludono dal calcolo (stessa

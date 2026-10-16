@@ -9,10 +9,15 @@ import mdx from '@astrojs/mdx';
  * L'URL canonico del sito. UNICA FONTE DI VERITÀ per canonical, sitemap, OG e JSON-LD.
  * Tutto il resto lo legge da `import.meta.env.SITE` (vedi src/lib/site.ts).
  *
- * [placeholder] Sostituire con il dominio definitivo quando verrà acquistato.
  * Cambiare SOLO questa riga: nessun URL è hardcoded altrove nel progetto.
+ *
+ * ⚠ FINO AL 2026-10-17 ERA ANCORA `https://portfolio-vlad-costin.vercel.app`,
+ * mesi dopo che il sito era online sul dominio vero: canonical, sitemap, OG e
+ * robots indicavano a Google l'indirizzo di Vercel come quello ufficiale. Gli
+ * altri due indirizzi (www e vercel.app) rimandano qui con un 308, in
+ * vercel.json.
  */
-const SITE_URL = 'https://portfolio-vlad-costin.vercel.app';
+const SITE_URL = 'https://vladcostin-developer.com';
 
 // https://astro.build/config
 export default defineConfig({

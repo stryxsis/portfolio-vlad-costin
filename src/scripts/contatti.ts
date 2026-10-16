@@ -133,11 +133,13 @@ export function initContatti(): void {
     window.addEventListener('drop', (e) => {
       if (ha(e)) e.preventDefault();
     });
-    // La zona è un'etichetta dell'input: Invio e Spazio la aprono come un bottone.
-    zona.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    /* Da tastiera si arriva sull'input nativo (vedi contatti.astro). Lo Spazio
+       apre la scelta dei file da solo; l'Invio in Chrome no (misurato), e la
+       zona di prima rispondeva a entrambi: lo si aggiunge qui. */
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        input?.click();
+        input.click();
       }
     });
   }

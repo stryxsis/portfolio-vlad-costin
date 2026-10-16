@@ -73,8 +73,13 @@ import { SITE } from '../../lib/site';
     in ordine di documento — che per un avviso "questo sito è ancora un
     cantiere" è esattamente il momento giusto. Un `aria-live` lo farebbe
     annunciare una SECONDA volta all'ingresso, 2,6 secondi dopo, interrompendo
-    la lettura. */}
-<aside class="ab" data-banner role="status" aria-labelledby="ab-title">
+    la lettura.
+    ⚠ È un `<div>` e NON un `<aside>` (2026-10-17): `role="status"` non è un
+    ruolo permesso su `<aside>`, che è già un punto di riferimento
+    (`complementary`). Lighthouse lo segnava come errore in Agentic Browsing,
+    su ogni pagina: un agente che legge l'albero di accessibilità riceve due
+    ruoli in conflitto per lo stesso elemento. */}
+<div class="ab" data-banner role="status" aria-labelledby="ab-title">
   <div class="ab__inner">
     <span class="ab__dot" aria-hidden="true"></span>
 
@@ -131,7 +136,7 @@ import { SITE } from '../../lib/site';
       </svg>
     </button>
   </div>
-</aside>
+</div>
 
 <style>
   /* Nessun `position` qui: la banda sta in FLUSSO dentro `.chrome`, ed è questo

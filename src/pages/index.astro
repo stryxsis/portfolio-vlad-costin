@@ -94,6 +94,7 @@ import CTASection from '../components/sections/CTASection.astro';
 import { STATEMENTS } from '../data/statements';
 import { TESTIMONIALS } from '../data/testimonials';
 import { SITE } from '../lib/site';
+import { schemaHome } from '../lib/schema';
 
 /* ⚠ STESSA CONDIZIONE DI `show` IN Testimonials.astro (senza `limit`, che lì
    esiste solo per l'anteprima): ripetuta qui perché `travel` sotto la decide
@@ -106,7 +107,7 @@ const hasTestimonials = SITE.features.testimonials && TESTIMONIALS.length > 0;
 {/* `loader`: il velo di prima visita, che questa pagina chiede e nessun'altra
     — è l'unica con un ritratto a tutto schermo e una coreografia d'ingresso da
     proteggere. Vedi Loader.astro per il difetto misurato che lo motiva. */}
-<BaseLayout description={SITE.description} loader>
+<BaseLayout description={SITE.description} jsonLd={schemaHome()} loader>
   <Handoff name="intro" tone="canvas">
     <HeroHome slot="out" />
     <div slot="in">
